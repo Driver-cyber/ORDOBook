@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORDOBOOK — Build Progress</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;600;700;800&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0b0d;
+  --surface: #13151a;
+  --surface2: #1a1d24;
+  --surface3: #21252e;
+  --border: #272b36;
+  --border-dim: #1a1d24;
+  --gold: #c8a96e;
+  --gold-dim: #6b5535;
+  --gold-pale: rgba(200,169,110,0.08);
+  --green: #52b788;
+  --green-dim: rgba(82,183,136,0.12);
+  --yellow: #e9c46a;
+  --yellow-dim: rgba(233,196,106,0.1);
+  --red: #e07a5f;
+  --blue: #6ba3d6;
+  --text: #eeecea;
+  --text2: #9098aa;
+  --text3: #555d6e;
+  --radius: 10px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Lora', serif;
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  padding: 0;
+}
+
+/* GRAIN OVERLAY */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.4;
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 32px 80px;
+}
+
+/* HEADER */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 48px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-left {}
+
+.wordmark {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+
+.page-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.page-subtitle {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+}
+
+.header-stats {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  padding-top: 4px;
+}
+
+.hstat {
+  text-align: right;
+}
+
+.hstat-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--gold);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.hstat-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text3);
+}
+
+/* OVERALL PROGRESS BAR */
+.progress-section {
+  margin-bottom: 40px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.progress-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text3);
+}
+
+.progress-pct {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--gold);
+}
+
+.progress-track {
+  height: 4px;
+  background: var(--surface3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+/* PHASE GRID */
+.phases {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 48px;
+}
+
+.phase-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.phase-card.active { border-color: var(--gold-dim); }
+.phase-card.complete { border-color: rgba(82,183,136,0.3); }
+
+.phase-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.phase-num {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text3);
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.phase-card.active .phase-num {
+  background: var(--gold-pale);
+  border-color: var(--gold-dim);
+  color: var(--gold);
+}
+
+.phase-card.complete .phase-num {
+  background: var(--green-dim);
+  border-color: rgba(82,183,136,0.3);
+  color: var(--green);
+}
+
+.phase-info { flex: 1; }
+
+.phase-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.phase-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.06em;
+}
+
+.phase-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.phase-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  padding: 3px 9px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.badge-notstarted { background: var(--surface3); color: var(--text3); border: 1px solid var(--border); }
+.badge-active { background: var(--gold-pale); color: var(--gold); border: 1px solid var(--gold-dim); }
+.badge-complete { background: var(--green-dim); color: var(--green); border: 1px solid rgba(82,183,136,0.3); }
+
+.phase-progress-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+  min-width: 80px;
+}
+
+.mini-track {
+  flex: 1;
+  height: 3px;
+  background: var(--surface3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.mini-fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 2px;
+  transition: width 0.4s;
+}
+
+.phase-card.complete .mini-fill { background: var(--green); }
+
+.chevron {
+  color: var(--text3);
+  transition: transform 0.2s;
+  font-size: 12px;
+}
+
+.phase-card.open .chevron { transform: rotate(180deg); }
+
+/* TASKS */
+.phase-tasks {
+  display: none;
+  padding: 0 22px 18px;
+  border-top: 1px solid var(--border-dim);
+}
+
+.phase-card.open .phase-tasks { display: block; }
+
+.tasks-context {
+  padding: 14px 0 16px;
+  font-size: 12px;
+  color: var(--text3);
+  font-style: italic;
+  border-bottom: 1px solid var(--border-dim);
+  margin-bottom: 14px;
+  line-height: 1.7;
+}
+
+.task-group-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text3);
+  margin: 16px 0 8px;
+}
+
+.task-group-label:first-of-type { margin-top: 0; }
+
+.task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-bottom: 2px;
+}
+
+.task-item:hover { background: var(--surface2); }
+
+.task-check {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  margin-top: 1px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  background: transparent;
+}
+
+.task-item.done .task-check {
+  background: var(--green-dim);
+  border-color: rgba(82,183,136,0.4);
+  color: var(--green);
+}
+
+.checkmark { display: none; font-size: 10px; }
+.task-item.done .checkmark { display: block; }
+
+.task-text {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.task-item.done .task-text {
+  color: var(--text3);
+  text-decoration: line-through;
+  text-decoration-color: var(--text3);
+}
+
+.task-note {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 2px;
+}
+
+/* FOCUS BOX */
+.focus-box {
+  background: var(--gold-pale);
+  border: 1px solid var(--gold-dim);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 40px;
+}
+
+.focus-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+
+.focus-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.focus-desc {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.7;
+}
+
+.focus-next {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--gold-dim);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--gold);
+}
+
+/* ACHIEVEMENTS */
+.achievements-section { margin-bottom: 48px; }
+
+.section-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--text3);
+  margin-bottom: 16px;
+}
+
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.achievement {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  transition: all 0.2s;
+  opacity: 0.35;
+}
+
+.achievement.unlocked {
+  opacity: 1;
+  border-color: var(--gold-dim);
+  background: var(--gold-pale);
+}
+
+.achievement-icon { font-size: 24px; margin-bottom: 8px; }
+
+.achievement-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.achievement-desc {
+  font-size: 10px;
+  color: var(--text3);
+  line-height: 1.4;
+}
+
+/* GUARDRAILS */
+.guardrails {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  margin-bottom: 40px;
+}
+
+.guardrail-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guardrail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.guardrail-item {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.6;
+}
+
+.guardrail-icon { color: var(--red); flex-shrink: 0; margin-top: 2px; }
+.guardrail-green { color: var(--green); }
+
+/* PHASE TIMING GUIDE */
+.timing-guide {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.timing-header {
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text3);
+}
+
+.timing-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 100px 140px;
+  gap: 16px;
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--border-dim);
+  align-items: center;
+  font-size: 12px;
+}
+
+.timing-row:last-child { border-bottom: none; }
+.timing-row.header-row { background: var(--surface2); }
+
+.timing-phase { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600; color: var(--text); }
+.timing-focus { color: var(--text2); font-size: 11px; line-height: 1.5; }
+.timing-duration { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); }
+.timing-gate {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+  font-style: italic;
+}
+
+.do-tag {
+  display: inline-block;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-right: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.do { background: var(--green-dim); color: var(--green); }
+.dont { background: rgba(224,122,95,0.1); color: var(--red); }
+
+/* FOOTER */
+.footer {
+  margin-top: 64px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-left {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+}
+
+.footer-motto {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 12px;
+  color: var(--gold);
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div class="wordmark">ORDOBOOK</div>
+      <div class="page-title">Build Progress</div>
+      <div class="page-subtitle" id="last-updated">Last updated: open and check tasks to track progress</div>
+    </div>
+    <div class="header-stats">
+      <div class="hstat">
+        <div class="hstat-val" id="total-pct">0%</div>
+        <div class="hstat-label">Overall</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val" id="tasks-done">0</div>
+        <div class="hstat-label">Tasks Done</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val" id="current-phase-label">P1</div>
+        <div class="hstat-label">Active Phase</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRESS BAR -->
+  <div class="progress-section">
+    <div class="progress-header">
+      <span class="progress-label">Total Project Completion</span>
+      <span class="progress-pct" id="pct-label">0 / 0 tasks</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="main-bar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- CURRENT FOCUS -->
+  <div class="focus-box" id="focus-box">
+    <div class="focus-label">▸ Current Focus</div>
+    <div class="focus-title" id="focus-title">Phase 1 — Foundation</div>
+    <div class="focus-desc" id="focus-desc">Set up the project skeleton. Get something real running in a browser before touching any financial logic. This phase is about infrastructure, not features.</div>
+    <div class="focus-next" id="focus-next">▸ Next action: Read CLAUDE.md → give Phase 1 prompt to Claude Code</div>
+  </div>
+
+  <!-- PHASES -->
+  <div class="phases" id="phases-container">
+
+    <!-- PHASE 1 -->
+    <div class="phase-card active open" data-phase="1">
+      <div class="phase-header" onclick="togglePhase(this)">
+        <div class="phase-num">1</div>
+        <div class="phase-info">
+          <div class="phase-title">Foundation</div>
+          <div class="phase-meta">Weeks 1–4 · Infrastructure & Client Profiles</div>
+        </div>
+        <div class="phase-right">
+          <div class="phase-progress-mini">
+            <div class="mini-track"><div class="mini-fill" style="width:0%" id="p1-bar"></div></div>
+            <span id="p1-pct">0%</span>
+          </div>
+          <span class="phase-badge badge-active">Active</span>
+          <span class="chevron">▾</span>
+        </div>
+      </div>
+      <div class="phase-tasks">
+        <div class="tasks-context">Goal: get a real URL in your browser showing an ORDOBOOK screen with a client you created. Nothing else. Color scheme, polish, and financial logic come later.</div>
+
+        <div class="task-group-label">Environment Setup</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Install Node.js, Python 3.11+, and PostgreSQL on your computer</div><div class="task-note">Claude Code will give you step-by-step commands</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Create ORDOBOOK project folder, add CLAUDE.md and DECISIONS.md</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Add branding assets to /branding subfolder when back on main laptop</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Initialize React (Vite) frontend project</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Initialize FastAPI backend project</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Connect PostgreSQL database locally</div></div>
+        </div>
+
+        <div class="task-group-label">Deployment</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Create Railway account and deploy skeleton app</div><div class="task-note">You'll have a real URL — show it to someone, celebrate</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Confirm frontend and backend are talking to each other in production</div></div>
+        </div>
+
+        <div class="task-group-label">Client Profile Module</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build database schema: clients, fiscal years, months, periods</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build "Create Client" form (name, fiscal year, terminology config)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build Client Roster screen (list of clients with basic status)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build Client Workspace shell (sidebar navigation, year/month structure)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Apply branding assets to UI (colors, logo, typography)</div><div class="task-note">⚠ Do not finalize colors before branding files are added</div></div>
+        </div>
+
+        <div class="task-group-label">Phase Gate</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">✓ Gate: Can you create "Vetter Plumbing" as a client and see it in the roster at your Railway URL?</div><div class="task-note">If yes → Phase 1 complete. Move to Phase 2.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 2 -->
+    <div class="phase-card" data-phase="2">
+      <div class="phase-header" onclick="togglePhase(this)">
+        <div class="phase-num">2</div>
+        <div class="phase-info">
+          <div class="phase-title">Data Ingestion</div>
+          <div class="phase-meta">Weeks 5–10 · QB Import, Account Mapping, Actuals</div>
+        </div>
+        <div class="phase-right">
+          <div class="phase-progress-mini">
+            <div class="mini-track"><div class="mini-fill" style="width:0%" id="p2-bar"></div></div>
+            <span id="p2-pct">0%</span>
+          </div>
+          <span class="phase-badge badge-notstarted">Not Started</span>
+          <span class="chevron">▾</span>
+        </div>
+      </div>
+      <div class="phase-tasks">
+        <div class="tasks-context">Goal: upload a real QuickBooks export for Vetter Plumbing January 2026, map the accounts, and see the parsed Actuals stored in the database. No calculations yet — just clean data in, clean data stored.</div>
+
+        <div class="task-group-label">File Upload</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build file upload interface (Balance Sheet, P&L, Transactions — 3 drop zones)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build QB .xlsx parser for Balance Sheet</div><div class="task-note">Test against Vetter Plumbing January 2026 export</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build QB .xlsx parser for Profit & Loss</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build QB .xlsx parser for Transaction count report</div></div>
+        </div>
+
+        <div class="task-group-label">Account Mapping</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build auto-mapping algorithm (QB account name → ORDOBOOK category)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build mapping review UI (confidence levels, override dropdowns)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Save confirmed mapping to client profile</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Auto-apply saved mapping on future uploads (no re-review for known accounts)</div></div>
+        </div>
+
+        <div class="task-group-label">Actuals Storage & Review</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Store parsed Actuals in database (tagged: client, year, month)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build Actuals review screen (confirm parsed numbers before committing)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build import workflow step indicator (Uploaded → Mapped → Reviewed)</div></div>
+        </div>
+
+        <div class="task-group-label">Phase Gate</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">✓ Gate: Upload Vetter Plumbing Jan 2026 exports → map accounts → confirm → verify numbers in DB match workbook</div><div class="task-note">Numbers must match. Do not proceed if they don't.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 3 -->
+    <div class="phase-card" data-phase="3">
+      <div class="phase-header" onclick="togglePhase(this)">
+        <div class="phase-num">3</div>
+        <div class="phase-info">
+          <div class="phase-title">Analytical Engine</div>
+          <div class="phase-meta">Weeks 11–20 · Forecast, God Mode, Audit Trail</div>
+        </div>
+        <div class="phase-right">
+          <div class="phase-progress-mini">
+            <div class="mini-track"><div class="mini-fill" style="width:0%" id="p3-bar"></div></div>
+            <span id="p3-pct">0%</span>
+          </div>
+          <span class="phase-badge badge-notstarted">Not Started</span>
+          <span class="chevron">▾</span>
+        </div>
+      </div>
+      <div class="phase-tasks">
+        <div class="tasks-context">Longest phase. Most critical. Translate each workbook tab into Python one at a time, verify against the reference workbook after each one. Do not rush. Do not skip verification.</div>
+
+        <div class="task-group-label">Engine Architecture</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Design intermediate calculation storage schema (every step saved, not just outputs)</div><div class="task-note">Non-negotiable architectural requirement — enables God Mode and audit trail</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Set up Python decimal module throughout (no floating point in financial math)</div></div>
+        </div>
+
+        <div class="task-group-label">Revenue Model</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Translate Revenue / COGS / Payroll tab logic to Python</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Verify: job count × avg job value = revenue matches workbook for Jan 2026</div></div>
+        </div>
+
+        <div class="task-group-label">Overhead & Payroll Models</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Translate Overhead tab logic (161 rows — take your time)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Verify overhead totals match workbook</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build per-client overhead configuration (variable line items per client)</div></div>
+        </div>
+
+        <div class="task-group-label">Forecast Assembly</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build 12-month Forecast engine (actuals + forward model)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build manual override interface (edit any driver, see downstream updates)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Verify full 12-month forecast totals match workbook for same inputs</div></div>
+        </div>
+
+        <div class="task-group-label">Audit Trail & God Mode</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build Level 1: hover popover showing top-level formula for any number</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build Level 2: click-through component breakdown panel</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build Level 3: God Mode toggle (app menu, not workspace UI)</div></div>
+        </div>
+
+        <div class="task-group-label">Phase Gate</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">✓ Gate: Full Vetter Plumbing 2026 forecast matches workbook. Every number traceable in God Mode.</div><div class="task-note">Both conditions required. Non-negotiable.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 4 -->
+    <div class="phase-card" data-phase="4">
+      <div class="phase-header" onclick="togglePhase(this)">
+        <div class="phase-num">4</div>
+        <div class="phase-info">
+          <div class="phase-title">Scoring, Targets & Scenario Sandbox</div>
+          <div class="phase-meta">Weeks 21–24 · Scoreboard, Grading, What-If</div>
+        </div>
+        <div class="phase-right">
+          <div class="phase-progress-mini">
+            <div class="mini-track"><div class="mini-fill" style="width:0%" id="p4-bar"></div></div>
+            <span id="p4-pct">0%</span>
+          </div>
+          <span class="phase-badge badge-notstarted">Not Started</span>
+          <span class="chevron">▾</span>
+        </div>
+      </div>
+      <div class="phase-tasks">
+        <div class="tasks-context">Goal: set annual targets for Vetter Plumbing, assign grades for January, and see a Scoreboard that looks like something you'd actually show a client.</div>
+
+        <div class="task-group-label">Targets</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build Annual Targets interface (set target per KPI per fiscal year)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Connect targets to forecast comparisons (YTD vs Target, Forecast vs Target)</div></div>
+        </div>
+
+        <div class="task-group-label">Scoring</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build grade assignment UI (Green / Yellow / Red per metric)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build Scoreboard view (visual summary, grade display)</div></div>
+        </div>
+
+        <div class="task-group-label">Scenario Sandbox</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build Scenario Sandbox (isolated from working forecast — no overwrites)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Support current-year and 2–3 year forward scenarios</div></div>
+        </div>
+
+        <div class="task-group-label">Advisor Tools</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build Advisor Context Layer (private notes per client, never exported)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build Meeting Mode toggle (app menu, distraction-free view)</div></div>
+        </div>
+
+        <div class="task-group-label">Phase Gate</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">✓ Gate: Set Vetter Plumbing 2026 targets → grade January → view Scoreboard → run one scenario → use Meeting Mode</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 5 -->
+    <div class="phase-card" data-phase="5">
+      <div class="phase-header" onclick="togglePhase(this)">
+        <div class="phase-num">5</div>
+        <div class="phase-info">
+          <div class="phase-title">Deliverable Generation</div>
+          <div class="phase-meta">Weeks 25–30 · PDFs, Action Plan, JSON Export</div>
+        </div>
+        <div class="phase-right">
+          <div class="phase-progress-mini">
+            <div class="mini-track"><div class="mini-fill" style="width:0%" id="p5-bar"></div></div>
+            <span id="p5-pct">0%</span>
+          </div>
+          <span class="phase-badge badge-notstarted">Not Started</span>
+          <span class="chevron">▾</span>
+        </div>
+      </div>
+      <div class="phase-tasks">
+        <div class="tasks-context">Final phase. The whole point. You should be able to complete a full monthly cycle for a real client and send them deliverables you're proud of.</div>
+
+        <div class="task-group-label">PDF Templates</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Design Scoreboard PDF template (HTML/CSS → WeasyPrint)</div><div class="task-note">Apply branding. This is client-facing.</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Design 12-Month Forecast PDF template</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Design Action Plan PDF template</div></div>
+        </div>
+
+        <div class="task-group-label">Action Plan Editor</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build Action Plan structured editor (Objective, Current Results, Next Steps, Owner, Due Date, Notes)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Confirm Meeting Mode uses Action Plan editor correctly</div></div>
+        </div>
+
+        <div class="task-group-label">Export & JSON</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build PDF export flow (all three deliverables)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Build structured JSON export (versioned, for Phase 2 handoff)</div></div>
+        </div>
+
+        <div class="task-group-label">Final Gate — Ship It</div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">✓ Gate: Complete a full monthly cycle for a real client. Import → Map → Review → Forecast → Score → Action Plan → Export PDFs you'd send to that client.</div><div class="task-note">🎉 If you get here, ORDOBOOK v1 is done.</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ACHIEVEMENTS -->
+  <div class="achievements-section">
+    <div class="section-title">Achievements</div>
+    <div class="achievements-grid">
+      <div class="achievement" id="ach-deployed">
+        <div class="achievement-icon">🚀</div>
+        <div class="achievement-name">First Deploy</div>
+        <div class="achievement-desc">ORDOBOOK is live at a real URL</div>
+      </div>
+      <div class="achievement" id="ach-client">
+        <div class="achievement-icon">📁</div>
+        <div class="achievement-name">First Client</div>
+        <div class="achievement-desc">Created first client profile</div>
+      </div>
+      <div class="achievement" id="ach-import">
+        <div class="achievement-icon">📊</div>
+        <div class="achievement-name">Data Ingested</div>
+        <div class="achievement-desc">First QB export parsed and stored</div>
+      </div>
+      <div class="achievement" id="ach-mapped">
+        <div class="achievement-icon">🗺️</div>
+        <div class="achievement-name">Cartographer</div>
+        <div class="achievement-desc">First account mapping confirmed</div>
+      </div>
+      <div class="achievement" id="ach-engine">
+        <div class="achievement-icon">⚙️</div>
+        <div class="achievement-name">Engine Running</div>
+        <div class="achievement-desc">Forecast matches reference workbook</div>
+      </div>
+      <div class="achievement" id="ach-godmode">
+        <div class="achievement-icon">👁️</div>
+        <div class="achievement-name">God Mode</div>
+        <div class="achievement-desc">Every number traceable to its source</div>
+      </div>
+      <div class="achievement" id="ach-scoreboard">
+        <div class="achievement-icon">🟢</div>
+        <div class="achievement-name">First Scoreboard</div>
+        <div class="achievement-desc">Graded a real client month</div>
+      </div>
+      <div class="achievement" id="ach-shipped">
+        <div class="achievement-icon">🏆</div>
+        <div class="achievement-name">Ordo ab Chao</div>
+        <div class="achievement-desc">Completed full cycle. ORDOBOOK v1 shipped.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GUARDRAILS -->
+  <div class="guardrails">
+    <div class="guardrail-title">⚑ Phase Guardrails — What To Do (And Not Do) At Each Stage</div>
+    <div class="guardrail-list">
+      <div class="guardrail-item">
+        <span class="guardrail-icon">▸</span>
+        <div><span class="do-tag do">DO</span> Apply branding in Phase 1 once the skeleton is working. <span class="do-tag dont">DON'T</span> spend Phase 1 perfecting the color palette before the app even runs.</div>
+      </div>
+      <div class="guardrail-item">
+        <span class="guardrail-icon">▸</span>
+        <div><span class="do-tag do">DO</span> Verify parser outputs against your real workbook in Phase 2. <span class="do-tag dont">DON'T</span> start building the forecast engine until parsing is confirmed correct.</div>
+      </div>
+      <div class="guardrail-item">
+        <span class="guardrail-icon">▸</span>
+        <div><span class="do-tag do">DO</span> Build the audit trail storage in Phase 3 before any calculation logic. <span class="do-tag dont">DON'T</span> add God Mode as an afterthought — it requires the right data structure from day one.</div>
+      </div>
+      <div class="guardrail-item">
+        <span class="guardrail-icon">▸</span>
+        <div><span class="do-tag do">DO</span> Treat every phase gate as a real checkpoint — stop and verify before proceeding. <span class="do-tag dont">DON'T</span> skip the gate because "it's probably fine."</div>
+      </div>
+      <div class="guardrail-item">
+        <span class="guardrail-icon">▸</span>
+        <div><span class="do-tag dont">DON'T</span> add features mid-phase. Write new ideas in DECISIONS.md Parking Lot and keep moving. <span class="do-tag do">DO</span> ask Claude Code "are we on track with the current phase?" if something feels off.</div>
+      </div>
+      <div class="guardrail-item">
+        <span class="guardrail-icon">▸</span>
+        <div><span class="do-tag do">DO</span> update this dashboard and DECISIONS.md after every meaningful Claude Code session. <span class="do-tag dont">DON'T</span> let more than ~20 messages accumulate without a context reset.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-left">ORDOBOOK · Build Progress Dashboard · v1.0</div>
+    <div class="footer-motto">Ordo ab Chao</div>
+  </div>
+
+</div>
+
+<script>
+// State
+const STATE_KEY = 'ordobook_progress';
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STATE_KEY)) || {}; } catch { return {}; }
+}
+
+function saveState(state) {
+  localStorage.setItem(STATE_KEY, JSON.stringify(state));
+}
+
+// Task toggling
+function toggleTask(el) {
+  const state = loadState();
+  const id = getTaskId(el);
+  const isDone = el.classList.contains('done');
+  el.classList.toggle('done', !isDone);
+  state[id] = !isDone;
+  saveState(state);
+  updateAll();
+}
+
+function getTaskId(el) {
+  const tasks = Array.from(document.querySelectorAll('.task-item'));
+  return 'task_' + tasks.indexOf(el);
+}
+
+// Phase toggle
+function togglePhase(headerEl) {
+  const card = headerEl.closest('.phase-card');
+  card.classList.toggle('open');
+}
+
+// Update all metrics
+function updateAll() {
+  const state = loadState();
+  const allTasks = Array.from(document.querySelectorAll('.task-item'));
+  const totalTasks = allTasks.length;
+  let totalDone = 0;
+
+  allTasks.forEach((t, i) => {
+    const id = 'task_' + i;
+    if (state[id]) {
+      t.classList.add('done');
+      totalDone++;
+    } else {
+      t.classList.remove('done');
+    }
+  });
+
+  // Overall
+  const pct = totalTasks > 0 ? Math.round((totalDone / totalTasks) * 100) : 0;
+  document.getElementById('total-pct').textContent = pct + '%';
+  document.getElementById('tasks-done').textContent = totalDone;
+  document.getElementById('main-bar').style.width = pct + '%';
+  document.getElementById('pct-label').textContent = totalDone + ' / ' + totalTasks + ' tasks';
+
+  // Per-phase
+  const phases = [1,2,3,4,5];
+  let activePhase = 1;
+  phases.forEach(p => {
+    const card = document.querySelector(`[data-phase="${p}"]`);
+    const phaseTasks = Array.from(card.querySelectorAll('.task-item'));
+    const phaseDone = phaseTasks.filter(t => t.classList.contains('done')).length;
+    const phaseTotal = phaseTasks.length;
+    const phasePct = phaseTotal > 0 ? Math.round((phaseDone / phaseTotal) * 100) : 0;
+
+    document.getElementById(`p${p}-bar`).style.width = phasePct + '%';
+    document.getElementById(`p${p}-pct`).textContent = phasePct + '%';
+
+    const badge = card.querySelector('.phase-badge');
+    if (phasePct === 100) {
+      badge.className = 'phase-badge badge-complete';
+      badge.textContent = 'Complete';
+      card.classList.add('complete');
+      card.classList.remove('active');
+    } else if (phasePct > 0) {
+      badge.className = 'phase-badge badge-active';
+      badge.textContent = 'Active';
+      card.classList.add('active');
+      card.classList.remove('complete');
+      activePhase = p;
+    } else {
+      badge.className = 'phase-badge badge-notstarted';
+      badge.textContent = 'Not Started';
+      card.classList.remove('active', 'complete');
+    }
+  });
+
+  document.getElementById('current-phase-label').textContent = 'P' + activePhase;
+
+  // Achievements
+  const checkAchievement = (id, condition) => {
+    document.getElementById(id)?.classList.toggle('unlocked', condition);
+  };
+
+  const t = (i) => !!state['task_' + i];
+
+  // Map task indices to achievements based on position
+  const p1tasks = Array.from(document.querySelector('[data-phase="1"]').querySelectorAll('.task-item'));
+  const p1start = allTasks.indexOf(p1tasks[0]);
+  const p2tasks = Array.from(document.querySelector('[data-phase="2"]').querySelectorAll('.task-item'));
+  const p2start = allTasks.indexOf(p2tasks[0]);
+  const p3tasks = Array.from(document.querySelector('[data-phase="3"]').querySelectorAll('.task-item'));
+  const p3start = allTasks.indexOf(p3tasks[0]);
+  const p4tasks = Array.from(document.querySelector('[data-phase="4"]').querySelectorAll('.task-item'));
+  const p4start = allTasks.indexOf(p4tasks[0]);
+  const p5tasks = Array.from(document.querySelector('[data-phase="5"]').querySelectorAll('.task-item'));
+  const p5start = allTasks.indexOf(p5tasks[0]);
+
+  checkAchievement('ach-deployed', state['task_' + (p1start + 6)]);
+  checkAchievement('ach-client', state['task_' + (p1start + 9)]);
+  checkAchievement('ach-import', state['task_' + (p2start + 7)]);
+  checkAchievement('ach-mapped', state['task_' + (p2start + 5)]);
+  checkAchievement('ach-engine', state['task_' + (p3start + 10)]);
+  checkAchievement('ach-godmode', state['task_' + (p3start + 14)]);
+  checkAchievement('ach-scoreboard', state['task_' + (p4start + 3)]);
+  checkAchievement('ach-shipped', state['task_' + (p5start + p5tasks.length - 1)]);
+
+  // Last updated
+  if (totalDone > 0) {
+    document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+  }
+}
+
+// Init
+updateAll();
+
+// Open active phase by default
+document.querySelectorAll('.phase-card.active').forEach(c => c.classList.add('open'));
+</script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ORDOBOOK Logo Workshop</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --green: #2ebd6b; --cyan: #3dd6c8; --purple: #7b5ea7;
+  --dark: #0e0f11; --surface: #16181c; --border: #2a2d35;
+  --text: #f0f0ee;
+}
+body { font-family: 'Montserrat', sans-serif; background: #111214; color: var(--text); padding: 48px 40px 80px; }
+.eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase; color: var(--green); margin-bottom: 8px; }
+.page-title { font-size: 36px; font-weight: 900; margin-bottom: 12px; }
+.intro { font-size: 13px; color: #888; line-height: 1.7; max-width: 620px; margin-bottom: 56px; }
+.dir-label { font-size: 9px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #444; border-bottom: 1px solid #1e2025; padding-bottom: 10px; margin-bottom: 24px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 48px; }
+.card { border-radius: 12px; padding: 32px; }
+.card-dark { background: var(--surface); border: 1px solid var(--border); }
+.card-light { background: #f5f5f0; border: 1px solid #ddd; }
+.card-label { font-size: 9px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #444; margin-bottom: 24px; }
+.card-light .card-label { color: #aaa; }
+.note { font-size: 11px; color: #444; line-height: 1.6; margin-top: 20px; font-style: italic; }
+.card-light .note { color: #999; }
+
+/* A — weight contrast */
+.logo-a { display: flex; align-items: baseline; }
+.logo-a .o { font-weight: 900; letter-spacing: -0.02em; }
+.logo-a .b { font-weight: 300; letter-spacing: -0.02em; }
+.card-dark .logo-a .o { color: #fff; }
+.card-dark .logo-a .b { color: rgba(255,255,255,0.35); }
+.card-light .logo-a .o { color: #1a1a1a; }
+.card-light .logo-a .b { color: rgba(0,0,0,0.28); }
+
+/* B — green ORDO */
+.logo-b { display: flex; align-items: baseline; }
+.logo-b .o { font-weight: 900; color: var(--green); letter-spacing: -0.02em; }
+.logo-b .b { font-weight: 800; letter-spacing: -0.02em; }
+.card-dark .logo-b .b { color: rgba(255,255,255,0.85); }
+.card-light .logo-b .b { color: #1a1a1a; }
+
+/* C — stacked */
+.logo-c { display: flex; flex-direction: column; line-height: 1; }
+.logo-c .o { font-weight: 900; letter-spacing: 0.01em; }
+.logo-c .b { font-size: 10px; font-weight: 700; letter-spacing: 0.38em; text-transform: uppercase; color: var(--green); margin-top: 5px; }
+.card-dark .logo-c .o { color: #fff; }
+.card-light .logo-c .o { color: #1a1a1a; }
+
+/* D — icon + wordmark */
+.logo-d { display: flex; align-items: center; gap: 12px; }
+.icon { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; flex-shrink: 0; }
+.icon .ce { background: rgba(255,255,255,0.06); border-radius: 3px; }
+.card-light .icon .ce { background: rgba(0,0,0,0.07); }
+.icon .cg { border: 2px solid var(--green); border-radius: 3px; position: relative; }
+.icon .cg::after { content:''; position:absolute; inset:4px; border-radius:50%; border:1.5px solid var(--green); }
+.icon .cp { border: 2px solid var(--purple); border-radius: 3px; position: relative; }
+.icon .cp::after { content:''; position:absolute; inset:4px; border-radius:50%; border:1.5px solid var(--purple); }
+.logo-d .wm { display: flex; flex-direction: column; gap: 2px; }
+.logo-d .wm .o { font-weight: 900; line-height: 1; }
+.logo-d .wm .b { font-size: 8px; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; }
+.card-dark .logo-d .wm .o { color: #fff; }
+.card-light .logo-d .wm .o { color: #1a1a1a; }
+.green-accent .wm .b { color: var(--green); }
+.purple-accent .wm .b { color: var(--purple); }
+
+/* E — dot separator */
+.logo-e { display: flex; align-items: center; }
+.logo-e .o { font-weight: 900; letter-spacing: -0.01em; }
+.logo-e .dot { font-weight: 900; color: var(--green); margin: 0 3px 2px; line-height: 1; }
+.logo-e .b { font-weight: 800; letter-spacing: -0.01em; }
+.card-dark .logo-e .o { color: #fff; }
+.card-dark .logo-e .b { color: rgba(255,255,255,0.5); }
+.card-light .logo-e .o { color: #1a1a1a; }
+.card-light .logo-e .b { color: rgba(0,0,0,0.4); }
+
+/* sidebar miniature */
+.sidebar-row { display: grid; grid-template-columns: repeat(4, auto) 1fr; gap: 20px; align-items: start; margin-bottom: 48px; }
+.sidebar { width: 192px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.sidebar-head { padding: 18px 16px; border-bottom: 1px solid var(--border); }
+.sidebar-nav { padding: 10px; display: flex; flex-direction: column; gap: 3px; }
+.sni { height: 26px; border-radius: 5px; background: rgba(255,255,255,0.03); display: flex; align-items: center; padding: 0 10px; gap: 8px; }
+.sni.act { background: rgba(46,189,107,0.09); }
+.sni-dot { width: 9px; height: 9px; border-radius: 2px; background: rgba(255,255,255,0.08); flex-shrink: 0; }
+.sni.act .sni-dot { background: var(--green); }
+.sni-line { height: 5px; border-radius: 3px; background: rgba(255,255,255,0.05); flex: 1; }
+.sni.act .sni-line { background: rgba(46,189,107,0.22); }
+.sb-tag { font-size: 9px; color: #333; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 8px; font-weight: 700; font-family: 'Montserrat', sans-serif; }
+
+.footer-note { font-size: 11px; color: #333; font-style: italic; border-top: 1px solid #1e2025; padding-top: 24px; line-height: 1.7; }
+</style>
+</head>
+<body>
+
+<div class="eyebrow">Brand Workshop</div>
+<div class="page-title">ORDOBOOK Logo Directions</div>
+<p class="intro">Six directions, all rooted in ORDO. Montserrat throughout. Each shown dark (app UI) and light (PDF/document). The goal: ORDOBOOK reads as its own product while ORDO is unmistakably its parent.</p>
+
+<!-- A -->
+<div class="dir-label">A — Weight Contrast · ORDO at 900, BOOK at 300 · No color</div>
+<div class="grid">
+  <div class="card card-dark">
+    <div class="card-label">Dark UI · App Context</div>
+    <div class="logo-a" style="font-size:30px;"><span class="o">ORDO</span><span class="b">BOOK</span></div>
+    <p class="note">One word, two weights. No color required — the contrast does all the work. Timeless, flexible, works at any size.</p>
+  </div>
+  <div class="card card-light">
+    <div class="card-label">Light · PDF / Document</div>
+    <div class="logo-a" style="font-size:30px;"><span class="o">ORDO</span><span class="b">BOOK</span></div>
+    <p class="note">Works reversed, embossed, watermarked. The most versatile direction — no color dependency.</p>
+  </div>
+</div>
+
+<!-- B -->
+<div class="dir-label">B — ORDO in Brand Green · BOOK bold neutral · Color splits the name</div>
+<div class="grid">
+  <div class="card card-dark">
+    <div class="card-label">Dark UI · App Context</div>
+    <div class="logo-b" style="font-size:30px;"><span class="o">ORDO</span><span class="b">BOOK</span></div>
+    <p class="note">Green on ORDO signals the parent brand instantly. BOOK in white says "product." Clear hierarchy, strong color story.</p>
+  </div>
+  <div class="card card-light">
+    <div class="card-label">Light · PDF / Document</div>
+    <div class="logo-b" style="font-size:30px;"><span class="o">ORDO</span><span class="b">BOOK</span></div>
+    <p class="note">Vibrant on white. The green reads as forward momentum — fits a tool built around growth.</p>
+  </div>
+</div>
+
+<!-- C -->
+<div class="dir-label">C — Stacked · ORDO dominant · BOOK as spaced product label</div>
+<div class="grid">
+  <div class="card card-dark">
+    <div class="card-label">Dark UI · App Context</div>
+    <div class="logo-c"><span class="o" style="font-size:32px;">ORDO</span><span class="b">BOOK</span></div>
+    <p class="note">ORDO takes full authority. BOOK is the product designation — small, spaced, green. Strong brand-family language.</p>
+  </div>
+  <div class="card card-light">
+    <div class="card-label">Light · PDF / Document</div>
+    <div class="logo-c"><span class="o" style="font-size:32px;">ORDO</span><span class="b">BOOK</span></div>
+    <p class="note">Reads clearly at small sizes — PDF footer, document watermark. Hierarchy is unambiguous.</p>
+  </div>
+</div>
+
+<!-- D green -->
+<div class="dir-label">D — Grid Icon Adapted + Wordmark · Emerald · Circles only (softer than the parent mark)</div>
+<div class="grid">
+  <div class="card card-dark">
+    <div class="card-label">Dark UI · App Context</div>
+    <div class="logo-d green-accent">
+      <div class="icon" style="width:40px;height:40px;gap:4px;">
+        <div class="cg"></div><div class="ce"></div>
+        <div class="ce"></div><div class="cg"></div>
+      </div>
+      <div class="wm"><div class="o" style="font-size:22px;">ORDO</div><div class="b">BOOK</div></div>
+    </div>
+    <p class="note">The ORDO grid icon reinterpreted — circles only, diagonal. Nods to the parent without copying it. Most distinctive at small sidebar sizes.</p>
+  </div>
+  <div class="card card-light">
+    <div class="card-label">Light · PDF / Document</div>
+    <div class="logo-d green-accent">
+      <div class="icon" style="width:40px;height:40px;gap:4px;">
+        <div class="cg"></div><div class="ce"></div>
+        <div class="ce"></div><div class="cg"></div>
+      </div>
+      <div class="wm"><div class="o" style="font-size:22px;color:#1a1a1a;">ORDO</div><div class="b" style="color:var(--green);">BOOK</div></div>
+    </div>
+    <p class="note">Icon becomes the brand anchor at small sizes. Most scalable direction.</p>
+  </div>
+</div>
+
+<!-- D purple -->
+<div class="dir-label">D (alt) — Purple Accent · ORDOBOOK owns its own color within the ORDO family</div>
+<div class="grid">
+  <div class="card card-dark">
+    <div class="card-label">Dark UI · Purple Variant</div>
+    <div class="logo-d purple-accent">
+      <div class="icon" style="width:40px;height:40px;gap:4px;">
+        <div class="cp"></div><div class="ce"></div>
+        <div class="ce"></div><div class="cp"></div>
+      </div>
+      <div class="wm"><div class="o" style="font-size:22px;">ORDO</div><div class="b" style="color:var(--purple);">BOOK</div></div>
+    </div>
+    <p class="note">Purple as ORDOBOOK's dedicated color. Enables a full product palette: green = ORDO parent, purple = ORDOBOOK, cyan = next product.</p>
+  </div>
+  <div class="card card-dark" style="display:flex;align-items:center;justify-content:center;text-align:center;">
+    <div>
+      <div style="font-size:13px;color:#555;line-height:2.4;font-style:italic;">
+        <span style="color:var(--green);">●</span> &nbsp;Emerald &nbsp;→&nbsp; ORDO (parent brand)<br>
+        <span style="color:var(--purple);">●</span> &nbsp;Purple &nbsp;&nbsp;→&nbsp; ORDOBOOK<br>
+        <span style="color:var(--cyan);">●</span> &nbsp;Cyan &nbsp;&nbsp;&nbsp;&nbsp;→&nbsp; Next ORDO product
+      </div>
+      <p class="note" style="margin-top:16px;">Each product distinct. All unmistakably ORDO.</p>
+    </div>
+  </div>
+</div>
+
+<!-- E -->
+<div class="dir-label">E — ORDO·BOOK with Green Midpoint Dot · Separator as sole color touchpoint</div>
+<div class="grid">
+  <div class="card card-dark">
+    <div class="card-label">Dark UI · App Context</div>
+    <div class="logo-e" style="font-size:28px;"><span class="o">ORDO</span><span class="dot">·</span><span class="b">BOOK</span></div>
+    <p class="note">The green dot is the only color. Restrained, precise. Separates without breaking the compound name. Feels premium.</p>
+  </div>
+  <div class="card card-light">
+    <div class="card-label">Light · PDF / Document</div>
+    <div class="logo-e" style="font-size:28px;"><span class="o">ORDO</span><span class="dot">·</span><span class="b">BOOK</span></div>
+    <p class="note">The most understated direction. Works elegantly as a document footer mark or PDF watermark.</p>
+  </div>
+</div>
+
+<!-- Sidebar previews -->
+<div class="dir-label">In-Context · Sidebar at Real Scale</div>
+<div class="sidebar-row">
+
+  <div>
+    <div class="sb-tag">A</div>
+    <div class="sidebar">
+      <div class="sidebar-head">
+        <div class="logo-a" style="font-size:17px;"><span class="o" style="color:#fff;">ORDO</span><span class="b" style="color:rgba(255,255,255,0.32);">BOOK</span></div>
+      </div>
+      <div class="sidebar-nav">
+        <div class="sni act"><div class="sni-dot"></div><div class="sni-line"></div></div>
+        <div class="sni"><div class="sni-dot"></div><div class="sni-line"></div></div>
+        <div class="sni"><div class="sni-dot"></div><div class="sni-line"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="sb-tag">B</div>
+    <div class="sidebar">
+      <div class="sidebar-head">
+        <div class="logo-b" style="font-size:17px;"><span class="o">ORDO</span><span class="b" style="color:rgba(255,255,255,0.85);">BOOK</span></div>
+      </div>
+      <div class="sidebar-nav">
+        <div class="sni act"><div class="sni-dot"></div><div class="sni-line"></div></div>
+        <div class="sni"><div class="sni-dot"></div><div class="sni-line"></div></div>
+        <div class="sni"><div class="sni-dot"></div><div class="sni-line"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="sb-tag">C</div>
+    <div class="sidebar">
+      <div class="sidebar-head">
+        <div class="logo-c"><span class="o" style="font-size:19px;color:#fff;">ORDO</span><span class="b" style="font-size:8px;">BOOK</span></div>
+      </div>
+      <div class="sidebar-nav">
+        <div class="sni act"><div class="sni-dot"></div><div class="sni-line"></div></div>
+        <div class="sni"><div class="sni-dot"></div><div class="sni-line"></div></div>
+        <div class="sni"><div class="sni-dot"></div><div class="sni-line"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="sb-tag">D</div>
+    <div class="sidebar">
+      <div class="sidebar-head">
+        <div class="logo-d green-accent">
+          <div class="icon" style="width:28px;height:28px;gap:2.5px;">
+            <div class="cg"></div><div class="ce"></div>
+            <div class="ce"></div><div class="cg"></div>
+          </div>
+          <div class="wm"><div class="o" style="font-size:15px;color:#fff;">ORDO</div><div class="b" style="font-size:7px;color:var(--green);">BOOK</div></div>
+        </div>
+      </div>
+      <div class="sidebar-nav">
+        <div class="sni act"><div class="sni-dot"></div><div class="sni-line"></div></div>
+        <div class="sni"><div class="sni-dot"></div><div class="sni-line"></div></div>
+        <div class="sni"><div class="sni-dot"></div><div class="sni-line"></div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="footer-note">Tell me which direction(s) feel right — or what to mix from different options — and I'll develop it into the full rebrand of all three mockups.</p>
+
+</body>
+</html>
