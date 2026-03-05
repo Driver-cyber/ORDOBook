@@ -165,7 +165,7 @@ The API integration itself is deferred to Phase 3.
 | Phase | Focus | Est. Duration | Status |
 |---|---|---|---|
 | 1 | Foundation: project setup, hosting, DB, client profiles | Weeks 1-4 | ✅ Complete & verified (2026-03-04) |
-| 2 | Data Ingestion: QB export parsing, account mapping, Actuals | Weeks 5-10 | 🟡 Next up |
+| 2 | Data Ingestion: QB export parsing, account mapping, Actuals | Weeks 5-10 | ✅ Code complete (2026-03-05) — needs end-to-end test |
 | 3 | Analytical Engine: Revenue, Overhead, Payroll, Forecast + manual overrides | Weeks 11-20 | 🔜 Not started |
 | 4 | Scoring & Targets: Targets UI, grading, Scoreboard, What If scenarios | Weeks 21-24 | 🔜 Not started |
 | 5 | Deliverable Generation: PDF exports, Action Plan editor, JSON outputs | Weeks 25-30 | 🔜 Not started |
@@ -221,6 +221,88 @@ to make it structurally impossible to accidentally use them decoratively.
 **Decision:** Fonts loaded via `<link>` in `index.html`, not bundled.
 **Reason:** Simplest approach for now. If offline use or performance becomes a concern,
 swap to self-hosted via `@fontsource` packages without touching component code.
+
+---
+
+## 📦 Phase 2 — Implementation Decisions (2026-03-05)
+
+### [2026-03-05] Monetary storage: BIGINT cents, not DECIMAL or FLOAT
+**Decision:** All monetary values are stored in the database as BIGINT representing integer cents
+(e.g., $1,234.56 → 123456). Conversion uses Python's `decimal` module with `ROUND_HALF_UP`.
+**Reason:** Avoids floating-point rounding errors in storage and retrieval. Integer arithmetic
+is exact. Frontend formats cents to dollars via `/ 100` for display only.
+
+### [2026-03-05] Parser abstraction: pure function, no DB or FastAPI dependency
+**Decision:** `qb_parser.py` is a pure function: `parse_file(bytes, filename) → dict`. It has
+no imports from the app layer (no SQLAlchemy, no FastAPI). All DB writes happen in the router.
+**Reason:** When Phase 3 switches from file upload to QuickBooks API, only the router changes.
+The parser is unchanged. This is the "contained change" required by CLAUDE.md.
+
+### [2026-03-05] QB export format: "Distribution account" row is the canonical header
+**Decision:** The parser identifies column headers by finding the row containing the literal text
+"Distribution account" in column A. This row contains the period labels (e.g., "January 2026").
+**Reason:** All observed QB .xlsx exports use this structure. It is more reliable than row index.
+
+### [2026-03-05] Multi-month imports: all detected months imported in a single operation
+**Decision:** When a QB export contains multiple month columns (e.g., Jan–Dec as the year builds),
+all months are imported together in one upload operation. The user reviews mappings once and
+confirms all periods in a single confirm call.
+**Reason:** The user's workflow builds a YTD export that grows from 1 to 12 columns over the year.
+Re-importing all months on each upload is correct behavior. Existing periods are upserted
+(UNIQUE constraint on client_id + fiscal_year + month ensures no duplicates).
+
+### [2026-03-05] Account mapping key: (client_id, report_type, qb_account_name)
+**Decision:** The `account_mappings` unique key is the triple `(client_id, report_type, qb_account_name)`.
+`report_type` is either `"profit_and_loss"` or `"balance_sheet"`.
+**Reason:** The same account name can appear in both reports with different meanings. In the
+Vetter Plumbing reference case, "2020 Toyota Tundra" appears in P&L (Vehicle Expenses →
+overhead_expenses) AND Balance Sheet (Fixed Assets → total_fixed_assets). A (client_id, name)
+key would create a DB conflict and produce wrong mappings.
+
+### [2026-03-05] sign convention for other_income_expense
+**Decision:** `other_income_expense` is stored as a NET value (income minus expenses). QB reports
+"Other Expenses" as positive numbers, but they reduce net profit. The aggregation in
+`MappingReview.jsx::computeTotals()` applies `sign = -1` when a row belongs to the
+`other_expenses` QB section and maps to `other_income_expense`. All other P&L categories
+are stored as positive values and subtracted in UI calculations (e.g., cost_of_sales
+reduces gross profit by the stored amount).
+**Reason:** Matches user's mental model of "Other Income / (Expense)" as a net line item.
+Simplifies the ActualsDetail display formula: `netProfit = netOperatingProfit + other_income_expense`.
+
+### [2026-03-05] Stateless confirm: frontend aggregates and sends pre-computed totals
+**Decision:** The `/actuals/confirm` endpoint receives pre-computed `categories` totals per period
+(already aggregated cents, keyed by ordobook_category). The frontend performs the aggregation.
+The full `raw_rows` are also sent and stored in `monthly_actuals.raw_data` (JSONB) for audit trail.
+**Reason:** Keeps the backend simple and the audit trail complete. The backend trusts the
+frontend's math (it already validated the source data during upload). The JSONB raw_rows
+allow future reprocessing without re-uploading files.
+
+### [2026-03-05] auto_mapper confidence: "saved" > keyword match > section context
+**Decision:** The auto_mapper applies three levels of priority:
+1. **saved** — a previous confirmed mapping for this client+report_type+account exists → use it, confidence = "saved", needs_review = false
+2. **keyword override** — account name matches a known pattern (e.g., "payroll service" → payroll_expenses, "depreciation" → depreciation_amortization) → confidence = "high", needs_review = false
+3. **section context** — falls through to the section/subsection default → confidence depends on section clarity
+**Reason:** Saved mappings are gold — the advisor already decided. Keywords cover predictable
+non-standard names. Section context handles everything else.
+
+### [2026-03-05] MappingReview route: state-based, not server-stored
+**Decision:** The parsed preview data is passed from UploadPage to MappingReview via React Router
+`navigate(..., { state: { preview, sourceFiles } })`. It is not stored server-side between
+upload and confirm.
+**Reason:** Keeps the backend stateless. The user reviews and confirms in one session.
+If they navigate away, they re-upload — acceptable workflow for an internal tool.
+
+### [2026-03-05] ClientWorkspace as landing hub (formerly direct to profile)
+**Decision:** `/clients/:id` now routes to `ClientWorkspace` — a hub showing imported periods
+and status, with CTAs to Import Data or view a period. Client Profile moved to `/clients/:id/profile`.
+**Reason:** As the app gains more modules, the workspace hub is the right landing page.
+Profile is an administrative screen, not the daily starting point.
+
+### [2026-03-05] File parsing: openpyxl only (pandas not used in parser)
+**Decision:** `qb_parser.py` uses `openpyxl` directly, not `pandas`. `pandas` remains in
+`requirements.txt` for potential future analytical engine use.
+**Reason:** The QB export format is well-understood and the parser needs fine-grained row-by-row
+control over cell types and merged headers. `openpyxl` is sufficient and avoids DataFrame overhead.
 
 ---
 

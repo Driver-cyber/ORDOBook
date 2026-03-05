@@ -3,13 +3,17 @@ import { Routes, Route, useParams } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import ClientRoster from './pages/ClientRoster'
 import ClientProfile from './pages/ClientProfile'
+import ClientWorkspace from './pages/ClientWorkspace'
+import UploadPage from './pages/UploadPage'
+import MappingReview from './pages/MappingReview'
+import ActualsDetail from './pages/ActualsDetail'
 
-function ClientProfileWrapper({ clients, onClientUpdated, onClientDeleted }) {
+function ClientLayout({ clients, onClientUpdated, onClientDeleted, children }) {
   const { id } = useParams()
   return (
     <>
       <Sidebar clients={clients} activeClientId={Number(id)} />
-      <ClientProfile onClientUpdated={onClientUpdated} onClientDeleted={onClientDeleted} />
+      {children({ onClientUpdated, onClientDeleted })}
     </>
   )
 }
@@ -18,14 +22,8 @@ export default function App() {
   const [clients, setClients] = useState([])
 
   const handleClientsLoaded = (data) => setClients(data)
-
-  const handleClientUpdated = (updated) => {
-    setClients(prev => prev.map(c => c.id === updated.id ? updated : c))
-  }
-
-  const handleClientDeleted = (id) => {
-    setClients(prev => prev.filter(c => c.id !== id))
-  }
+  const handleClientUpdated = (updated) => setClients(prev => prev.map(c => c.id === updated.id ? updated : c))
+  const handleClientDeleted = (id) => setClients(prev => prev.filter(c => c.id !== id))
 
   return (
     <div className="flex h-screen overflow-hidden bg-bg">
@@ -35,20 +33,50 @@ export default function App() {
           element={
             <>
               <Sidebar clients={clients} activeClientId={null} />
-              <ClientRoster
-                onClientsLoaded={handleClientsLoaded}
-              />
+              <ClientRoster onClientsLoaded={handleClientsLoaded} />
             </>
           }
         />
         <Route
           path="/clients/:id"
           element={
-            <ClientProfileWrapper
-              clients={clients}
-              onClientUpdated={handleClientUpdated}
-              onClientDeleted={handleClientDeleted}
-            />
+            <ClientLayout clients={clients} onClientUpdated={handleClientUpdated} onClientDeleted={handleClientDeleted}>
+              {() => <ClientWorkspace />}
+            </ClientLayout>
+          }
+        />
+        <Route
+          path="/clients/:id/profile"
+          element={
+            <ClientLayout clients={clients} onClientUpdated={handleClientUpdated} onClientDeleted={handleClientDeleted}>
+              {({ onClientUpdated, onClientDeleted }) => (
+                <ClientProfile onClientUpdated={onClientUpdated} onClientDeleted={onClientDeleted} />
+              )}
+            </ClientLayout>
+          }
+        />
+        <Route
+          path="/clients/:id/upload"
+          element={
+            <ClientLayout clients={clients} onClientUpdated={handleClientUpdated} onClientDeleted={handleClientDeleted}>
+              {() => <UploadPage />}
+            </ClientLayout>
+          }
+        />
+        <Route
+          path="/clients/:id/mapping-review"
+          element={
+            <ClientLayout clients={clients} onClientUpdated={handleClientUpdated} onClientDeleted={handleClientDeleted}>
+              {() => <MappingReview />}
+            </ClientLayout>
+          }
+        />
+        <Route
+          path="/clients/:id/actuals/:year/:month"
+          element={
+            <ClientLayout clients={clients} onClientUpdated={handleClientUpdated} onClientDeleted={handleClientDeleted}>
+              {() => <ActualsDetail />}
+            </ClientLayout>
           }
         />
       </Routes>
