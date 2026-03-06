@@ -50,9 +50,9 @@ export default function Sidebar({ clients, activeClientId }) {
       style={{ background: S.bg, borderRight: `1px solid ${S.border}` }}
     >
       {/* Logo */}
-      <div className="px-3 py-6 flex items-center justify-center" style={{ borderBottom: `1px solid ${S.border}` }}>
+      <div className="px-3 py-5 flex items-center justify-center" style={{ borderBottom: `1px solid ${S.border}` }}>
         <button onClick={() => navigate('/')} className="block w-full">
-          <img src={logo} alt="ORDOBOOK" className="h-16 w-auto object-contain mx-auto" />
+          <img src={logo} alt="ORDOBOOK" className="h-12 w-auto object-contain mx-auto" />
         </button>
       </div>
 

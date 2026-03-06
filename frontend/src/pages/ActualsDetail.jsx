@@ -75,8 +75,11 @@ export default function ActualsDetail() {
 
   // Calculated values
   const grossProfit = data.revenue - data.cost_of_sales
-  const totalOpEx = data.payroll_expenses + data.marketing_expenses + data.depreciation_amortization + data.overhead_expenses
-  const netOperatingProfit = grossProfit - totalOpEx
+  // Use QB's stored "Total Expenses" subtotal (all expense-section accounts, including excluded).
+  // Fall back to summing categories if record predates migration 005.
+  const totalExpenses = data.total_expenses ||
+    (data.payroll_expenses + data.marketing_expenses + data.depreciation_amortization + data.overhead_expenses)
+  const netOperatingProfit = grossProfit - totalExpenses
   const netProfit = netOperatingProfit + data.other_income_expense
   const totalCurrentAssets = data.cash + data.accounts_receivable + data.inventory + data.other_current_assets
   const totalAssets = totalCurrentAssets + data.total_fixed_assets + data.total_other_long_term_assets
@@ -158,7 +161,7 @@ export default function ActualsDetail() {
             <Row label="Marketing" value={data.marketing_expenses} />
             <Row label="Depreciation & Amortization" value={data.depreciation_amortization} />
             <Row label="Overhead" value={data.overhead_expenses} />
-            <Row label="Total OpEx" value={totalOpEx} calculated />
+            <Row label="Total Expenses" value={totalExpenses} calculated />
             <Row label="Net Operating Profit" value={netOperatingProfit} calculated />
             <SectionHeader label="Other" />
             <Row label="Other Income / (Expense)" value={data.other_income_expense} />

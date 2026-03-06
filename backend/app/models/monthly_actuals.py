@@ -20,6 +20,7 @@ class MonthlyActuals(Base):
     marketing_expenses = Column(BigInteger, nullable=False, default=0)
     depreciation_amortization = Column(BigInteger, nullable=False, default=0)
     overhead_expenses = Column(BigInteger, nullable=False, default=0)
+    total_expenses = Column(BigInteger, nullable=False, default=0)  # QB's "Total Expenses" subtotal
     other_income_expense = Column(BigInteger, nullable=False, default=0)
 
     # Balance Sheet (cents)

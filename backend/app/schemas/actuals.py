@@ -33,6 +33,7 @@ class ActualsDetail(BaseModel):
     marketing_expenses: int
     depreciation_amortization: int
     overhead_expenses: int
+    total_expenses: int = 0  # QB's "Total Expenses" subtotal; 0 for records imported before v005
     other_income_expense: int
 
     # Balance Sheet

@@ -47,6 +47,12 @@ function computeTotals(rows, mappings, periods) {
       const sign = (cat === 'other_income_expense' && row.section === 'other_expenses') ? -1 : 1
       cats[cat] = (cats[cat] || 0) + val * sign
     })
+    // QB's "Total Expenses" = ALL rows in the expenses section, regardless of how they're
+    // mapped (including excluded accounts). This matches the "Total Expenses" subtotal
+    // QB shows right before Other Income/Expense and is used for accurate Net Income.
+    cats['total_expenses'] = rows
+      .filter(r => r.row_type === 'line_item' && r.section === 'expenses')
+      .reduce((sum, r) => sum + (r.values[p] || 0), 0)
     result[p] = cats
   })
   return result

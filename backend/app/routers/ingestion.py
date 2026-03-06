@@ -188,6 +188,7 @@ def confirm_import(
             existing_record.marketing_expenses = cats.get("marketing_expenses", 0)
             existing_record.depreciation_amortization = cats.get("depreciation_amortization", 0)
             existing_record.overhead_expenses = cats.get("overhead_expenses", 0)
+            existing_record.total_expenses = cats.get("total_expenses", 0)
             existing_record.other_income_expense = cats.get("other_income_expense", 0)
             existing_record.cash = cats.get("cash", 0)
             existing_record.accounts_receivable = cats.get("accounts_receivable", 0)
@@ -218,6 +219,7 @@ def confirm_import(
                 marketing_expenses=cats.get("marketing_expenses", 0),
                 depreciation_amortization=cats.get("depreciation_amortization", 0),
                 overhead_expenses=cats.get("overhead_expenses", 0),
+                total_expenses=cats.get("total_expenses", 0),
                 other_income_expense=cats.get("other_income_expense", 0),
                 cash=cats.get("cash", 0),
                 accounts_receivable=cats.get("accounts_receivable", 0),
