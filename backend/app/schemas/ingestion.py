@@ -26,6 +26,7 @@ class ParsePreviewResponse(BaseModel):
     periods_detected: list[str]
     rows: list[ParsedRow]
     suggestions: list[MappingSuggestion]
+    job_counts: dict[str, int] = {}  # pre-populated from invoice report if uploaded
 
 
 class MappingDecision(BaseModel):

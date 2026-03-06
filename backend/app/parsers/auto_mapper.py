@@ -91,10 +91,16 @@ def _keyword_override(account_name: str, section: str) -> str | None:
     if section == "equity" and ("net income" in name_lower or "net profit" in name_lower):
         return "net_profit_for_year"
 
+    _BS_SECTIONS = {"assets", "liabilities", "liabilities_equity", "equity"}
+
     for keywords, category in _KEYWORD_OVERRIDES:
         if any(kw in name_lower for kw in keywords):
-            # Don't apply net_income override twice
+            # "net_profit_for_year" only applies in BS equity section
             if category == "net_profit_for_year" and section != "equity":
+                continue
+            # "depreciation_amortization" is a P&L category — don't apply to BS accounts
+            # (e.g. "Accumulated Depreciation" in Fixed Assets maps to total_fixed_assets)
+            if category == "depreciation_amortization" and section in _BS_SECTIONS:
                 continue
             return category
 

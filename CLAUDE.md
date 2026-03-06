@@ -28,29 +28,58 @@ serve the advisor's ability to have that conversation well.
 
 ---
 
+## 🗺 The Two-Product Roadmap
+
+ORDOBOOK is **Product 1** in a two-product ecosystem:
+
+**ORDOBOOK (this project):** Local-first desktop application for financial advisors.
+The analytical engine. Ingests bookkeeping data, runs models, produces deliverables.
+Client data never leaves the advisor's machine unless explicitly exported.
+
+**[Cloud Platform — Product 2]:** Separate SaaS product (future). Ingests ORDOBOOK's
+standardized JSON exports to create live client dashboards, AI-powered advisory
+chatbot, and client-facing 24/7 engagement tools. Build this *after* ORDOBOOK v1 ships.
+
+**Critical principle:** ORDOBOOK is designed to work *forever* without the cloud product.
+The JSON export format is the handoff layer. Keep the products architecturally separate.
+
+---
+
 ## 🏗 Architecture Overview
 
-**Type:** Cloud-hosted web application
-**Access:** Browser-based, device-agnostic (multi-device user)
+**Type:** Local-first desktop application
+**Platform:** Electron (wraps React frontend + embedded FastAPI backend)
+**Access:** Native app on macOS/Windows (future: Linux)
 **Users:** Single primary user (solo consultant), architecture supports future staff access
+**Philosophy:** Client financial data never leaves the advisor's machine. Privacy and security through architecture, not promises.
 
 ### Tech Stack
 
 | Layer | Technology | Rationale |
 |---|---|---|
-| Frontend | React (Vite) | Industry standard, supports future client dashboard |
-| Backend | Python (FastAPI) | Native fit for financial computation and Excel parsing |
-| Database | PostgreSQL | Reliable, financial-grade, widely hosted |
-| Hosting | Railway or Render | Simple deployment, no DevOps required |
+| Desktop Framework | Electron + electron-builder | Industry standard for web→desktop, code signing, auto-updates |
+| Frontend | React (Vite) | Industry standard, supports future client dashboard (Product 2) |
+| Backend | Python (FastAPI) embedded | Runs locally, starts with app, no network required |
+| Database | SQLite | Single-file, local, perfect for single-user, SQL is SQL |
 | File Parsing | pandas + openpyxl | QuickBooks .xlsx export parsing |
-| PDF Generation | WeasyPrint | HTML/CSS templates rendered to PDF |
+| PDF Generation | WeasyPrint | HTML/CSS templates rendered to PDF locally |
 | Styling | Tailwind CSS | Utility-first, consistent with design language |
 
+### Data Storage Locations
+
+| Data Type | Location |
+|-----------|----------|
+| SQLite Database | `~/Library/Application Support/ORDOBOOK/ordobook.db` (macOS) / `%APPDATA%/ORDOBOOK/ordobook.db` (Windows) |
+| Uploaded QB Files | `~/Library/Application Support/ORDOBOOK/imports/` |
+| Generated PDFs | `~/Library/Application Support/ORDOBOOK/exports/` |
+
 ### Data Source
-- **Primary:** QuickBooks Online Excel (.xlsx) exports
+- **Primary:** QuickBooks Online Excel (.xlsx) exports uploaded via drag-drop
 - **Future (Phase 3+):** QuickBooks Online API (OAuth 2.0 direct integration)
 - The ingestion layer MUST be designed so that swapping from file upload to API pull
   is a contained change, not a rebuild. Abstract the data source behind a clean interface.
+
+> **Dev note:** Current development setup uses PostgreSQL for convenience. Migration to SQLite happens when Electron packaging begins. The ORM layer (SQLAlchemy) makes this a contained change.
 
 ---
 
@@ -104,11 +133,12 @@ Excel replacement, reject it. We are building something better.
 ## 📦 Module Definitions
 
 ### Module 1 — Client Foundation
-- Client profile (name, fiscal year, terminology config)
+- Client profile (name, fiscal year, terminology config) stored in SQLite
 - Account mapping interface: upload QB Balance Sheet/P&L → review auto-mapped accounts
-  → confirm/override → save mapping to client profile
-- Account mapping persists and is applied automatically to future uploads for that client
-- Annual targets (set per metric, per fiscal year)
+  → confirm/override → save mapping to client profile in SQLite
+- Account mapping persists in database and is applied automatically to future uploads for that client
+- Annual targets (set per metric, per fiscal year) stored in SQLite
+- All data stored locally in `~/Library/Application Support/ORDOBOOK/ordobook.db`
 
 ### Module 2 — Data Ingestion
 - Upload interface: Balance Sheet (.xlsx), P&L (.xlsx), Transaction count report (.xlsx)
@@ -174,6 +204,10 @@ with checkboxes to tick off together. Right panel: live editor for the new Actio
 Hit "End Meeting" to save the draft. Nothing else visible. No editing of forecasts,
 no accidentally triggering other functions. Calm and focused.
 
+> **Clarification:** Meeting Mode is a screen-share friendly UI. The advisor opens it
+> and shares their screen during Zoom/Teams calls. Clients see through the advisor's
+> screen — they do not have their own ORDOBOOK account. ORDOBOOK is advisor-only software.
+
 ### Module 5 — Deliverable Generation
 - Scoreboard PDF export
 - 12-Month Forecast PDF export
@@ -188,16 +222,25 @@ no accidentally triggering other functions. Calm and focused.
 ## 🚫 Explicit Out of Scope (ORDOBOOK v1)
 
 Do not build, do not stub, do not reference in code:
-- Tax Projection module
-- Conversion Rate tracking
-- Retention Rate tracking
-- Client-facing portal or shared dashboard links
-- Blockchain / distributed ledger integration
-- Action Plan completion tracking / tally features
-- Multi-user administration UI
 
-These are acknowledged future ideas. They do not belong in this codebase until the
-constitution is updated to include them.
+| Feature | Decision Date | Reason |
+|---|---|---|
+| Tax Projection module | 2026-02-24 | Too non-standard, too much logic lives in consultant's head; separate project |
+| Conversion Rate tracking | 2026-02-24 | Unused in current workflow, deprioritized |
+| Retention Rate tracking | 2026-02-24 | Unused in current workflow, deprioritized |
+| Blockchain / distributed ledger | 2026-02-24 | Version 3-5 concept, no current practical path |
+| Multi-user admin UI | 2026-02-24 | Solo user for now; data model supports it, UI deferred |
+| QuickBooks API integration | 2026-02-24 | Phase 3 enhancement; ingestion layer designed to support it without rebuild |
+
+**Product 2 Features (acknowledged, separate project, build after ORDOBOOK v1 ships):**
+- Client-facing portal / dashboard with shareable links
+- Live, always-current client dashboards
+- AI chatbot (advisor-facing prep tool + client-facing 24/7 Q&A)
+- Virtual CFO positioning
+- Action Plan completion tracking with positive reinforcement
+- Client engagement analytics
+- Conversation monitoring (AI surfaces interesting questions for advisor review)
+- Multi-client portfolio views
 
 ---
 
@@ -244,6 +287,61 @@ Before any multi-file edit or new module, Claude must:
 
 ---
 
+## 📤 JSON Export Format (Product 2 Handoff Layer)
+
+All ORDOBOOK deliverables must be exportable as structured JSON in addition to PDF.
+This JSON format is the bridge to Product 2 (cloud platform).
+
+### Export Structure (per client, per period)
+
+```json
+{
+  "ordobook_version": "1.0.0",
+  "export_timestamp": "2026-01-31T10:30:00Z",
+  "client": {
+    "id": "vetter-plumbing",
+    "name": "Vetter Plumbing Svc. LLC",
+    "fiscal_year_start": "january",
+    "industry": "plumbing_services"
+  },
+  "period": { "year": 2026, "month": 1, "label": "January 2026" },
+  "scoreboard": {
+    "metrics": [
+      { "name": "Total Jobs", "value": 27, "target": 25, "grade": "green", "variance_pct": 8.0 }
+    ],
+    "overall_grade": "green"
+  },
+  "forecast_12mo": {
+    "months": [
+      { "period": "2026-01", "revenue": 5917838, "gross_profit": 3868300, "actuals": true }
+    ]
+  },
+  "action_plan": {
+    "items": [
+      {
+        "id": "ap-001",
+        "objective": "Prepare for hiring an employee",
+        "next_steps": "Create job description and compensation plan",
+        "owner": "Doug",
+        "due_date": "2026-02-28"
+      }
+    ]
+  },
+  "actuals": {},
+  "targets": {},
+  "metadata": {
+    "generated_by": "ORDOBOOK Desktop v1.0.0",
+    "advisor_notes": null
+  }
+}
+```
+
+### Version Control
+- Breaking changes increment major version (1.x → 2.x); additive changes increment minor (1.0 → 1.1)
+- File naming: `{client-id}_{year}_{month}_export.json` (e.g. `vetter-plumbing_2026_01_export.json`)
+
+---
+
 ## 📝 Maintenance Protocol
 
 After completing each module or significant pivot:
@@ -254,19 +352,28 @@ After completing each module or significant pivot:
 
 ---
 
-## 🔗 Future Product Context
+## 🔗 Product 2 Context (Separate Project, Post-v1)
 
-ORDOBOOK is **Phase 1** of a two-product vision.
+**Product 2 (future, separate SaaS):** A cloud platform that ingests ORDOBOOK's
+structured JSON exports to provide:
+- Live client dashboards (shareable links, always up-to-date)
+- AI chatbot trained on client's financial data
+  - **Advisor-facing mode:** Prep tool, insight suggestions, question drafter
+  - **Client-facing mode (optional):** 24/7 Q&A with advisor oversight
+- Conversation monitoring: AI surfaces interesting client questions for advisor review
+- "Virtual CFO" positioning: AI that knows your business, available anytime
+- Multi-client portfolio analytics for the advisor
 
-**Phase 2 (separate project):** A cloud-based client dashboard that ingests ORDOBOOK's
-structured JSON outputs and presents them in an interactive, always-current client portal
-with AI-powered "Virtual CFO" chat capability.
-
-Design decisions in ORDOBOOK that affect this handoff:
+**Design decisions in ORDOBOOK that affect this handoff:**
 - All deliverable data must be exportable as structured, versioned JSON
 - Client and period identifiers must be consistent and stable (no opaque IDs)
-- The account mapping system should produce output that is legible to an external system
+- The account mapping system should produce output legible to an external system
 - The Action Plan data structure should anticipate future completion-tracking fields
-  (even if those fields are empty in v1)
 
-Do not build Phase 2 features in ORDOBOOK. Do design ORDOBOOK's outputs with Phase 2 in mind.
+**Non-negotiable separation:**
+- ORDOBOOK works 100% offline, forever
+- Cloud product is opt-in, not required
+- No ORDOBOOK feature should assume cloud product exists
+- JSON export is the *only* connection point between products
+
+Do not build Product 2 features in ORDOBOOK. Do design ORDOBOOK's outputs with Product 2 in mind.

@@ -643,12 +643,12 @@ body::before {
         </div>
       </div>
       <div class="phase-tasks">
-        <div class="tasks-context">Goal: get a real URL in your browser showing an ORDOBOOK screen with a client you created. Nothing else. Color scheme, polish, and financial logic come later.</div>
+        <div class="tasks-context">Goal: double-click ORDOBOOK.app on your desktop and see a working client roster screen where you can create a client. Data stored locally in SQLite. No cloud, no browser required. Color scheme, polish, and financial logic come later.</div>
 
         <div class="task-group-label">Environment Setup</div>
         <div class="task-item" onclick="toggleTask(this)">
           <div class="task-check"><span class="checkmark">✓</span></div>
-          <div><div class="task-text">Install Node.js, Python 3.11+, and PostgreSQL on your computer</div><div class="task-note">Claude Code will give you step-by-step commands</div></div>
+          <div><div class="task-text">Install Node.js, Python 3.12+, and SQLite on your computer</div><div class="task-note">Claude Code will give you step-by-step commands</div></div>
         </div>
         <div class="task-item" onclick="toggleTask(this)">
           <div class="task-check"><span class="checkmark">✓</span></div>
@@ -660,25 +660,33 @@ body::before {
         </div>
         <div class="task-item" onclick="toggleTask(this)">
           <div class="task-check"><span class="checkmark">✓</span></div>
-          <div><div class="task-text">Initialize React (Vite) frontend project</div></div>
+          <div><div class="task-text">Initialize Electron project with electron-builder</div></div>
         </div>
         <div class="task-item" onclick="toggleTask(this)">
           <div class="task-check"><span class="checkmark">✓</span></div>
-          <div><div class="task-text">Initialize FastAPI backend project</div></div>
+          <div><div class="task-text">Initialize React (Vite) frontend inside Electron project</div></div>
         </div>
         <div class="task-item" onclick="toggleTask(this)">
           <div class="task-check"><span class="checkmark">✓</span></div>
-          <div><div class="task-text">Connect PostgreSQL database locally</div></div>
+          <div><div class="task-text">Set up embedded FastAPI backend (starts with Electron app)</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Configure SQLite database with proper Application Support path</div></div>
         </div>
 
-        <div class="task-group-label">Deployment</div>
+        <div class="task-group-label">Desktop App Packaging</div>
         <div class="task-item" onclick="toggleTask(this)">
           <div class="task-check"><span class="checkmark">✓</span></div>
-          <div><div class="task-text">Create Railway account and deploy skeleton app</div><div class="task-note">You'll have a real URL — show it to someone, celebrate</div></div>
+          <div><div class="task-text">Configure electron-builder for macOS .app bundle</div></div>
         </div>
         <div class="task-item" onclick="toggleTask(this)">
           <div class="task-check"><span class="checkmark">✓</span></div>
-          <div><div class="task-text">Confirm frontend and backend are talking to each other in production</div></div>
+          <div><div class="task-text">Build ORDOBOOK.app and test double-click launch</div><div class="task-note">You'll have a real .app file — show it to someone, celebrate</div></div>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check"><span class="checkmark">✓</span></div>
+          <div><div class="task-text">Confirm frontend, backend, and SQLite are working together in packaged app</div></div>
         </div>
 
         <div class="task-group-label">Client Profile Module</div>
@@ -706,7 +714,7 @@ body::before {
         <div class="task-group-label">Phase Gate</div>
         <div class="task-item" onclick="toggleTask(this)">
           <div class="task-check"><span class="checkmark">✓</span></div>
-          <div><div class="task-text">✓ Gate: Can you create "Vetter Plumbing" as a client and see it in the roster at your Railway URL?</div><div class="task-note">If yes → Phase 1 complete. Move to Phase 2.</div></div>
+          <div><div class="task-text">✓ Gate: Can you double-click ORDOBOOK.app on your desktop, create a client, and see the SQLite database file created in ~/Library/Application Support/ORDOBOOK/?</div><div class="task-note">If yes → Phase 1 complete. Move to Phase 2.</div></div>
         </div>
       </div>
     </div>

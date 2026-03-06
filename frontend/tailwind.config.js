@@ -4,17 +4,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: '#0e0f11',
-        surface: '#16181c',
-        surface2: '#1e2025',
-        surface3: '#242730',
-        border: '#2a2d35',
-        'border-subtle': '#1e2025',
-        'text-primary': '#f0f0ee',
-        'text-secondary': '#8a8f9e',
-        'text-muted': '#4a4f5e',
+        bg: '#f5f3ef',
+        surface: '#ffffff',
+        surface2: '#f0ede8',
+        surface3: '#e8e4de',
+        border: '#dedad4',
+        'border-subtle': '#e8e4de',
+        'text-primary': '#1a1918',
+        'text-secondary': '#5a5751',
+        'text-muted': '#9a9590',
         accent: '#c8a96e',
-        'accent-dim': '#7a6540',
+        'accent-dim': '#a07a3a',
         grade: {
           green: '#4caf85',
           yellow: '#d4a44c',

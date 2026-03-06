@@ -13,7 +13,7 @@ Excel workbook process for a solo consulting practice. The immediate goal is to 
 monthly bookkeeping data ingestion from QuickBooks Online exports, run the analytical
 models, and produce the Scoreboard, 12-Month Forecast, and Action Plan deliverables.
 
-**Current Phase:** Phase 1 complete and verified running locally (2026-03-04). Ready for Phase 2.
+**Current Phase:** Phase 2 code complete (2026-03-05). Architecture pivot: local-first desktop app.
 
 **Current Vibe:** Deliberate. Plan before building. Verify before shipping. One module at a time.
 
@@ -23,10 +23,11 @@ models, and produce the Scoreboard, 12-Month Forecast, and Action Plan deliverab
 
 | Component | Decision | Status |
 |---|---|---|
+| Desktop Framework | Electron + electron-builder | ✅ Decided (2026-03-05) |
 | Frontend | React (Vite) | ✅ Decided |
-| Backend | Python (FastAPI) | ✅ Decided |
-| Database | PostgreSQL | ✅ Decided |
-| Hosting | Railway or Render | ✅ Decided (Railway preferred, Render as backup) |
+| Backend | Python (FastAPI) embedded | ✅ Decided |
+| Database | SQLite (via SQLAlchemy) | ✅ Decided (2026-03-05) — replaces PostgreSQL |
+| ~~Hosting~~ | ~~Railway or Render~~ | ❌ Superseded — local-first desktop app |
 | Styling | Tailwind CSS | ✅ Decided |
 | File Parsing | pandas + openpyxl | ✅ Decided |
 | PDF Generation | WeasyPrint | ✅ Decided |
@@ -67,10 +68,40 @@ models, and produce the Scoreboard, 12-Month Forecast, and Action Plan deliverab
 
 ## 📐 Architecture Decisions
 
-### [2026-02-24] Application Type: Cloud-hosted web app
-**Decision:** Build as a cloud-hosted web application, not a local/desktop app.
-**Reason:** User works across multiple devices. Future Phase 2 product requires cloud
-infrastructure anyway. No reason to pay the local app cost and then rebuild.
+### [2026-03-05] Application Type: Local-first desktop application ← CURRENT
+**Decision:** Build ORDOBOOK as a local-first desktop application using Electron, not a cloud-hosted web app.
+**Reason:**
+- **Privacy & Security:** Client financial data never leaves the advisor's machine unless explicitly exported
+- **Product positioning:** "Your data stays on your device" is a competitive advantage for financial advisors
+- **Offline capability:** Works without internet, no server downtime scenarios
+- **Performance:** No network latency, instant QB file parsing and forecast updates
+- **Cost:** No monthly hosting fees
+- **Distribution:** Better suited for selling to other accountants (one-time or annual license vs. SaaS)
+
+**Architectural implications:**
+- Electron desktop framework instead of Railway/Render deployment
+- Embedded FastAPI server (starts with app launch, runs locally on a loopback port)
+- SQLite instead of PostgreSQL (single-file database in Application Support folder)
+- All PDF generation happens locally via WeasyPrint
+- Auto-update mechanism via electron-updater; code signing for macOS distribution
+- Dev note: Current dev setup continues to use PostgreSQL for convenience — migration to SQLite happens when Electron packaging begins. SQLAlchemy makes this a contained change.
+
+### [2026-03-05] Product Split: ORDOBOOK (Desktop) vs. Cloud Platform (Product 2)
+**Decision:** ORDOBOOK is Product 1. A separate cloud SaaS (Product 2, name TBD) will be built *after* ORDOBOOK v1 ships, providing live client dashboards, AI chatbot, and 24/7 client engagement tools.
+**Reason:** Clear product boundaries. ORDOBOOK = advisor's private workspace. Cloud Platform = client engagement layer. Advisors can use ORDOBOOK standalone forever — no forced cloud dependency. Better business model: desktop license + optional cloud subscription sold separately.
+**What this means:**
+- Do not build Product 2 features in ORDOBOOK
+- JSON export format is the *only* connection point between products
+- Meeting Mode is screen-share UI — clients never log into ORDOBOOK directly
+- No ORDOBOOK feature should assume cloud product exists
+
+### [2026-03-05] Data Storage: SQLite in Application Support folder
+**Decision:** All data stored locally in SQLite at `~/Library/Application Support/ORDOBOOK/ordobook.db` (macOS) / `%APPDATA%/ORDOBOOK/ordobook.db` (Windows).
+**Reason:** Standard OS location for app data. SQLite is single-file, portable, zero-config. Easy user backup (copy one file). SQL is SQL — minimal ORM changes from current PostgreSQL dev setup.
+
+### [2026-02-24] ~~Application Type: Cloud-hosted web app~~ — SUPERSEDED
+~~**Decision:** Build as a cloud-hosted web application, not a local/desktop app.~~
+**SUPERSEDED 2026-03-05:** Pivoted to local-first desktop application. See decision above.
 
 ### [2026-02-24] Organization: Client-first, then chronological
 **Decision:** The primary navigation hierarchy is Client → Year → Month.

@@ -71,10 +71,16 @@ export default function MappingReview() {
     return m
   })
 
-  // job counts per period
+  // job counts per period — pre-populated from invoice report if uploaded
   const [jobCounts, setJobCounts] = useState(() => {
     if (!preview) return {}
-    return Object.fromEntries(preview.periods_detected.map(p => [p, 0]))
+    const initial = Object.fromEntries(preview.periods_detected.map(p => [p, 0]))
+    if (preview.job_counts) {
+      Object.entries(preview.job_counts).forEach(([period, count]) => {
+        if (period in initial) initial[period] = count
+      })
+    }
+    return initial
   })
 
   const [saving, setSaving] = useState(false)

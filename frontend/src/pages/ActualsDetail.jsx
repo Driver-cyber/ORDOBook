@@ -182,6 +182,7 @@ export default function ActualsDetail() {
             <SectionHeader label="Liabilities" />
             <Row label="Accounts Payable" value={data.accounts_payable} />
             <Row label="Other Current Liabilities" value={data.other_current_liabilities} />
+            <Row label="Total Current Liabilities" value={totalCurrentLiabilities} calculated />
             <Row label="Long-Term Liabilities" value={data.total_long_term_liabilities} />
             <Row label="Total Liabilities" value={totalLiabilities} calculated />
             <SectionHeader label="Equity" />

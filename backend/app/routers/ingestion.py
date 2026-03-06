@@ -5,7 +5,7 @@ from app.database import get_db
 from app.models.client import Client
 from app.models.account_mapping import AccountMapping
 from app.models.monthly_actuals import MonthlyActuals
-from app.parsers.qb_parser import parse_file
+from app.parsers.qb_parser import parse_file, parse_invoice_report, detect_report_type
 from app.parsers.auto_mapper import suggest_mappings
 from app.schemas.ingestion import ParsePreviewResponse, ConfirmRequest
 
@@ -53,6 +53,7 @@ async def upload_files(
     report_types = []
     company_name = ""
     source_files = []
+    job_counts: dict[str, int] = {}
 
     for upload in files:
         if not upload.filename.endswith(".xlsx"):
@@ -61,6 +62,20 @@ async def upload_files(
                 detail=f"'{upload.filename}' is not an .xlsx file. Only Excel exports are supported."
             )
         file_bytes = await upload.read()
+        file_type = detect_report_type(file_bytes)
+
+        if file_type == "invoices_by_month":
+            try:
+                invoice_data = parse_invoice_report(file_bytes, upload.filename)
+            except ValueError as e:
+                raise HTTPException(status_code=422, detail=str(e))
+            for period, count in invoice_data["job_counts"].items():
+                job_counts[period] = job_counts.get(period, 0) + count
+            if not company_name:
+                company_name = invoice_data["company_name"]
+            source_files.append(upload.filename)
+            continue
+
         try:
             parsed = parse_file(file_bytes, upload.filename)
         except ValueError as e:
@@ -103,6 +118,7 @@ async def upload_files(
         periods_detected=sorted_periods,
         rows=all_rows,
         suggestions=suggestions,
+        job_counts=job_counts,
     )
 
 

@@ -14,6 +14,11 @@ import openpyxl
 
 PARSER_VERSION = "1.0"
 
+_MONTH_NAMES = frozenset([
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+])
+
 # Rows that are calculated totals — skip them for mapping (would cause double-counting)
 _PL_SKIP_NAMES = frozenset([
     "Gross Profit",
@@ -70,19 +75,25 @@ def _parse_period_columns(header_row: tuple) -> list[tuple[str, int]]:
     return result
 
 
-def _classify_row(account_name: str, raw_values: list) -> str:
+def _classify_row(account_name: str, raw_values: list, report_type: str = "") -> str:
     """
     Classify a row as: line_item | section_header | subtotal | skip
     raw_values: the original cell values (not converted to cents) for the period columns
     """
     name = account_name.strip()
 
-    # Subtotals: "Total for X" prefix
+    # Subtotals: "Total for X" prefix (named sub-group totals)
     if name.startswith("Total for "):
         return "subtotal"
 
-    # Known calculated P&L totals
-    if name in _PL_SKIP_NAMES:
+    # QB section totals without "for": "Total Expenses", "Total Assets", "Total Payroll", etc.
+    # These are always QB-generated calculated rows — never real accounts.
+    if name.startswith("Total "):
+        return "subtotal"
+
+    # Known calculated P&L totals — only skip for P&L files.
+    # "Net Income" in the Balance Sheet equity section IS a real line item we must capture.
+    if report_type == "profit_and_loss" and name in _PL_SKIP_NAMES:
         return "subtotal"
 
     # Skip the footer line QB adds at the bottom
@@ -241,7 +252,7 @@ def parse_file(file_bytes: bytes, filename: str) -> dict:
         # Extract raw (unconverted) values for classification
         raw_values = [raw_row[idx] if idx < len(raw_row) else None for _, idx in period_cols]
 
-        row_type = _classify_row(account_name, raw_values)
+        row_type = _classify_row(account_name, raw_values, report_type)
 
         if row_type == "skip":
             continue
@@ -277,4 +288,76 @@ def parse_file(file_bytes: bytes, filename: str) -> dict:
         "periods_detected": periods,
         "rows": rows,
         "parser_version": PARSER_VERSION,
+    }
+
+
+def detect_report_type(file_bytes: bytes) -> str:
+    """
+    Read only the first cell to determine which QB report type this file is.
+    Returns: "profit_and_loss" | "balance_sheet" | "invoices_by_month" | "unknown"
+    """
+    wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
+    ws = wb.active
+    rows = list(ws.iter_rows(max_row=1, values_only=True))
+    first_cell = str(rows[0][0] or "") if rows and rows[0] else ""
+    if "Invoices by Month" in first_cell:
+        return "invoices_by_month"
+    if "Profit and Loss" in first_cell:
+        return "profit_and_loss"
+    if "Balance Sheet" in first_cell:
+        return "balance_sheet"
+    return "unknown"
+
+
+def parse_invoice_report(file_bytes: bytes, filename: str) -> dict:
+    """
+    Parse a QuickBooks 'Invoices by Month' export.
+    Returns invoice count per period, used as job_count.
+
+    Format:
+        Row 0: "Invoices by Month"
+        Row 1: Company name
+        Col A: Month label ("January 2026"), "Total for X", or None for detail rows
+        Col B: Invoice date (not None for detail rows)
+    """
+    wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
+    ws = wb.active
+    all_rows = list(ws.iter_rows(values_only=True))
+
+    if not all_rows:
+        raise ValueError("File appears to be empty.")
+
+    company_name = str(all_rows[1][0]).strip() if len(all_rows) > 1 and all_rows[1][0] else ""
+
+    current_month = None
+    counts: dict[str, int] = {}
+
+    for row in all_rows:
+        if not row:
+            continue
+        col_a = row[0]
+        col_b = row[1] if len(row) > 1 else None
+
+        if col_a is not None:
+            name = str(col_a).strip()
+            # Skip totals, footer, and header rows
+            if name.startswith("Total") or name.startswith("TOTAL"):
+                continue
+            if col_b is None:
+                # Check for month header: "January 2026"
+                parts = name.split()
+                if len(parts) == 2 and parts[0] in _MONTH_NAMES:
+                    current_month = name
+                    if current_month not in counts:
+                        counts[current_month] = 0
+        elif col_b is not None and current_month is not None:
+            # Invoice detail row (col A is None, col B has a date value)
+            counts[current_month] += 1
+
+    return {
+        "report_type": "invoices_by_month",
+        "company_name": company_name,
+        "source_file": filename,
+        "periods_detected": list(counts.keys()),
+        "job_counts": counts,
     }

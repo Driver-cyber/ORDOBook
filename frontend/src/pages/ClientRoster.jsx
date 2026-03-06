@@ -61,7 +61,7 @@ function NewClientModal({ onClose, onCreated }) {
               type="text"
               value={form.name}
               onChange={e => set('name', e.target.value)}
-              placeholder="Vetter Plumbing"
+              placeholder="e.g. Acme Plumbing"
               autoFocus
               className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent transition-colors"
             />
