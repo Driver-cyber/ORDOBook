@@ -13,7 +13,7 @@ Excel workbook process for a solo consulting practice. The immediate goal is to 
 monthly bookkeeping data ingestion from QuickBooks Online exports, run the analytical
 models, and produce the Scoreboard, 12-Month Forecast, and Action Plan deliverables.
 
-**Current Phase:** Phase 2 code complete (2026-03-05). Architecture pivot: local-first desktop app.
+**Current Phase:** Phase 3a scaffold complete (2026-03-09). Analytical engine built, pending verification against Vetter Plumbing reference workbook.
 
 **Current Vibe:** Deliberate. Plan before building. Verify before shipping. One module at a time.
 
@@ -197,8 +197,9 @@ The API integration itself is deferred to Phase 3.
 |---|---|---|---|
 | 1 | Foundation: project setup, hosting, DB, client profiles | Weeks 1-4 | ✅ Complete & verified (2026-03-04) |
 | 2 | Data Ingestion: QB export parsing, account mapping, Actuals | Weeks 5-10 | ✅ Code complete (2026-03-05) — needs end-to-end test |
-| 3 | Analytical Engine: Revenue, Overhead, Payroll, Forecast + manual overrides | Weeks 11-20 | 🔜 Not started |
-| 4 | Scoring & Targets: Targets UI, grading, Scoreboard, What If scenarios | Weeks 21-24 | 🔜 Not started |
+| 3a | Analytical Engine scaffold: data model, engine modules, API, Forecast Drivers page | Weeks 11-14 | ✅ Scaffold complete (2026-03-09) — **needs Vetter Plumbing verification** |
+| 3b | Analytical Engine: 12-month output view, overhead line items UI, God Mode/audit trail | Weeks 15-18 | 🔜 Not started — blocked on 3a verification |
+| 4 | Scoring & Targets: Targets UI, grading, Scoreboard, What If scenarios | Weeks 19-24 | 🔜 Not started |
 | 5 | Deliverable Generation: PDF exports, Action Plan editor, JSON outputs | Weeks 25-30 | 🔜 Not started |
 
 ---
@@ -334,6 +335,72 @@ Profile is an administrative screen, not the daily starting point.
 `requirements.txt` for potential future analytical engine use.
 **Reason:** The QB export format is well-understood and the parser needs fine-grained row-by-row
 control over cell types and merged headers. `openpyxl` is sufficient and avoids DataFrame overhead.
+
+---
+
+## 📦 Phase 3a — Analytical Engine Scaffold (2026-03-09)
+
+### [2026-03-09] Revenue model: 3-tier job mix
+**Decision:** Revenue is modeled as three job tiers — Small, Medium, Large — each with
+a per-month job count (JSONB dict) and a single annual average job value (cents).
+Revenue = sum of (count × avg_value) across all three tiers per month.
+**Reason:** Matches the Vetter Plumbing reference workbook's structure exactly.
+
+### [2026-03-09] Cost of Sales: per-month percentage of revenue
+**Decision:** COS is entered as a percentage (e.g., 35.5%) per month, not as a dollar amount.
+The engine computes COS = revenue × (pct / 100) using Python Decimal arithmetic.
+For actuals months, the effective COS% is derived from confirmed actuals and shown as read-only.
+**Reason:** More intuitive than entering a dollar figure, and naturally scales with revenue.
+A plumbing business thinks "materials are about 35% of each job," not a fixed dollar amount.
+
+### [2026-03-09] Payroll model: cost-per-pay-run × runs + one-off
+**Decision:** Payroll = (cost_per_pay_run × pay_runs_this_month) + one_off_amount.
+`cost_per_pay_run` is a single annual figure. `pay_runs_per_month` and `payroll_one_off`
+are per-month JSONB dicts. One-off handles irregular items like quarterly payroll tax.
+**Reason:** Matches the reference workbook logic. Pay runs vary by month (some months have 3
+bi-weekly pays). Irregular items like WA quarterly payroll tax are manual per-month entries.
+
+### [2026-03-09] Other expense inputs: per-month manual entry
+**Decision:** Marketing, depreciation, and other income/expense are all stored as per-month
+JSONB dicts (cents). All are manually editable per month. `other_income_expense` can be
+negative (expenses) or positive (income), consistent with the existing actuals sign convention.
+**Reason:** These items don't follow a predictable formula; month-by-month manual entry with
+actuals-derived auto-fill suggestions gives the most accurate forecasting flexibility.
+
+### [2026-03-09] Auto-fill on config bootstrap
+**Decision:** When creating a new forecast config for a year that already has some actuals,
+the backend automatically computes averages from those actuals and pre-populates all 12 months
+as starting suggestions. The user can override any forecast month. Actuals months are locked.
+**Reason:** Reduces data entry. A plumbing business's cost structure doesn't change dramatically
+month to month — last year's average is a reasonable starting estimate.
+
+### [2026-03-09] Engine architecture: pure functions + orchestrator
+**Decision:** Each engine module (revenue, payroll, owner_draws, overhead, forecast orchestrator)
+is a pure Python function — no DB imports, no FastAPI imports. All inputs are Decimal; all
+outputs are (Decimal result, trace_dict). The orchestrator blends actuals + projections.
+**Reason:** Testable in isolation. No test database required to unit-test financial logic.
+The router handles DB reads/writes; the engine just does math.
+
+### [2026-03-09] calc_trace stored on every forecast_period row
+**Decision:** Every `forecast_periods` row stores a `calc_trace` JSONB column containing
+the full intermediate calculation breakdown for every financial line item in that month.
+Actuals months store a minimal trace noting the source. Forecast months store component-level
+breakdowns (e.g., "Small (5 × $800) = $4,000").
+**Reason:** This is the foundation for the three-level audit trail (Level 1–3 / God Mode)
+decided on 2026-02-24. The data must be stored now; the UI layers are built in Phase 3b.
+
+### [2026-03-09] Forecast Drivers page layout: single page, 7 sections, 13 columns
+**Decision:** All forecast inputs live on one page: Revenue Model, Cost of Sales, Payroll,
+Other Expenses, Other Income/Expense, Owner Draws, P&L Summary. 13-column grid (label + 12 months + YTD). Actuals months are locked (gray, read-only). Forecast months are editable inputs.
+The P&L summary section at the bottom shows Gross Profit, Net Operating Profit, Net Profit
+as always-calculated rows. A "Recalculate" button saves and reruns the engine.
+**Reason:** User requested single-screen layout. The P&L summary makes the forecast immediately
+actionable — you can see the full bottom line while editing any driver.
+
+### [2026-03-09] Known gaps deferred to Phase 3b
+- Overhead line items UI (data model + engine support exists; no UI to add/edit named line items yet)
+- 12-month output view (read-only blended P&L report across all 12 months as a deliverable)
+- God Mode / Level 1-2-3 audit trail UI (calc_trace data exists; hover/click UI not yet built)
 
 ---
 

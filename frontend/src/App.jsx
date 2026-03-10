@@ -7,6 +7,7 @@ import ClientWorkspace from './pages/ClientWorkspace'
 import UploadPage from './pages/UploadPage'
 import MappingReview from './pages/MappingReview'
 import ActualsDetail from './pages/ActualsDetail'
+import ForecastDrivers from './pages/ForecastDrivers'
 
 function ClientLayout({ clients, onClientUpdated, onClientDeleted, children }) {
   const { id } = useParams()
@@ -76,6 +77,14 @@ export default function App() {
           element={
             <ClientLayout clients={clients} onClientUpdated={handleClientUpdated} onClientDeleted={handleClientDeleted}>
               {() => <ActualsDetail />}
+            </ClientLayout>
+          }
+        />
+        <Route
+          path="/clients/:id/forecast/:year"
+          element={
+            <ClientLayout clients={clients} onClientUpdated={handleClientUpdated} onClientDeleted={handleClientDeleted}>
+              {() => <ForecastDrivers />}
             </ClientLayout>
           }
         />
