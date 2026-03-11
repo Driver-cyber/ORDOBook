@@ -6,14 +6,13 @@ import { getActuals } from '../api/ingestion'
 const MONTH_ABBR = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-// Sidebar stays dark regardless of the main app theme
 const S = {
-  bg: '#16181c',
-  surface2: '#1e2025',
-  border: '#2a2d35',
-  textPrimary: '#f0f0ee',
-  textSecondary: '#8a8f9e',
-  textMuted: '#4a4f5e',
+  bg: '#eae7e2',
+  surface2: '#e0ddd8',
+  border: '#d4d0ca',
+  textPrimary: '#1a1918',
+  textSecondary: '#5a5751',
+  textMuted: '#9a9590',
 }
 
 export default function Sidebar({ clients, activeClientId }) {
@@ -66,7 +65,7 @@ export default function Sidebar({ clients, activeClientId }) {
               color: S.textSecondary,
               border: `1px solid ${S.border}`,
             }}
-            onMouseEnter={e => { e.currentTarget.style.color = S.textPrimary; e.currentTarget.style.borderColor = '#4a4f5e' }}
+            onMouseEnter={e => { e.currentTarget.style.color = S.textPrimary; e.currentTarget.style.borderColor = S.textMuted }}
             onMouseLeave={e => { e.currentTarget.style.color = S.textSecondary; e.currentTarget.style.borderColor = S.border }}
           >
             ← All clients

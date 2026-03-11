@@ -15,18 +15,27 @@ const fmt = (cents) => {
 const fmtPct = (v) => (v === null || v === undefined || v === 0) ? '—' : `${Number(v).toFixed(1)}%`
 
 const S = {
-  bg: '#1a1d22',
-  surface: '#1e2025',
-  border: '#2a2d35',
-  text: '#f0f0ee',
-  textSecondary: '#8a8f9e',
-  textMuted: '#4a4f5e',
+  bg: '#f5f3ef',
+  surface: '#ffffff',
+  border: '#dedad4',
+  text: '#1a1918',
+  textSecondary: '#5a5751',
+  textMuted: '#9a9590',
   gold: '#c8a96e',
-  locked: '#1e2025',
-  lockedText: '#5a5f6e',
+  goldDim: '#a07a3a',
+  actualsText: '#b0aba5',
+  actualsBg: 'transparent',
 }
 
-// ── Editable input cell ───────────────────────────────────────────────────────
+// ── Shared input style ────────────────────────────────────────────────────────
+
+const inputStyle = {
+  background: '#ffffff',
+  border: `1px solid #dedad4`,
+  color: '#1a1918',
+}
+
+// ── Editable input cell (per-month) ──────────────────────────────────────────
 
 function EditCell({ value, onChange, step = 1, placeholder = '0' }) {
   const [local, setLocal] = useState(String(value ?? ''))
@@ -41,41 +50,68 @@ function EditCell({ value, onChange, step = 1, placeholder = '0' }) {
         placeholder={placeholder}
         value={local}
         onChange={e => { setLocal(e.target.value); onChange(e.target.value) }}
-        className="w-full text-right font-mono text-[12px] px-1.5 py-1 rounded outline-none"
-        style={{
-          background: 'rgba(200,169,110,0.06)',
-          border: `1px solid ${S.border}`,
-          color: S.text,
-        }}
-        onFocus={e => e.currentTarget.style.borderColor = S.gold}
+        onFocus={e => { e.currentTarget.style.borderColor = S.gold; e.currentTarget.select() }}
         onBlur={e => e.currentTarget.style.borderColor = S.border}
+        className="w-full text-right font-mono text-[12px] px-1.5 py-1 rounded outline-none"
+        style={inputStyle}
       />
     </td>
   )
 }
 
-// ── Locked (actuals) cell ─────────────────────────────────────────────────────
+// ── Actuals cell — dimmed but readable, not locked ────────────────────────────
 
-function LockedCell({ display }) {
+function ActualsCell({ display }) {
   return (
     <td className="text-right px-2 py-1.5 font-mono text-[12px]"
-        style={{ color: S.lockedText, background: S.locked, minWidth: 58 }}>
+        style={{ color: S.actualsText, minWidth: 58 }}>
       {display}
     </td>
   )
 }
 
-// ── Row with mixed locked/editable cells ──────────────────────────────────────
+// ── Autofill button ───────────────────────────────────────────────────────────
 
-function DriverRow({ label, monthInts, lockedMonths, getValue, getDisplay, onChange, ytd }) {
+function AutofillBtn({ onFill }) {
+  return (
+    <td className="px-1" style={{ width: 22 }}>
+      <button
+        title="Copy first month across all months"
+        onClick={onFill}
+        className="w-5 h-5 rounded flex items-center justify-center text-[10px] transition-opacity opacity-40 hover:opacity-100"
+        style={{ background: 'rgba(200,169,110,0.15)', color: S.goldDim, border: `1px solid rgba(200,169,110,0.35)` }}
+      >
+        →
+      </button>
+    </td>
+  )
+}
+
+// ── Driver row — per-month editable cells, with autofill ─────────────────────
+// actualsMonths: Set of month numbers that have real actuals (shown dimmed, still editable)
+
+function DriverRow({ label, monthInts, actualsMonths = new Set(), getValue, getDisplay, onChange, onAutofill, ytd }) {
+  // Find the first non-actuals month for autofill source
+  const firstForecastMonth = monthInts.find(m => !actualsMonths.has(m))
+
+  const handleAutofill = () => {
+    if (firstForecastMonth === undefined) return
+    const sourceVal = getValue(firstForecastMonth)
+    monthInts.forEach(m => {
+      if (!actualsMonths.has(m)) onChange(m, String(sourceVal))
+    })
+    if (onAutofill) onAutofill(sourceVal)
+  }
+
   return (
     <tr>
-      <td className="px-3 py-1.5 text-[12px]" style={{ color: S.textSecondary, width: 190 }}>
+      <AutofillBtn onFill={handleAutofill} />
+      <td className="px-3 py-1.5 text-[12px]" style={{ color: S.textSecondary, width: 185 }}>
         {label}
       </td>
       {monthInts.map(m =>
-        lockedMonths.has(m)
-          ? <LockedCell key={m} display={getDisplay ? getDisplay(m) : getValue(m)} />
+        actualsMonths.has(m)
+          ? <ActualsCell key={m} display={getDisplay ? getDisplay(m) : getValue(m)} />
           : <EditCell key={m} value={getValue(m)} onChange={v => onChange(m, v)} />
       )}
       <td className="text-right px-2 py-1.5 font-mono text-[12px]"
@@ -88,13 +124,15 @@ function DriverRow({ label, monthInts, lockedMonths, getValue, getDisplay, onCha
 
 // ── Calculated summary row ────────────────────────────────────────────────────
 
-function CalcRow({ label, periods, field, highlight = false }) {
+function CalcRow({ label, periods, field, highlight = false, sublabel }) {
   const total = (periods || []).reduce((s, p) => s + (p?.[field] ?? 0), 0)
   const color = highlight ? S.gold : S.textSecondary
   return (
     <tr style={{ borderTop: `1px solid ${S.border}` }}>
-      <td className="px-3 py-2 text-[12px] font-semibold" style={{ color }}>
+      <td /> {/* autofill column spacer */}
+      <td className="px-3 py-2 text-[12px] font-semibold" style={{ color, width: 185 }}>
         {label}
+        {sublabel && <span className="block text-[10px] font-normal" style={{ color: S.textMuted }}>{sublabel}</span>}
       </td>
       {(periods || []).map((p, i) => (
         <td key={i} className="text-right px-2 py-2 font-mono text-[12px] font-semibold"
@@ -114,41 +152,13 @@ function CalcRow({ label, periods, field, highlight = false }) {
 function SectionHeader({ label }) {
   return (
     <tr>
-      <td colSpan={14} className="px-3 pt-6 pb-1">
+      <td colSpan={15} className="px-3 pt-6 pb-1">
         <div className="font-mono text-[10px] uppercase tracking-[0.15em]"
              style={{ color: S.textMuted }}>
           {label}
         </div>
         <div style={{ borderBottom: `1px solid ${S.border}`, marginTop: 4 }} />
       </td>
-    </tr>
-  )
-}
-
-// ── Annual scalar input (same value shown in every forecast month) ─────────────
-
-function ScalarRow({ label, cents, locked, onChange }) {
-  const dollars = Math.round((cents ?? 0) / 100)
-  return (
-    <tr>
-      <td className="px-3 py-1.5 text-[12px]" style={{ color: S.textSecondary }}>{label}</td>
-      {Array.from({ length: 12 }, (_, i) => i + 1).map(m =>
-        locked
-          ? <LockedCell key={m} display={fmt((cents ?? 0))} />
-          : (
-            <td key={m} className="px-1 py-1" style={{ minWidth: 58 }}>
-              <input
-                type="number" min="0" value={dollars}
-                onChange={e => onChange((Number(e.target.value) || 0) * 100)}
-                className="w-full text-right font-mono text-[12px] px-1.5 py-1 rounded outline-none"
-                style={{ background: 'rgba(200,169,110,0.06)', border: `1px solid ${S.border}`, color: S.text }}
-                onFocus={e => e.currentTarget.style.borderColor = S.gold}
-                onBlur={e => e.currentTarget.style.borderColor = S.border}
-              />
-            </td>
-          )
-      )}
-      <td />
     </tr>
   )
 }
@@ -168,7 +178,8 @@ export default function ForecastDrivers() {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const lockedMonths = new Set(
+  // Months that have real actuals — shown dimmed but still editable
+  const actualsMonths = new Set(
     (periods || []).filter(p => p.source_type === 'actual').map(p => p.month)
   )
 
@@ -196,9 +207,11 @@ export default function ForecastDrivers() {
     setDirty(true)
   }
 
-  // Update a scalar (annual) field
-  const setScalar = (field, val) => {
-    setDraft(prev => ({ ...prev, [field]: val }))
+  // Autofill a per-month field — set all months to a given value
+  const autofillField = (field, val) => {
+    const filled = {}
+    for (let m = 1; m <= 12; m++) filled[String(m)] = val
+    setDraft(prev => ({ ...prev, [field]: filled }))
     setDirty(true)
   }
 
@@ -225,14 +238,14 @@ export default function ForecastDrivers() {
   const periodByMonth = Object.fromEntries((periods || []).map(p => [p.month, p]))
   const orderedPeriods = monthInts.map(m => periodByMonth[m] ?? null)
 
-  // Helpers for draft values
+  // Draft value helpers
   const dv = (field, month) => draft?.[field]?.[String(month)] ?? 0
   const dvFloat = (field, month) => {
     const v = draft?.[field]?.[String(month)]
     return (v !== null && v !== undefined) ? v : ''
   }
 
-  // For locked COS % cells: derive from actuals period data
+  // Actuals-derived display for COS %
   const actualsCosDisplay = (month) => {
     const p = periodByMonth[month]
     if (!p || p.revenue === 0) return '—'
@@ -246,7 +259,7 @@ export default function ForecastDrivers() {
         <div>
           <h1 className="font-display font-semibold text-xl" style={{ color: S.text }}>Forecast</h1>
           <p className="text-[12px] mt-0.5" style={{ color: S.textMuted }}>
-            {fiscalYear} · Locked months (✓) use confirmed actuals · Edit forecast months freely
+            {fiscalYear} · Dimmed months have confirmed actuals · → copies first month across the row
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -257,7 +270,7 @@ export default function ForecastDrivers() {
             onClick={handleRecalculate}
             disabled={saving}
             className="px-4 py-1.5 rounded text-[12px] font-medium transition-opacity"
-            style={{ background: S.gold, color: '#1a1d22', opacity: saving ? 0.6 : 1 }}
+            style={{ background: S.gold, color: '#1a1918', opacity: saving ? 0.6 : 1 }}
           >
             {saving ? 'Saving…' : 'Recalculate'}
           </button>
@@ -266,21 +279,28 @@ export default function ForecastDrivers() {
 
       {error && (
         <div className="mx-8 mb-4 px-4 py-2 rounded text-[12px]"
-             style={{ background: 'rgba(220,60,60,0.12)', color: '#e06060', border: '1px solid rgba(220,60,60,0.2)' }}>
+             style={{ background: 'rgba(192,90,90,0.07)', color: '#b04040', border: '1px solid rgba(192,90,90,0.2)' }}>
           {error}
         </div>
       )}
 
       <div className="px-8 pb-16 overflow-x-auto">
-        <table className="w-full border-collapse" style={{ minWidth: 960 }}>
+        <table className="w-full border-collapse" style={{ minWidth: 980 }}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${S.border}` }}>
+              <th style={{ width: 22 }} /> {/* autofill button column */}
               <th className="text-left px-3 py-2 text-[11px] font-mono uppercase tracking-[0.1em]"
-                  style={{ color: S.textMuted, width: 190 }} />
+                  style={{ color: S.textMuted, width: 185 }} />
               {MONTHS.map((m, i) => (
                 <th key={m} className="text-right px-2 py-2 text-[11px] font-mono"
-                    style={{ color: lockedMonths.has(i + 1) ? S.textMuted : S.textSecondary, minWidth: 58 }}>
-                  {m}{lockedMonths.has(i + 1) && <span className="ml-0.5 text-[8px]" style={{ color: S.textMuted }}>✓</span>}
+                    style={{
+                      color: actualsMonths.has(i + 1) ? S.actualsText : S.textSecondary,
+                      minWidth: 58,
+                    }}>
+                  {m}
+                  {actualsMonths.has(i + 1) && (
+                    <span className="ml-0.5 text-[8px]" style={{ color: S.textMuted }}>✓</span>
+                  )}
                 </th>
               ))}
               <th className="text-right px-2 py-2 text-[11px] font-mono" style={{ color: S.textMuted }}>YTD</th>
@@ -294,44 +314,53 @@ export default function ForecastDrivers() {
 
             <DriverRow
               label="Small Jobs"
-              monthInts={monthInts} lockedMonths={lockedMonths}
+              monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => dv('small_job_counts', m)}
               onChange={(m, v) => setMonthField('small_job_counts', m, v)}
+              onAutofill={val => autofillField('small_job_counts', val)}
               ytd={monthInts.reduce((s, m) => s + dv('small_job_counts', m), 0)}
             />
-            <ScalarRow
+            <DriverRow
               label="Avg Value — Small ($)"
-              cents={draft?.small_job_avg_value ?? 0}
-              locked={false}
-              onChange={v => setScalar('small_job_avg_value', v)}
+              monthInts={monthInts} actualsMonths={actualsMonths}
+              getValue={m => Math.round(dv('small_job_avg_value_monthly', m) / 100)}
+              getDisplay={m => fmt(dv('small_job_avg_value_monthly', m))}
+              onChange={(m, v) => setMonthField('small_job_avg_value_monthly', m, v, 100)}
+              onAutofill={val => autofillField('small_job_avg_value_monthly', val * 100)}
             />
 
             <DriverRow
               label="Medium Jobs"
-              monthInts={monthInts} lockedMonths={lockedMonths}
+              monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => dv('medium_job_counts', m)}
               onChange={(m, v) => setMonthField('medium_job_counts', m, v)}
+              onAutofill={val => autofillField('medium_job_counts', val)}
               ytd={monthInts.reduce((s, m) => s + dv('medium_job_counts', m), 0)}
             />
-            <ScalarRow
+            <DriverRow
               label="Avg Value — Medium ($)"
-              cents={draft?.medium_job_avg_value ?? 0}
-              locked={false}
-              onChange={v => setScalar('medium_job_avg_value', v)}
+              monthInts={monthInts} actualsMonths={actualsMonths}
+              getValue={m => Math.round(dv('medium_job_avg_value_monthly', m) / 100)}
+              getDisplay={m => fmt(dv('medium_job_avg_value_monthly', m))}
+              onChange={(m, v) => setMonthField('medium_job_avg_value_monthly', m, v, 100)}
+              onAutofill={val => autofillField('medium_job_avg_value_monthly', val * 100)}
             />
 
             <DriverRow
               label="Large Jobs"
-              monthInts={monthInts} lockedMonths={lockedMonths}
+              monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => dv('large_job_counts', m)}
               onChange={(m, v) => setMonthField('large_job_counts', m, v)}
+              onAutofill={val => autofillField('large_job_counts', val)}
               ytd={monthInts.reduce((s, m) => s + dv('large_job_counts', m), 0)}
             />
-            <ScalarRow
+            <DriverRow
               label="Avg Value — Large ($)"
-              cents={draft?.large_job_avg_value ?? 0}
-              locked={false}
-              onChange={v => setScalar('large_job_avg_value', v)}
+              monthInts={monthInts} actualsMonths={actualsMonths}
+              getValue={m => Math.round(dv('large_job_avg_value_monthly', m) / 100)}
+              getDisplay={m => fmt(dv('large_job_avg_value_monthly', m))}
+              onChange={(m, v) => setMonthField('large_job_avg_value_monthly', m, v, 100)}
+              onAutofill={val => autofillField('large_job_avg_value_monthly', val * 100)}
             />
 
             <CalcRow label="Total Revenue" periods={orderedPeriods} field="revenue" highlight />
@@ -339,14 +368,22 @@ export default function ForecastDrivers() {
             {/* ══ COST OF SALES ═════════════════════════════════════════════════ */}
             <SectionHeader label="Cost of Sales" />
 
-            {/* COS % — locked months show derived %, forecast months are editable */}
             <tr>
+              <AutofillBtn onFill={() => {
+                const firstForecast = monthInts.find(m => !actualsMonths.has(m))
+                if (firstForecast === undefined) return
+                const val = dvFloat('cos_pct_monthly', firstForecast)
+                const filled = {}
+                monthInts.forEach(m => { if (!actualsMonths.has(m)) filled[String(m)] = Number(val) || 0 })
+                setDraft(prev => ({ ...prev, cos_pct_monthly: { ...(prev.cos_pct_monthly || {}), ...filled } }))
+                setDirty(true)
+              }} />
               <td className="px-3 py-1.5 text-[12px]" style={{ color: S.textSecondary }}>
                 COS %
               </td>
               {monthInts.map(m =>
-                lockedMonths.has(m)
-                  ? <LockedCell key={m} display={actualsCosDisplay(m)} />
+                actualsMonths.has(m)
+                  ? <ActualsCell key={m} display={actualsCosDisplay(m)} />
                   : (
                     <td key={m} className="px-1 py-1" style={{ minWidth: 58 }}>
                       <input
@@ -354,10 +391,10 @@ export default function ForecastDrivers() {
                         placeholder="0.0"
                         value={dvFloat('cos_pct_monthly', m)}
                         onChange={e => setMonthField('cos_pct_monthly', m, e.target.value, 1)}
-                        className="w-full text-right font-mono text-[12px] px-1.5 py-1 rounded outline-none"
-                        style={{ background: 'rgba(200,169,110,0.06)', border: `1px solid ${S.border}`, color: S.text }}
-                        onFocus={e => e.currentTarget.style.borderColor = S.gold}
+                        onFocus={e => { e.currentTarget.style.borderColor = S.gold; e.currentTarget.select() }}
                         onBlur={e => e.currentTarget.style.borderColor = S.border}
+                        className="w-full text-right font-mono text-[12px] px-1.5 py-1 rounded outline-none"
+                        style={inputStyle}
                       />
                     </td>
                   )
@@ -373,25 +410,45 @@ export default function ForecastDrivers() {
             {/* ══ PAYROLL ═══════════════════════════════════════════════════════ */}
             <SectionHeader label="Payroll" />
 
-            <ScalarRow
-              label="Cost / Pay Run ($)"
-              cents={draft?.cost_per_pay_run ?? 0}
-              locked={false}
-              onChange={v => setScalar('cost_per_pay_run', v)}
-            />
+            <tr>
+              <td /> {/* no autofill for scalar */}
+              <td className="px-3 py-1.5 text-[12px]" style={{ color: S.textSecondary, width: 185 }}>
+                Cost / Pay Run ($)
+              </td>
+              {monthInts.map(m => (
+                <td key={m} className="px-1 py-1" style={{ minWidth: 58 }}>
+                  <input
+                    type="number" min="0"
+                    value={Math.round((draft?.cost_per_pay_run ?? 0) / 100)}
+                    onChange={e => {
+                      setDraft(prev => ({ ...prev, cost_per_pay_run: (Number(e.target.value) || 0) * 100 }))
+                      setDirty(true)
+                    }}
+                    onFocus={e => { e.currentTarget.style.borderColor = S.gold; e.currentTarget.select() }}
+                    onBlur={e => e.currentTarget.style.borderColor = S.border}
+                    className="w-full text-right font-mono text-[12px] px-1.5 py-1 rounded outline-none"
+                    style={inputStyle}
+                  />
+                </td>
+              ))}
+              <td />
+            </tr>
+
             <DriverRow
               label="Pay Runs"
-              monthInts={monthInts} lockedMonths={lockedMonths}
+              monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => dv('pay_runs_per_month', m)}
               onChange={(m, v) => setMonthField('pay_runs_per_month', m, v)}
+              onAutofill={val => autofillField('pay_runs_per_month', val)}
               ytd={monthInts.reduce((s, m) => s + dv('pay_runs_per_month', m), 0)}
             />
             <DriverRow
               label="One-off / Irregular ($)"
-              monthInts={monthInts} lockedMonths={lockedMonths}
+              monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => Math.round(dv('payroll_one_off', m) / 100)}
               getDisplay={m => fmt(dv('payroll_one_off', m))}
               onChange={(m, v) => setMonthField('payroll_one_off', m, v, 100)}
+              onAutofill={val => autofillField('payroll_one_off', val * 100)}
             />
             <CalcRow label="Total Payroll" periods={orderedPeriods} field="payroll_expenses" highlight />
 
@@ -400,49 +457,46 @@ export default function ForecastDrivers() {
 
             <DriverRow
               label="Marketing / Advertising ($)"
-              monthInts={monthInts} lockedMonths={lockedMonths}
+              monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => Math.round(dv('marketing_monthly', m) / 100)}
               getDisplay={m => fmt(dv('marketing_monthly', m))}
               onChange={(m, v) => setMonthField('marketing_monthly', m, v, 100)}
+              onAutofill={val => autofillField('marketing_monthly', val * 100)}
             />
             <DriverRow
               label="Depreciation & Amort. ($)"
-              monthInts={monthInts} lockedMonths={lockedMonths}
+              monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => Math.round(dv('depreciation_monthly', m) / 100)}
               getDisplay={m => fmt(dv('depreciation_monthly', m))}
               onChange={(m, v) => setMonthField('depreciation_monthly', m, v, 100)}
+              onAutofill={val => autofillField('depreciation_monthly', val * 100)}
             />
-            <CalcRow label="Total Other Expenses" periods={orderedPeriods} field="overhead_expenses" />
+            <DriverRow
+              label="Other Overhead ($)"
+              monthInts={monthInts} actualsMonths={actualsMonths}
+              getValue={m => Math.round(dv('other_overhead_monthly', m) / 100)}
+              getDisplay={m => fmt(dv('other_overhead_monthly', m))}
+              onChange={(m, v) => setMonthField('other_overhead_monthly', m, v, 100)}
+              onAutofill={val => autofillField('other_overhead_monthly', val * 100)}
+            />
+            <CalcRow
+              label="Total Other Expenses"
+              periods={orderedPeriods}
+              field="total_other_expenses"
+              sublabel="Marketing + Depreciation + Overhead"
+            />
 
             {/* ══ OTHER INCOME / EXPENSE ════════════════════════════════════════ */}
             <SectionHeader label="Other Income / Expense" />
 
             <DriverRow
               label="Other Income / Expense ($)"
-              monthInts={monthInts} lockedMonths={lockedMonths}
+              monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => Math.round(dv('other_income_expense_monthly', m) / 100)}
               getDisplay={m => fmt(dv('other_income_expense_monthly', m))}
               onChange={(m, v) => setMonthField('other_income_expense_monthly', m, v, 100)}
+              onAutofill={val => autofillField('other_income_expense_monthly', val * 100)}
             />
-
-            {/* ══ OWNER DRAWS ═══════════════════════════════════════════════════ */}
-            <SectionHeader label="Owner Draws" />
-
-            <DriverRow
-              label="Distributions ($)"
-              monthInts={monthInts} lockedMonths={lockedMonths}
-              getValue={m => Math.round(dv('owner_distributions', m) / 100)}
-              getDisplay={m => fmt(dv('owner_distributions', m))}
-              onChange={(m, v) => setMonthField('owner_distributions', m, v, 100)}
-            />
-            <DriverRow
-              label="Tax Savings ($)"
-              monthInts={monthInts} lockedMonths={lockedMonths}
-              getValue={m => Math.round(dv('owner_tax_savings', m) / 100)}
-              getDisplay={m => fmt(dv('owner_tax_savings', m))}
-              onChange={(m, v) => setMonthField('owner_tax_savings', m, v, 100)}
-            />
-            <CalcRow label="Total Draws" periods={orderedPeriods} field="owner_total_draws" />
 
             {/* ══ P&L SUMMARY ═══════════════════════════════════════════════════ */}
             <SectionHeader label="P&L Summary" />

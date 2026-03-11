@@ -24,6 +24,7 @@ class ForecastPeriod(Base):
     marketing_expenses = Column(BigInteger, nullable=False, default=0)
     depreciation_amortization = Column(BigInteger, nullable=False, default=0)
     overhead_expenses = Column(BigInteger, nullable=False, default=0)
+    total_other_expenses = Column(BigInteger, nullable=False, default=0)   # marketing + depreciation + overhead
     net_operating_profit = Column(BigInteger, nullable=False, default=0)   # calculated, stored
     other_income_expense = Column(BigInteger, nullable=False, default=0)
     net_profit = Column(BigInteger, nullable=False, default=0)             # calculated, stored

@@ -42,7 +42,8 @@ def _period_from_actuals(month: int, actuals: dict) -> dict:
     other = actuals.get("other_income_expense", 0)
 
     gross_profit = revenue - cos
-    total_opex = payroll + marketing + depreciation + overhead
+    total_other_expenses = marketing + depreciation + overhead
+    total_opex = payroll + total_other_expenses
     net_op = gross_profit - total_opex
     net_profit = net_op + other
 
@@ -59,6 +60,7 @@ def _period_from_actuals(month: int, actuals: dict) -> dict:
         "marketing_expenses": marketing,
         "depreciation_amortization": depreciation,
         "overhead_expenses": overhead,
+        "total_other_expenses": total_other_expenses,
         "net_operating_profit": net_op,
         "other_income_expense": other,
         "net_profit": net_profit,
@@ -77,13 +79,20 @@ def _period_from_drivers(month: int, config: dict) -> dict:
     month_key = str(month)
 
     # --- Revenue ---
+    # Per-month avg values take precedence; fall back to legacy scalar if not set
+    def _avg(monthly_field, scalar_field):
+        monthly = config.get(monthly_field, {}).get(month_key)
+        if monthly is not None and monthly != 0:
+            return Decimal(monthly)
+        return Decimal(config.get(scalar_field, 0))
+
     revenue, revenue_trace = calculate_revenue(
         small_count=int(config.get("small_job_counts", {}).get(month_key, 0)),
-        small_avg=Decimal(config.get("small_job_avg_value", 0)),
+        small_avg=_avg("small_job_avg_value_monthly", "small_job_avg_value"),
         medium_count=int(config.get("medium_job_counts", {}).get(month_key, 0)),
-        medium_avg=Decimal(config.get("medium_job_avg_value", 0)),
+        medium_avg=_avg("medium_job_avg_value_monthly", "medium_job_avg_value"),
         large_count=int(config.get("large_job_counts", {}).get(month_key, 0)),
-        large_avg=Decimal(config.get("large_job_avg_value", 0)),
+        large_avg=_avg("large_job_avg_value_monthly", "large_job_avg_value"),
     )
 
     total_jobs = (
@@ -108,7 +117,7 @@ def _period_from_drivers(month: int, config: dict) -> dict:
 
     # --- Overhead ---
     overhead, overhead_trace = calculate_overhead(
-        overhead_schedule=config.get("overhead_schedule", []),
+        other_overhead_cents=int(config.get("other_overhead_monthly", {}).get(month_key, 0)),
         month=month,
     )
 
@@ -153,7 +162,8 @@ def _period_from_drivers(month: int, config: dict) -> dict:
 
     # --- Derived P&L ---
     gross_profit = revenue - cos
-    total_opex = payroll + marketing + depreciation + overhead
+    total_other_expenses = marketing + depreciation + overhead
+    total_opex = payroll + total_other_expenses
     net_op = gross_profit - total_opex
     net_profit = net_op + other
 
@@ -167,6 +177,7 @@ def _period_from_drivers(month: int, config: dict) -> dict:
         "marketing_expenses": int(marketing),
         "depreciation_amortization": int(depreciation),
         "overhead_expenses": int(overhead),
+        "total_other_expenses": int(total_other_expenses),
         "net_operating_profit": int(net_op),
         "other_income_expense": int(other),
         "net_profit": int(net_profit),

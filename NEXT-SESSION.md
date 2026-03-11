@@ -1,145 +1,104 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-03-09 | Phase 3a scaffold complete
+> Last updated: 2026-03-11 | Phase 3b UX batch complete
 
 ---
 
 ## Where We Are
 
-Phase 3a is done. The analytical engine, database tables, API endpoints, and
-Forecast Drivers page are all built. No numbers have been verified yet.
+Phase 3a engine is built. Phase 3b UX batch is done. The Forecast page has been
+substantially rebuilt. Engine verification against Vetter Plumbing still pending
+— the test run was started but data entry wasn't completed.
 
-**The one thing blocking Phase 3b:** Run the test cycle below and confirm the
-engine output matches the Vetter Plumbing January 2026 reference workbook.
+**The one thing still blocking full Phase 3b completion:** Finish the Vetter Plumbing
+verification run (enter driver values, confirm outputs match Excel).
 
 ---
 
 ## Step 1 — Boot the app
 
-**Terminal window 1 — Backend:**
+**Terminal 1 — Backend:**
 ```bash
 cd "/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook/backend"
 source venv/bin/activate
 uvicorn app.main:app --reload
 ```
-Expected: `Uvicorn running on http://127.0.0.1:8000`
 
-**Terminal window 2 — Frontend:**
+**Terminal 2 — Frontend:**
 ```bash
 cd "/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook/frontend"
 npm run dev
 ```
-Expected: `Local: http://localhost:5173`
 
 ---
 
-## Step 2 — Smoke test the Forecast page
+## Step 2 — Complete the Vetter Plumbing test run
 
-1. Open http://localhost:5173
-2. Open (or create) Vetter Plumbing as a client
-3. Click **Forecast** in the left sidebar → should load the Forecast Drivers page
-4. Verify all 7 sections render: Revenue Model, Cost of Sales, Payroll,
-   Other Expenses, Other Income/Expense, Owner Draws, P&L Summary
-5. If actuals have been imported for any months, verify those month columns
-   are gray/locked and non-editable
+Resume from TEST-RUN-CHECKLIST.md (already partially filled in).
+Sections 1–3 input fields were confirmed working. Still need:
+- Enter all driver values from the Excel workbook
+- Hit Recalculate
+- Fill in the output verification table (Section 9)
 
 ---
 
-## Step 3 — Enter Vetter Plumbing January 2026 driver values
+## Step 3 — What changed in this session (2026-03-11)
 
-Open the Vetter Plumbing Excel workbook and enter the following into the
-Forecast page for the **forecast months** (non-actuals months):
+### Forecast page UX improvements
+- **Click to select all** — clicking any input auto-highlights content; just type to replace
+- **Autofill `→` button** — left of every row; copies first forecast month across all 12 months
+- **Per-month avg values** — job avg values are now independently editable per month (not a synced scalar)
+- **Actuals months** — dimmed (✓) but editable; no hard lock
+- **Other Overhead row** — new editable catch-all line (rent, utilities, etc.)
+- **Total Other Expenses** — now correctly shows Marketing + Depreciation + Other Overhead
+- **Owner Draws section removed** — these are balance sheet items, not P&L (see Phase 3c)
 
-**Revenue Model:**
-- Small job count, avg value
-- Medium job count, avg value
-- Large job count, avg value
+### New DB fields (migrations 009–011)
+- `forecast_configs.other_overhead_monthly` (JSONB cents per month)
+- `forecast_configs.small/medium/large_job_avg_value_monthly` (JSONB cents per month)
+- `forecast_periods.total_other_expenses` (BigInt cents)
 
-**Cost of Sales:**
-- COS % for January (compute from workbook: COS ÷ Revenue × 100)
-
-**Payroll:**
-- Cost per pay run
-- Number of pay runs in January
-- Any one-off payroll items
-
-**Other Expenses:**
-- Marketing / advertising amount
-- Depreciation & amortization amount
-
-**Other Income / Expense:**
-- Any other income or expense (net, positive = income)
-
-Hit **Recalculate**.
+### Financial model clarification
+Owner draws and tax savings are **balance sheet / cash flow items**, not P&L expenses.
+They do NOT reduce Net Income. They will live in Phase 3c (Balance Sheet / Cash section).
 
 ---
 
-## Step 4 — Verify outputs against the reference workbook
+## Step 4 — If Vetter Plumbing numbers verify → Phase 3b remaining items
 
-Compare the Forecast page calculated rows to the Excel workbook for January 2026:
+1. **12-month report view** — read-only blended P&L across all 12 months
+   Route: `/clients/:id/forecast/:year/report`
+   This is the clean deliverable version (no input fields, just formatted output).
 
-| Line Item | Excel Value | Forecast Page | Match? |
-|---|---|---|---|
-| Total Revenue | | | |
-| Cost of Sales | | | |
-| Gross Profit | | | |
-| Total Payroll | | | |
-| Net Operating Profit | | | |
-| Net Profit | | | |
-
-All values should match to the dollar (rounding within $1 is acceptable due to
-integer cents storage).
+2. **Audit trail Level 1 (hover)** — hover tooltip on any CalcRow value showing
+   the top-level formula from `calc_trace` (e.g. "5 × $800 + 8 × $2,000 = $20,400")
 
 ---
 
-## Step 5 — If numbers match → proceed to Phase 3b
+## Step 5 — Phase 3c (after 3b complete): Balance Sheet / Cash Flow Section
 
-Phase 3b work items (in priority order):
-
-1. **Overhead line items UI** — the `overhead_schedule` JSONB field exists in the
-   data model and engine, but the Forecast page has no UI to add/edit named line
-   items. Build a section where the user can add rows (e.g., "Rent $2,500/mo") and
-   edit per-month amounts. The "Total Other Expenses" CalcRow currently only reflects
-   overhead, so this will make it accurate.
-
-2. **12-month output view** — a read-only page showing the full blended P&L across
-   all 12 months as a clean report (not editable inputs). Route: `/clients/:id/forecast/:year/report`
-   This is the deliverable version of the Forecast Drivers page.
-
-3. **Audit trail UI — Level 1 (hover)** — wire up the `calc_trace` data that's
-   already stored in `forecast_periods`. Show a hover tooltip on any calculated value
-   displaying the top-level formula (e.g., "5 small × $800 + 8 medium × $2,000 = $20,400").
+New page or section with:
+- Owner Distributions (monthly cash out)
+- Tax Savings Reserve (cash set aside)
+- Days Sales Outstanding → projected AR balance
+- Net Cash Impact per month
+- Other working capital metrics
 
 ---
 
-## Step 6 — If numbers DON'T match → debug
+## Debugging reference
 
-Common places to look:
-- `backend/app/engine/forecast.py` — `_period_from_drivers()` function
-- `backend/app/engine/revenue.py` — job count × avg value math
-- `backend/app/engine/payroll.py` — runs × cost_per_run
-- Check the `calc_trace` for the month via:
-  `GET /api/clients/{id}/forecast/2026/1/trace`
-  This shows the full component breakdown — easy to spot where a number diverges.
+If numbers don't match Excel:
+- `backend/app/engine/forecast.py` → `_period_from_drivers()`
+- `backend/app/engine/revenue.py` → job count × avg value
+- `backend/app/engine/payroll.py` → runs × cost_per_run
+- Check calc_trace: `GET http://127.0.0.1:8000/api/clients/{id}/forecast/2026/1/trace`
 
 ---
 
-## Known Gaps / Notes for Next Session
+## Known notes
 
-- **"Total Other Expenses" label** on the Forecast page only shows `overhead_expenses`
-  (items from the overhead_schedule). Marketing and Depreciation have their own CalcRows
-  above it. This is correct but the label could be clearer — consider renaming to
-  "Overhead Items" in Phase 3b.
-
-- **Overhead_schedule UI** is the biggest missing piece on the Forecast page. Until it's
-  built, the overhead_expenses line will always show $0 in forecast months.
-
-- **File permissions**: project files owned by `cstewch`. Claude Code runs as `ordocfo`.
-  If write errors appear, run at session start:
-  ```bash
-  printf '#!/bin/bash\nchown -R ordocfo "/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook"\n' \
-    > /tmp/fix_all.sh && chmod +x /tmp/fix_all.sh && \
-    osascript -e 'do shell script "/tmp/fix_all.sh" with administrator privileges'
-  ```
-
-- **DB is still PostgreSQL** in dev. Migration to SQLite happens when Electron packaging starts.
-  No action needed now.
+- `overhead_schedule` column still exists in the DB (kept for safety / future use)
+  but is no longer used by the engine. `other_overhead_monthly` replaces it.
+- Legacy scalar `small/medium/large_job_avg_value` fields still exist; engine falls
+  back to them if the monthly JSONB has no value for a month.
+- DB is still PostgreSQL in dev. Migration to SQLite happens when Electron packaging starts.

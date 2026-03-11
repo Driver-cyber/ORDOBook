@@ -8,13 +8,16 @@ class ForecastConfigCreate(BaseModel):
     fiscal_year: int
 
     small_job_counts: dict[str, int] = {}
-    small_job_avg_value: int = 0  # cents
+    small_job_avg_value: int = 0                        # legacy scalar (kept for compat)
+    small_job_avg_value_monthly: dict[str, int] = {}    # per-month cents
 
     medium_job_counts: dict[str, int] = {}
     medium_job_avg_value: int = 0
+    medium_job_avg_value_monthly: dict[str, int] = {}
 
     large_job_counts: dict[str, int] = {}
     large_job_avg_value: int = 0
+    large_job_avg_value_monthly: dict[str, int] = {}
 
     cost_per_pay_run: int = 0
     pay_runs_per_month: dict[str, int] = {}
@@ -24,11 +27,12 @@ class ForecastConfigCreate(BaseModel):
     owner_tax_savings: dict[str, int] = {}
 
     overhead_schedule: list[dict[str, Any]] = []
+    other_overhead_monthly: dict[str, int] = {}         # catch-all overhead per month (cents)
 
-    cos_pct_monthly: dict[str, float] = {}           # {"1": 35.5, ...}
-    marketing_monthly: dict[str, int] = {}           # cents
-    depreciation_monthly: dict[str, int] = {}        # cents
-    other_income_expense_monthly: dict[str, int] = {}  # cents, can be negative
+    cos_pct_monthly: dict[str, float] = {}
+    marketing_monthly: dict[str, int] = {}
+    depreciation_monthly: dict[str, int] = {}
+    other_income_expense_monthly: dict[str, int] = {}
 
     notes: str | None = None
 
@@ -36,12 +40,15 @@ class ForecastConfigCreate(BaseModel):
 class ForecastConfigUpdate(BaseModel):
     small_job_counts: dict[str, int] | None = None
     small_job_avg_value: int | None = None
+    small_job_avg_value_monthly: dict[str, int] | None = None
 
     medium_job_counts: dict[str, int] | None = None
     medium_job_avg_value: int | None = None
+    medium_job_avg_value_monthly: dict[str, int] | None = None
 
     large_job_counts: dict[str, int] | None = None
     large_job_avg_value: int | None = None
+    large_job_avg_value_monthly: dict[str, int] | None = None
 
     cost_per_pay_run: int | None = None
     pay_runs_per_month: dict[str, int] | None = None
@@ -51,6 +58,7 @@ class ForecastConfigUpdate(BaseModel):
     owner_tax_savings: dict[str, int] | None = None
 
     overhead_schedule: list[dict[str, Any]] | None = None
+    other_overhead_monthly: dict[str, int] | None = None
 
     cos_pct_monthly: dict[str, float] | None = None
     marketing_monthly: dict[str, int] | None = None
@@ -67,12 +75,15 @@ class ForecastConfigOut(BaseModel):
 
     small_job_counts: dict[str, Any]
     small_job_avg_value: int
+    small_job_avg_value_monthly: dict[str, Any]
 
     medium_job_counts: dict[str, Any]
     medium_job_avg_value: int
+    medium_job_avg_value_monthly: dict[str, Any]
 
     large_job_counts: dict[str, Any]
     large_job_avg_value: int
+    large_job_avg_value_monthly: dict[str, Any]
 
     cost_per_pay_run: int
     pay_runs_per_month: dict[str, Any]
@@ -82,6 +93,7 @@ class ForecastConfigOut(BaseModel):
     owner_tax_savings: dict[str, Any]
 
     overhead_schedule: list[dict[str, Any]]
+    other_overhead_monthly: dict[str, Any]
 
     cos_pct_monthly: dict[str, Any]
     marketing_monthly: dict[str, Any]
@@ -110,6 +122,7 @@ class ForecastPeriodOut(BaseModel):
     marketing_expenses: int
     depreciation_amortization: int
     overhead_expenses: int
+    total_other_expenses: int
     net_operating_profit: int
     other_income_expense: int
     net_profit: int
