@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { getForecastView, createDrivers, updateDrivers } from '../api/forecast'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -124,8 +124,11 @@ function DriverRow({ label, monthInts, actualsMonths = new Set(), getValue, getD
 
 // ── Calculated summary row ────────────────────────────────────────────────────
 
-function CalcRow({ label, periods, field, highlight = false, sublabel }) {
-  const total = (periods || []).reduce((s, p) => s + (p?.[field] ?? 0), 0)
+function CalcRow({ label, periods, field, fields, highlight = false, sublabel }) {
+  const getVal = (p) => fields
+    ? fields.reduce((s, f) => s + (p?.[f] ?? 0), 0)
+    : (p?.[field] ?? 0)
+  const total = (periods || []).reduce((s, p) => s + getVal(p), 0)
   const color = highlight ? S.gold : S.textSecondary
   return (
     <tr style={{ borderTop: `1px solid ${S.border}` }}>
@@ -137,7 +140,7 @@ function CalcRow({ label, periods, field, highlight = false, sublabel }) {
       {(periods || []).map((p, i) => (
         <td key={i} className="text-right px-2 py-2 font-mono text-[12px] font-semibold"
             style={{ color, minWidth: 58 }}>
-          {fmt(p?.[field] ?? 0)}
+          {fmt(getVal(p))}
         </td>
       ))}
       <td className="text-right px-2 py-2 font-mono text-[12px] font-semibold" style={{ color }}>
@@ -167,6 +170,7 @@ function SectionHeader({ label }) {
 
 export default function ForecastDrivers() {
   const { id, year } = useParams()
+  const navigate = useNavigate()
   const clientId = Number(id)
   const fiscalYear = Number(year)
 
@@ -267,6 +271,13 @@ export default function ForecastDrivers() {
             <span className="text-[11px] font-mono" style={{ color: S.gold }}>Unsaved changes</span>
           )}
           <button
+            onClick={() => navigate(`/clients/${id}/forecast/${year}/report`)}
+            className="px-4 py-1.5 rounded text-[12px] font-medium border transition-colors"
+            style={{ borderColor: S.border, color: S.textSecondary, background: S.surface }}
+          >
+            View Report →
+          </button>
+          <button
             onClick={handleRecalculate}
             disabled={saving}
             className="px-4 py-1.5 rounded text-[12px] font-medium transition-opacity"
@@ -285,7 +296,28 @@ export default function ForecastDrivers() {
       )}
 
       <div className="px-8 pb-16 overflow-x-auto">
-        <table className="w-full border-collapse" style={{ minWidth: 980 }}>
+        <table
+          className="w-full border-collapse"
+          style={{ minWidth: 980 }}
+          onKeyDown={e => {
+            if (e.key !== 'Tab') return
+            const table = e.currentTarget
+            const inputs = Array.from(table.querySelectorAll('input[type="number"]'))
+            const idx = inputs.indexOf(e.target)
+            if (idx === -1) return
+            const td = e.target.closest('td')
+            const tr = td?.closest('tr')
+            if (!td || !tr) return
+            const colIdx = Array.from(tr.cells).indexOf(td)
+            const colInputs = inputs.filter(inp => {
+              const t = inp.closest('td'); const r = t?.closest('tr')
+              return t && r && Array.from(r.cells).indexOf(t) === colIdx
+            })
+            const pos = colInputs.indexOf(e.target)
+            const next = e.shiftKey ? colInputs[pos - 1] : colInputs[pos + 1]
+            if (next) { e.preventDefault(); next.focus(); next.select() }
+          }}
+        >
           <thead>
             <tr style={{ borderBottom: `1px solid ${S.border}` }}>
               <th style={{ width: 22 }} /> {/* autofill button column */}
@@ -410,29 +442,14 @@ export default function ForecastDrivers() {
             {/* ══ PAYROLL ═══════════════════════════════════════════════════════ */}
             <SectionHeader label="Payroll" />
 
-            <tr>
-              <td /> {/* no autofill for scalar */}
-              <td className="px-3 py-1.5 text-[12px]" style={{ color: S.textSecondary, width: 185 }}>
-                Cost / Pay Run ($)
-              </td>
-              {monthInts.map(m => (
-                <td key={m} className="px-1 py-1" style={{ minWidth: 58 }}>
-                  <input
-                    type="number" min="0"
-                    value={Math.round((draft?.cost_per_pay_run ?? 0) / 100)}
-                    onChange={e => {
-                      setDraft(prev => ({ ...prev, cost_per_pay_run: (Number(e.target.value) || 0) * 100 }))
-                      setDirty(true)
-                    }}
-                    onFocus={e => { e.currentTarget.style.borderColor = S.gold; e.currentTarget.select() }}
-                    onBlur={e => e.currentTarget.style.borderColor = S.border}
-                    className="w-full text-right font-mono text-[12px] px-1.5 py-1 rounded outline-none"
-                    style={inputStyle}
-                  />
-                </td>
-              ))}
-              <td />
-            </tr>
+            <DriverRow
+              label="Cost / Pay Run ($)"
+              monthInts={monthInts} actualsMonths={actualsMonths}
+              getValue={m => Math.round(dv('cost_per_pay_run_monthly', m) / 100) || Math.round((draft?.cost_per_pay_run ?? 0) / 100)}
+              getDisplay={m => fmt(dv('cost_per_pay_run_monthly', m) || draft?.cost_per_pay_run || 0)}
+              onChange={(m, v) => setMonthField('cost_per_pay_run_monthly', m, v, 100)}
+              onAutofill={val => autofillField('cost_per_pay_run_monthly', val * 100)}
+            />
 
             <DriverRow
               label="Pay Runs"
@@ -500,7 +517,12 @@ export default function ForecastDrivers() {
 
             {/* ══ P&L SUMMARY ═══════════════════════════════════════════════════ */}
             <SectionHeader label="P&L Summary" />
+            <CalcRow label="Total Revenue" periods={orderedPeriods} field="revenue" highlight />
+            <CalcRow label="Cost of Sales" periods={orderedPeriods} field="cost_of_sales" />
+            <CalcRow label="Gross Profit" periods={orderedPeriods} field="gross_profit" highlight />
+            <CalcRow label="Total Expenses" periods={orderedPeriods} fields={["payroll_expenses", "total_other_expenses"]} />
             <CalcRow label="Net Operating Profit" periods={orderedPeriods} field="net_operating_profit" highlight />
+            <CalcRow label="Other Income / Expense" periods={orderedPeriods} field="other_income_expense" />
             <CalcRow label="Net Profit" periods={orderedPeriods} field="net_profit" highlight />
 
           </tbody>

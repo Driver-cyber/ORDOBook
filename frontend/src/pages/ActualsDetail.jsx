@@ -54,8 +54,8 @@ export default function ActualsDetail() {
   const handleConfirm = async () => {
     setSaving(true)
     try {
-      const updated = await updateActuals(id, year, month, { status: 'confirmed', job_count: jobCount })
-      setData(updated)
+      await updateActuals(id, year, month, { status: 'confirmed', job_count: jobCount })
+      navigate(`/clients/${id}`)
     } catch {}
     setSaving(false)
   }
@@ -94,7 +94,7 @@ export default function ActualsDetail() {
       <div className="px-8 py-5 border-b border-border bg-bg flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2 text-[11px] text-text-muted mb-1">
-            <button onClick={() => navigate(`/clients/${id}`)} className="hover:text-text-secondary transition-colors">Workspace</button>
+            <button onClick={() => navigate(`/clients/${id}`)} className="hover:text-text-secondary transition-colors">← Workspace</button>
             <span>/</span>
             <span className="text-text-secondary">{MONTH_NAMES[month]} {year}</span>
           </div>

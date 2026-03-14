@@ -109,7 +109,8 @@ export default function Sidebar({ clients, activeClientId }) {
 
             {[
               { to: `/clients/${activeClientId}`, end: true, icon: '⊞', label: 'Workspace' },
-              { to: `/clients/${activeClientId}/forecast/${new Date().getFullYear()}`, end: false, icon: '◈', label: 'Forecast' },
+              { to: `/clients/${activeClientId}/forecast/${new Date().getFullYear()}`, end: true, icon: '◈', label: 'Forecast' },
+              { to: `/clients/${activeClientId}/forecast/${new Date().getFullYear()}/report`, end: false, icon: '▤', label: 'Report' },
               { to: `/clients/${activeClientId}/upload`, end: false, icon: '↑', label: 'Import Data' },
               { to: `/clients/${activeClientId}/profile`, end: false, icon: '◎', label: 'Profile & Settings' },
             ].map(({ to, end, icon, label }) => (

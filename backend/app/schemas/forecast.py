@@ -20,6 +20,7 @@ class ForecastConfigCreate(BaseModel):
     large_job_avg_value_monthly: dict[str, int] = {}
 
     cost_per_pay_run: int = 0
+    cost_per_pay_run_monthly: dict[str, int] = {}
     pay_runs_per_month: dict[str, int] = {}
     payroll_one_off: dict[str, int] = {}
 
@@ -51,6 +52,7 @@ class ForecastConfigUpdate(BaseModel):
     large_job_avg_value_monthly: dict[str, int] | None = None
 
     cost_per_pay_run: int | None = None
+    cost_per_pay_run_monthly: dict[str, int] | None = None
     pay_runs_per_month: dict[str, int] | None = None
     payroll_one_off: dict[str, int] | None = None
 
@@ -86,6 +88,7 @@ class ForecastConfigOut(BaseModel):
     large_job_avg_value_monthly: dict[str, Any]
 
     cost_per_pay_run: int
+    cost_per_pay_run_monthly: dict[str, Any]
     pay_runs_per_month: dict[str, Any]
     payroll_one_off: dict[str, Any]
 

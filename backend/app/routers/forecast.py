@@ -55,6 +55,7 @@ def _run_calculation(config: ForecastConfig, db: Session) -> list[ForecastPeriod
         "large_job_avg_value": config.large_job_avg_value or 0,
         "large_job_avg_value_monthly": config.large_job_avg_value_monthly or {},
         "cost_per_pay_run": config.cost_per_pay_run or 0,
+        "cost_per_pay_run_monthly": config.cost_per_pay_run_monthly or {},
         "pay_runs_per_month": config.pay_runs_per_month or {},
         "payroll_one_off": config.payroll_one_off or {},
         "owner_distributions": config.owner_distributions or {},

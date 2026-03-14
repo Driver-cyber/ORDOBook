@@ -25,9 +25,10 @@ class ForecastConfig(Base):
     large_job_avg_value_monthly = Column(JSONB, nullable=False, default=dict)
 
     # Payroll
-    cost_per_pay_run = Column(BigInteger, nullable=False, default=0)    # cents
-    pay_runs_per_month = Column(JSONB, nullable=False, default=dict)    # {"1": 2, "2": 2, ...}
-    payroll_one_off = Column(JSONB, nullable=False, default=dict)       # {"3": 25000, ...} cents
+    cost_per_pay_run = Column(BigInteger, nullable=False, default=0)           # legacy scalar (kept for fallback)
+    cost_per_pay_run_monthly = Column(JSONB, nullable=False, default=dict)     # {"1": 250000, ...} cents per month
+    pay_runs_per_month = Column(JSONB, nullable=False, default=dict)           # {"1": 2, "2": 2, ...}
+    payroll_one_off = Column(JSONB, nullable=False, default=dict)              # {"3": 25000, ...} cents
 
     # Owner Draws
     owner_distributions = Column(JSONB, nullable=False, default=dict)  # {"1": 500000, ...} cents

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Routes, Route, useParams } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import ClientRoster from './pages/ClientRoster'
@@ -8,6 +8,8 @@ import UploadPage from './pages/UploadPage'
 import MappingReview from './pages/MappingReview'
 import ActualsDetail from './pages/ActualsDetail'
 import ForecastDrivers from './pages/ForecastDrivers'
+import ForecastReport from './pages/ForecastReport'
+import { getClients } from './api/clients'
 
 function ClientLayout({ clients, onClientUpdated, onClientDeleted, children }) {
   const { id } = useParams()
@@ -21,6 +23,12 @@ function ClientLayout({ clients, onClientUpdated, onClientDeleted, children }) {
 
 export default function App() {
   const [clients, setClients] = useState([])
+
+  // Load clients on mount so the Sidebar always has data regardless of which
+  // page is loaded first (direct URL, refresh, error recovery, etc.)
+  useEffect(() => {
+    getClients().then(setClients).catch(() => {})
+  }, [])
 
   const handleClientsLoaded = (data) => setClients(data)
   const handleClientUpdated = (updated) => setClients(prev => prev.map(c => c.id === updated.id ? updated : c))
@@ -85,6 +93,14 @@ export default function App() {
           element={
             <ClientLayout clients={clients} onClientUpdated={handleClientUpdated} onClientDeleted={handleClientDeleted}>
               {() => <ForecastDrivers />}
+            </ClientLayout>
+          }
+        />
+        <Route
+          path="/clients/:id/forecast/:year/report"
+          element={
+            <ClientLayout clients={clients} onClientUpdated={handleClientUpdated} onClientDeleted={handleClientDeleted}>
+              {() => <ForecastReport />}
             </ClientLayout>
           }
         />

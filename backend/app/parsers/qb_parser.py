@@ -351,8 +351,13 @@ def parse_invoice_report(file_bytes: bytes, filename: str) -> dict:
                     if current_month not in counts:
                         counts[current_month] = 0
         elif col_b is not None and current_month is not None:
-            # Invoice detail row (col A is None, col B has a date value)
-            counts[current_month] += 1
+            # Invoice detail row: col A is None, col B is an invoice date.
+            # openpyxl returns Excel dates as datetime objects — guard against
+            # grand-total rows at the bottom of the report that have col_a=None
+            # but col_b = a count/amount (not a date).
+            from datetime import date as _date, datetime as _datetime
+            if isinstance(col_b, (_date, _datetime)):
+                counts[current_month] += 1
 
     return {
         "report_type": "invoices_by_month",

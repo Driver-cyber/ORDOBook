@@ -42,9 +42,20 @@ def _period_from_actuals(month: int, actuals: dict) -> dict:
     other = actuals.get("other_income_expense", 0)
 
     gross_profit = revenue - cos
-    total_other_expenses = marketing + depreciation + overhead
-    total_opex = payroll + total_other_expenses
-    net_op = gross_profit - total_opex
+
+    # Use QB's authoritative Total Expenses for net_op — this captures all expense
+    # accounts including any that were excluded or unmapped during import.
+    # Recalculating from components alone can miss expenses, producing a wrong net_op.
+    total_expenses_qb = actuals.get("total_expenses", 0)
+    if total_expenses_qb > 0:
+        net_op = gross_profit - total_expenses_qb
+        # total_other_expenses = everything except payroll, for display breakdown
+        total_other_expenses = max(0, total_expenses_qb - payroll)
+    else:
+        # Legacy fallback for records that predate total_expenses storage
+        total_other_expenses = marketing + depreciation + overhead
+        net_op = gross_profit - (payroll + total_other_expenses)
+
     net_profit = net_op + other
 
     job_count = actuals.get("job_count", 0)
@@ -103,8 +114,13 @@ def _period_from_drivers(month: int, config: dict) -> dict:
     blended_avg = int(revenue // total_jobs) if total_jobs > 0 else 0
 
     # --- Payroll ---
+    # Per-month cost_per_pay_run takes precedence; fall back to legacy scalar
+    monthly_cost = config.get("cost_per_pay_run_monthly", {}).get(month_key)
+    cost_per_run = Decimal(monthly_cost) if (monthly_cost is not None and monthly_cost != 0) \
+        else Decimal(config.get("cost_per_pay_run", 0))
+
     payroll, payroll_trace = calculate_payroll(
-        cost_per_run=Decimal(config.get("cost_per_pay_run", 0)),
+        cost_per_run=cost_per_run,
         runs_this_month=int(config.get("pay_runs_per_month", {}).get(month_key, 0)),
         one_off=Decimal(config.get("payroll_one_off", {}).get(month_key, 0)),
     )
