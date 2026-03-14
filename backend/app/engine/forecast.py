@@ -61,6 +61,14 @@ def _period_from_actuals(month: int, actuals: dict) -> dict:
     job_count = actuals.get("job_count", 0)
     blended_avg = (revenue // job_count) if job_count > 0 else 0
 
+    # Cash flow — derive days metrics from balance sheet actuals
+    ar = actuals.get("accounts_receivable", 0)
+    inventory_val = actuals.get("inventory", 0)
+    ap = actuals.get("accounts_payable", 0)
+    dso_days = int(round(ar / revenue * 30)) if revenue > 0 else 0
+    dio_days = int(round(inventory_val / cos * 30)) if cos > 0 else 0
+    dpo_days = int(round(ap / cos * 30)) if cos > 0 else 0
+
     return {
         "month": month,
         "source_type": "actual",
@@ -78,6 +86,15 @@ def _period_from_actuals(month: int, actuals: dict) -> dict:
         "total_job_count": job_count,
         "blended_avg_job_value": blended_avg,
         "owner_total_draws": 0,  # not tracked in actuals yet
+        "projected_ar": ar,
+        "projected_inventory": inventory_val,
+        "projected_ap": ap,
+        "owner_distributions": 0,
+        "owner_tax_savings": 0,
+        "net_cash_flow": net_profit,  # actuals: no owner draw data yet
+        "dso_days": dso_days,
+        "dio_days": dio_days,
+        "dpo_days": dpo_days,
         "calc_trace": {
             "source": "monthly_actuals",
             "note": "Values copied directly from confirmed actuals — no engine calculation applied.",
@@ -183,6 +200,19 @@ def _period_from_drivers(month: int, config: dict) -> dict:
     net_op = gross_profit - total_opex
     net_profit = net_op + other
 
+    # --- Cash flow drivers ---
+    dso = int(config.get("dso_monthly", {}).get(month_key, 0))
+    dio = int(config.get("dio_monthly", {}).get(month_key, 0))
+    dpo = int(config.get("dpo_monthly", {}).get(month_key, 0))
+
+    distributions = Decimal(config.get("owner_distributions", {}).get(month_key, 0))
+    tax_savings = Decimal(config.get("owner_tax_savings", {}).get(month_key, 0))
+
+    projected_ar = int(revenue * dso / 30) if dso > 0 else 0
+    projected_inventory_val = int(cos * dio / 30) if dio > 0 else 0
+    projected_ap = int(cos * dpo / 30) if dpo > 0 else 0
+    net_cash = int(net_profit - distributions - tax_savings)
+
     return {
         "month": month,
         "source_type": "forecast",
@@ -200,6 +230,15 @@ def _period_from_drivers(month: int, config: dict) -> dict:
         "total_job_count": total_jobs,
         "blended_avg_job_value": blended_avg,
         "owner_total_draws": int(owner_draws),
+        "projected_ar": projected_ar,
+        "projected_inventory": projected_inventory_val,
+        "projected_ap": projected_ap,
+        "owner_distributions": int(distributions),
+        "owner_tax_savings": int(tax_savings),
+        "net_cash_flow": net_cash,
+        "dso_days": dso,
+        "dio_days": dio,
+        "dpo_days": dpo,
         "calc_trace": {
             "revenue": revenue_trace,
             "cost_of_sales": cos_trace,
@@ -209,5 +248,11 @@ def _period_from_drivers(month: int, config: dict) -> dict:
             "owner_draws": draws_trace,
             "overhead_expenses": overhead_trace,
             "other_income_expense": other_trace,
+            "cash_flow": {
+                "dso": dso, "dio": dio, "dpo": dpo,
+                "projected_ar": projected_ar,
+                "projected_ap": projected_ap,
+                "net_cash": net_cash,
+            },
         },
     }

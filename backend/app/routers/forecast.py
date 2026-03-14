@@ -66,6 +66,9 @@ def _run_calculation(config: ForecastConfig, db: Session) -> list[ForecastPeriod
         "marketing_monthly": config.marketing_monthly or {},
         "depreciation_monthly": config.depreciation_monthly or {},
         "other_income_expense_monthly": config.other_income_expense_monthly or {},
+        "dso_monthly": config.dso_monthly or {},
+        "dio_monthly": config.dio_monthly or {},
+        "dpo_monthly": config.dpo_monthly or {},
     }
 
     periods = []

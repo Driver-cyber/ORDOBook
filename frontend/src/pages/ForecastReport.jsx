@@ -16,6 +16,44 @@ const S = {
   actualsText: '#b0aba5',
 }
 
+// ── Derived formula descriptions ─────────────────────────────────────────────
+
+const DERIVED_FORMULAS = {
+  gross_profit: 'Revenue − Cost of Sales',
+  total_other_expenses: 'Marketing + Depreciation + Overhead',
+  net_operating_profit: 'Gross Profit − Total Expenses',
+  net_profit: 'Net Op Profit + Other Inc/Exp',
+}
+
+// ── Hover tooltip ─────────────────────────────────────────────────────────────
+
+function Tooltip({ content, children }) {
+  const [show, setShow] = useState(false)
+  if (!content) return <>{children}</>
+  return (
+    <span
+      className="relative inline-block cursor-default"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      {children}
+      {show && (
+        <span
+          className="absolute z-50 bottom-full right-0 mb-1.5 px-2 py-1 rounded text-[10px] font-mono whitespace-nowrap pointer-events-none"
+          style={{
+            background: '#2a2724',
+            color: '#e8e4de',
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+          }}
+        >
+          {content}
+        </span>
+      )}
+    </span>
+  )
+}
+
 // ── Formatters ────────────────────────────────────────────────────────────────
 
 const fmt = (cents) => {
@@ -63,7 +101,9 @@ function DataRow({ label, values, ytd, highlight = false, muted = false, indent 
         <td key={i}
             className={`text-right px-2 py-2 font-mono text-[12px] ${weight}`}
             style={{ color: v?.isActual ? S.actualsText : color, minWidth: 58 }}>
-          {v?.display ?? '—'}
+          <Tooltip content={v?.trace}>
+            {v?.display ?? '—'}
+          </Tooltip>
         </td>
       ))}
       <td className={`text-right px-2 py-2 font-mono text-[12px] ${weight}`}
@@ -135,6 +175,9 @@ export default function ForecastReport() {
   const cell = (p, field) => ({
     display: fmt(p?.[field] ?? 0),
     isActual: p?.source_type === 'actual',
+    trace: p?.source_type === 'actual'
+      ? 'Confirmed actual'
+      : (DERIVED_FORMULAS[field] ?? p?.calc_trace?.[field]?.formula ?? null),
   })
 
   // YTD sum of a field
@@ -237,6 +280,7 @@ export default function ForecastReport() {
               values={ordered.map(p => ({
                 display: fmt((p?.payroll_expenses ?? 0) + (p?.total_other_expenses ?? 0)),
                 isActual: p?.source_type === 'actual',
+                trace: p?.source_type === 'actual' ? 'Confirmed actual' : 'Payroll + Other Expenses',
               }))}
               ytd={fmt(ordered.reduce((s, p) => s + (p?.payroll_expenses ?? 0) + (p?.total_other_expenses ?? 0), 0))}
               highlight
@@ -248,6 +292,16 @@ export default function ForecastReport() {
             <DataRow label="Other Income / Expense" values={ordered.map(p => cell(p, 'other_income_expense'))} ytd={ytd('other_income_expense')} muted />
             <Divider />
             <DataRow label="Net Profit" values={ordered.map(p => cell(p, 'net_profit'))} ytd={ytd('net_profit')} highlight />
+
+            {/* ══ CASH FLOW ═════════════════════════════════════════════════════ */}
+            <SectionHeader label="Cash Flow" />
+            <DataRow label="Projected AR" values={ordered.map(p => cell(p, 'projected_ar'))} ytd={ytd('projected_ar')} />
+            <DataRow label="Projected Inventory" values={ordered.map(p => cell(p, 'projected_inventory'))} ytd={ytd('projected_inventory')} muted />
+            <DataRow label="Projected AP" values={ordered.map(p => cell(p, 'projected_ap'))} ytd={ytd('projected_ap')} muted />
+            <DataRow label="Owner Distributions" values={ordered.map(p => cell(p, 'owner_distributions'))} ytd={ytd('owner_distributions')} />
+            <DataRow label="Tax Savings Reserve" values={ordered.map(p => cell(p, 'owner_tax_savings'))} ytd={ytd('owner_tax_savings')} />
+            <Divider />
+            <DataRow label="Net Cash Flow" values={ordered.map(p => cell(p, 'net_cash_flow'))} ytd={ytd('net_cash_flow')} highlight />
 
           </tbody>
         </table>

@@ -11,6 +11,15 @@ function fmt(cents) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(dollars)
 }
 
+function RowText({ label, value }) {
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-border/50">
+      <span className="text-[12px] text-text-secondary pl-4">{label}</span>
+      <span className="font-mono text-[12px] pr-4 text-text-secondary">{value}</span>
+    </div>
+  )
+}
+
 function Row({ label, value, calculated = false }) {
   return (
     <div className={`flex items-center justify-between py-2 border-b border-border/50 ${calculated ? 'bg-surface2/30' : ''}`}>
@@ -124,9 +133,9 @@ export default function ActualsDetail() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-8 py-6">
-        <div className="max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 
-          {/* Income Statement */}
+          {/* ── Income Statement ───────────────────────────────────────────── */}
           <div className="bg-surface border border-border rounded-xl overflow-hidden">
             <div className="px-5 py-4 border-b border-border flex items-center justify-between">
               <h2 className="font-display font-semibold text-sm text-text-primary">Income Statement</h2>
@@ -196,6 +205,31 @@ export default function ActualsDetail() {
           </div>
 
         </div>
+
+        {/* Cash Flow / Working Capital */}
+        {(() => {
+          const dso = data.revenue > 0 ? Math.round(data.accounts_receivable / data.revenue * 30) : 0
+          const dio = data.cost_of_sales > 0 ? Math.round(data.inventory / data.cost_of_sales * 30) : 0
+          const dpo = data.cost_of_sales > 0 ? Math.round(data.accounts_payable / data.cost_of_sales * 30) : 0
+          return (
+            <div className="max-w-3xl mb-6">
+              <div className="bg-surface border border-border rounded-xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-border">
+                  <h2 className="font-display font-semibold text-sm text-text-primary">Cash Flow Indicators</h2>
+                </div>
+                <SectionHeader label="Working Capital Days" />
+                <RowText label="Days Sales Outstanding (DSO)" value={`${dso} days`} />
+                <RowText label="Days Inventory Outstanding (DIO)" value={`${dio} days`} />
+                <RowText label="Days Payable Outstanding (DPO)" value={`${dpo} days`} />
+                <SectionHeader label="Key Balances" />
+                <Row label="Accounts Receivable" value={data.accounts_receivable} />
+                <Row label="Inventory" value={data.inventory} />
+                <Row label="Accounts Payable" value={data.accounts_payable} />
+                <Row label="Net Profit" value={netProfit} calculated />
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Metadata */}
         {data.source_files?.length > 0 && (

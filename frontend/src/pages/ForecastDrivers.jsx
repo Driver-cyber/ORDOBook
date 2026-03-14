@@ -27,6 +27,44 @@ const S = {
   actualsBg: 'transparent',
 }
 
+// ── Static formula descriptions for derived fields ────────────────────────────
+
+const DERIVED_FORMULAS = {
+  gross_profit: 'Revenue − Cost of Sales',
+  total_other_expenses: 'Marketing + Depreciation + Overhead',
+  net_operating_profit: 'Gross Profit − Total Expenses',
+  net_profit: 'Net Op Profit + Other Inc/Exp',
+}
+
+// ── Hover tooltip ─────────────────────────────────────────────────────────────
+
+function Tooltip({ content, children }) {
+  const [show, setShow] = useState(false)
+  if (!content) return <>{children}</>
+  return (
+    <span
+      className="relative inline-block cursor-default"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      {children}
+      {show && (
+        <span
+          className="absolute z-50 bottom-full right-0 mb-1.5 px-2 py-1 rounded text-[10px] font-mono whitespace-nowrap pointer-events-none"
+          style={{
+            background: '#2a2724',
+            color: '#e8e4de',
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+          }}
+        >
+          {content}
+        </span>
+      )}
+    </span>
+  )
+}
+
 // ── Shared input style ────────────────────────────────────────────────────────
 
 const inputStyle = {
@@ -130,6 +168,19 @@ function CalcRow({ label, periods, field, fields, highlight = false, sublabel })
     : (p?.[field] ?? 0)
   const total = (periods || []).reduce((s, p) => s + getVal(p), 0)
   const color = highlight ? S.gold : S.textSecondary
+
+  const getTooltip = (p) => {
+    if (!p) return null
+    if (p.source_type === 'actual') return 'Confirmed actual'
+    if (fields) return fields.map(f => {
+      if (f === 'payroll_expenses') return 'Payroll'
+      if (f === 'total_other_expenses') return 'Other Expenses'
+      return f
+    }).join(' + ')
+    if (DERIVED_FORMULAS[field]) return DERIVED_FORMULAS[field]
+    return p.calc_trace?.[field]?.formula ?? null
+  }
+
   return (
     <tr style={{ borderTop: `1px solid ${S.border}` }}>
       <td /> {/* autofill column spacer */}
@@ -140,7 +191,9 @@ function CalcRow({ label, periods, field, fields, highlight = false, sublabel })
       {(periods || []).map((p, i) => (
         <td key={i} className="text-right px-2 py-2 font-mono text-[12px] font-semibold"
             style={{ color, minWidth: 58 }}>
-          {fmt(getVal(p))}
+          <Tooltip content={getTooltip(p)}>
+            {fmt(getVal(p))}
+          </Tooltip>
         </td>
       ))}
       <td className="text-right px-2 py-2 font-mono text-[12px] font-semibold" style={{ color }}>
@@ -524,6 +577,66 @@ export default function ForecastDrivers() {
             <CalcRow label="Net Operating Profit" periods={orderedPeriods} field="net_operating_profit" highlight />
             <CalcRow label="Other Income / Expense" periods={orderedPeriods} field="other_income_expense" />
             <CalcRow label="Net Profit" periods={orderedPeriods} field="net_profit" highlight />
+
+            {/* ══ CASH FLOW DRIVERS ══════════════════════════════════════════════ */}
+            <SectionHeader label="Cash Flow Drivers" />
+
+            <DriverRow
+              label="DSO — Days Sales Outstanding"
+              monthInts={monthInts} actualsMonths={actualsMonths}
+              getValue={m => dv('dso_monthly', m)}
+              getDisplay={m => {
+                const days = periodByMonth[m]?.dso_days
+                return (days !== undefined && days !== null) ? `${days} days` : '—'
+              }}
+              onChange={(m, v) => setMonthField('dso_monthly', m, v)}
+              onAutofill={val => autofillField('dso_monthly', val)}
+            />
+            <DriverRow
+              label="DIO — Days Inventory Outstanding"
+              monthInts={monthInts} actualsMonths={actualsMonths}
+              getValue={m => dv('dio_monthly', m)}
+              getDisplay={m => {
+                const days = periodByMonth[m]?.dio_days
+                return (days !== undefined && days !== null) ? `${days} days` : '—'
+              }}
+              onChange={(m, v) => setMonthField('dio_monthly', m, v)}
+              onAutofill={val => autofillField('dio_monthly', val)}
+            />
+            <DriverRow
+              label="DPO — Days Payable Outstanding"
+              monthInts={monthInts} actualsMonths={actualsMonths}
+              getValue={m => dv('dpo_monthly', m)}
+              getDisplay={m => {
+                const days = periodByMonth[m]?.dpo_days
+                return (days !== undefined && days !== null) ? `${days} days` : '—'
+              }}
+              onChange={(m, v) => setMonthField('dpo_monthly', m, v)}
+              onAutofill={val => autofillField('dpo_monthly', val)}
+            />
+            <DriverRow
+              label="Owner Distributions ($)"
+              monthInts={monthInts} actualsMonths={actualsMonths}
+              getValue={m => Math.round(dv('owner_distributions', m) / 100)}
+              getDisplay={m => fmt(periodByMonth[m]?.owner_distributions ?? 0)}
+              onChange={(m, v) => setMonthField('owner_distributions', m, v, 100)}
+              onAutofill={val => autofillField('owner_distributions', val * 100)}
+            />
+            <DriverRow
+              label="Tax Savings Reserve ($)"
+              monthInts={monthInts} actualsMonths={actualsMonths}
+              getValue={m => Math.round(dv('owner_tax_savings', m) / 100)}
+              getDisplay={m => fmt(periodByMonth[m]?.owner_tax_savings ?? 0)}
+              onChange={(m, v) => setMonthField('owner_tax_savings', m, v, 100)}
+              onAutofill={val => autofillField('owner_tax_savings', val * 100)}
+            />
+
+            <CalcRow label="Projected AR" periods={orderedPeriods} field="projected_ar" />
+            <CalcRow label="Projected Inventory" periods={orderedPeriods} field="projected_inventory" />
+            <CalcRow label="Projected AP" periods={orderedPeriods} field="projected_ap" />
+            <CalcRow label="Owner Distributions" periods={orderedPeriods} field="owner_distributions" />
+            <CalcRow label="Tax Savings Reserve" periods={orderedPeriods} field="owner_tax_savings" />
+            <CalcRow label="Net Cash Flow" periods={orderedPeriods} field="net_cash_flow" highlight />
 
           </tbody>
         </table>

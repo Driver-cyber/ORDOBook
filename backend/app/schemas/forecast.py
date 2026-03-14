@@ -35,6 +35,10 @@ class ForecastConfigCreate(BaseModel):
     depreciation_monthly: dict[str, int] = {}
     other_income_expense_monthly: dict[str, int] = {}
 
+    dso_monthly: dict = {}
+    dio_monthly: dict = {}
+    dpo_monthly: dict = {}
+
     notes: str | None = None
 
 
@@ -66,6 +70,10 @@ class ForecastConfigUpdate(BaseModel):
     marketing_monthly: dict[str, int] | None = None
     depreciation_monthly: dict[str, int] | None = None
     other_income_expense_monthly: dict[str, int] | None = None
+
+    dso_monthly: dict | None = None
+    dio_monthly: dict | None = None
+    dpo_monthly: dict | None = None
 
     notes: str | None = None
 
@@ -103,6 +111,10 @@ class ForecastConfigOut(BaseModel):
     depreciation_monthly: dict[str, Any]
     other_income_expense_monthly: dict[str, Any]
 
+    dso_monthly: dict[str, Any]
+    dio_monthly: dict[str, Any]
+    dpo_monthly: dict[str, Any]
+
     notes: str | None
 
     model_config = {"from_attributes": True}
@@ -133,6 +145,16 @@ class ForecastPeriodOut(BaseModel):
     total_job_count: int
     blended_avg_job_value: int
     owner_total_draws: int
+
+    projected_ar: int = 0
+    projected_inventory: int = 0
+    projected_ap: int = 0
+    owner_distributions: int = 0
+    owner_tax_savings: int = 0
+    net_cash_flow: int = 0
+    dso_days: int = 0
+    dio_days: int = 0
+    dpo_days: int = 0
 
     calc_trace: dict[str, Any]
 

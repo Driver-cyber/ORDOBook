@@ -1,18 +1,24 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-03-13 | 12-month report view complete
+> Last updated: 2026-03-14 | Phase 3c complete, migrations 013–016 applied
 
 ---
 
 ## Where We Are
 
-- Phase 3a engine: ✅ built
-- Phase 3b UX + light theme: ✅ done
-- 12-month report view: ✅ built (2026-03-13) — "View Report →" on Forecast Drivers page
-- **Vetter Plumbing verification: still pending** — use the report view to compare against Excel
+- Audit Trail Level 1: ✅ hover tooltips on all CalcRow/DataRow values
+- Phase 3c Cash Flow Drivers: ✅ complete
+  - DSO/DIO/DPO driver inputs on Forecast page
+  - Owner Distributions + Tax Savings Reserve back in UI
+  - Projected AR/Inventory/AP CalcRows
+  - Net Cash Flow CalcRow (Net Profit − Distributions − Tax Savings)
+  - Cash Flow Indicators card on ActualsDetail
+  - Cash Flow section on Report page
+- Migrations 013–016 applied, DB at head
 
-**Phase 3b is complete once verification passes. Then:**
-1. Audit trail Level 1 (hover tooltip on calculated values)
-2. Phase 3c — Balance Sheet / Cash Flow section
+**Next up:**
+1. Verify cash flow section works correctly in browser (enter drivers, recalculate, check numbers)
+2. Phase 3d — Balance Sheet ending balances (12-month projected BS)
+3. Phase 4 — Targets & Scoring / Scoreboard
 
 ---
 
@@ -28,7 +34,6 @@ sudo -u cstewch /opt/homebrew/opt/postgresql@17/bin/pg_ctl -D /opt/homebrew/var/
 ```bash
 sudo chown -R ordocfo /opt/homebrew/var/postgresql@17
 ```
-After that, `brew services start postgresql@17` works normally.
 
 ---
 
@@ -49,30 +54,21 @@ npm run dev
 
 ---
 
-## Step 3 — Vetter Plumbing verification
-
-Open Vetter Plumbing → Forecast → enter driver values from the Jan 2026 Excel workbook
-→ Recalculate → View Report → compare to Excel.
-
-If numbers don't match, debug via:
-- `backend/app/engine/forecast.py` → `_period_from_drivers()`
-- `backend/app/engine/revenue.py` → job count × avg value
-- `backend/app/engine/payroll.py` → runs × cost_per_run
-- `GET http://127.0.0.1:8000/api/clients/{id}/forecast/2026/1/trace`
-
----
-
-## Up Next (after verification)
-
-1. **Audit trail Level 1** — hover tooltip on any calculated value showing its formula from `calc_trace`
-2. **Phase 3c — Balance Sheet / Cash Flow** — Owner Distributions, Tax Savings Reserve, DSO → AR balance, Net Cash Impact
-
----
-
 ## Key Notes
 
-- Light theme: DO NOT reintroduce dark hex values (`#1a1d22`, `#0e0f11`, etc.) in any new component
-- Owner draws / tax savings are balance sheet items — they do NOT reduce Net Income
-- `overhead_schedule` DB column exists but is unused; `other_overhead_monthly` replaced it
-- Legacy scalar `small/medium/large_job_avg_value` fields still exist as fallback
+- Light theme: DO NOT reintroduce dark hex values (`#1a1d22`, `#0e0f11`, etc.)
+- Owner draws / tax savings are balance sheet items — do NOT reduce Net Income
+- Net Cash Flow = Net Profit − Owner Distributions − Tax Savings (not a P&L item)
+- DSO/DIO/DPO stored as integer days; projected balance = revenue (or COS) × days / 30
+- `overhead_schedule` DB column exists but unused; `other_overhead_monthly` replaced it
+- Legacy scalar `cost_per_pay_run` kept as fallback; `cost_per_pay_run_monthly` is live
 - DB is PostgreSQL in dev; migrates to SQLite when Electron packaging begins
+- Invoice count bug fixed: only counts rows where col_b is a datetime
+- Net op bug fixed: `_period_from_actuals` now uses `total_expenses` from QB
+
+## Roadmap Order
+1. Phase 3d — Balance Sheet ending balances
+2. Phase 3c-deferred — Debt repayments + asset purchase/sale cash flow rows
+3. Phase 4 — Targets & Scoring / Scoreboard
+4. Phase 4b — Scenario Sandbox
+5. Phase 5 — PDF + JSON exports

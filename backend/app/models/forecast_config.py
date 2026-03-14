@@ -51,6 +51,11 @@ class ForecastConfig(Base):
     # Other income/expense — per-month cents, can be negative
     other_income_expense_monthly = Column(JSONB, nullable=False, default=dict)
 
+    # Cash flow drivers — per-month days (integer, not cents)
+    dso_monthly = Column(JSONB, nullable=False, default=dict)  # {"1": 30, ...} days sales outstanding
+    dio_monthly = Column(JSONB, nullable=False, default=dict)  # {"1": 0, ...} days inventory outstanding
+    dpo_monthly = Column(JSONB, nullable=False, default=dict)  # {"1": 30, ...} days payable outstanding
+
     notes = Column(Text, nullable=True)
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
