@@ -3,7 +3,9 @@
     "allow": [
       "Bash(source:*)",
       "Bash(curl -s http://127.0.0.1:8000/health)",
-      "Read(//private/tmp/**)"
+      "Read(//private/tmp/**)",
+      "Bash(cd \"/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook/backend\" && source venv/bin/activate && python -m alembic upgrade head 2>&1)",
+      "Bash(cd \"/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook/backend\" && source venv/bin/activate && python -c \"from app.models.forecast_period import ForecastPeriod; from app.models.forecast_config import ForecastConfig; from app.schemas.forecast import ForecastConfigOut, ForecastPeriodOut; print\\('Models and schemas import OK'\\)\" 2>&1)"
     ]
   }
 }
