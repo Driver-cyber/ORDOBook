@@ -7,6 +7,7 @@ import ClientWorkspace from './pages/ClientWorkspace'
 import UploadPage from './pages/UploadPage'
 import MappingReview from './pages/MappingReview'
 import ActualsDetail from './pages/ActualsDetail'
+import ActualsHistory from './pages/ActualsHistory'
 import ForecastDrivers from './pages/ForecastDrivers'
 import ForecastReport from './pages/ForecastReport'
 import { getClients } from './api/clients'
@@ -35,7 +36,7 @@ export default function App() {
   const handleClientDeleted = (id) => setClients(prev => prev.filter(c => c.id !== id))
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg">
+    <div className="flex h-screen bg-bg">
       <Routes>
         <Route
           path="/"
@@ -77,6 +78,14 @@ export default function App() {
           element={
             <ClientLayout clients={clients} onClientUpdated={handleClientUpdated} onClientDeleted={handleClientDeleted}>
               {() => <MappingReview />}
+            </ClientLayout>
+          }
+        />
+        <Route
+          path="/clients/:id/actuals/history"
+          element={
+            <ClientLayout clients={clients} onClientUpdated={handleClientUpdated} onClientDeleted={handleClientDeleted}>
+              {() => <ActualsHistory />}
             </ClientLayout>
           }
         />

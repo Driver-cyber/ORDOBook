@@ -138,7 +138,6 @@ function DriverRow({ label, monthInts, actualsMonths = new Set(), getValue, getD
     monthInts.forEach(m => {
       if (!actualsMonths.has(m)) onChange(m, String(sourceVal))
     })
-    if (onAutofill) onAutofill(sourceVal)
   }
 
   return (

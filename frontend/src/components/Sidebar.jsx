@@ -133,6 +133,16 @@ export default function Sidebar({ clients, activeClientId }) {
                 <p className="font-mono text-[9px] uppercase tracking-[0.15em] px-2 mb-1.5 mt-4" style={{ color: S.textMuted }}>
                   Periods
                 </p>
+                <NavLink
+                  to={`/clients/${activeClientId}/actuals/history`}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] transition-colors"
+                  style={({ isActive }) => ({
+                    background: isActive ? 'rgba(200,169,110,0.1)' : 'transparent',
+                    color: isActive ? '#c8a96e' : S.textSecondary,
+                  })}
+                >
+                  <span>▤</span> Actuals History
+                </NavLink>
                 {years.map(year => (
                   <div key={year}>
                     <button
