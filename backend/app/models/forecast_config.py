@@ -56,6 +56,13 @@ class ForecastConfig(Base):
     dio_monthly = Column(JSONB, nullable=False, default=dict)  # {"1": 0, ...} days inventory outstanding
     dpo_monthly = Column(JSONB, nullable=False, default=dict)  # {"1": 30, ...} days payable outstanding
 
+    # Investing & financing drivers — per-month cents
+    # positive capex = money spent (cash outflow); positive debt = new borrowing (cash inflow)
+    capex_monthly = Column(JSONB, nullable=False, default=dict)
+    other_current_assets_change_monthly = Column(JSONB, nullable=False, default=dict)
+    current_debt_change_monthly = Column(JSONB, nullable=False, default=dict)
+    long_term_debt_change_monthly = Column(JSONB, nullable=False, default=dict)
+
     notes = Column(Text, nullable=True)
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

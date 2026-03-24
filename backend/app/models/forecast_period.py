@@ -40,10 +40,22 @@ class ForecastPeriod(Base):
     projected_ap = Column(BigInteger, nullable=False, default=0)           # AP balance (cents)
     owner_distributions = Column(BigInteger, nullable=False, default=0)    # cash out to owner (cents)
     owner_tax_savings = Column(BigInteger, nullable=False, default=0)      # tax reserve (cents)
-    net_cash_flow = Column(BigInteger, nullable=False, default=0)          # net profit − owner draws (cents)
+    net_cash_flow = Column(BigInteger, nullable=False, default=0)          # full cash flow (cents)
     dso_days = Column(Integer, nullable=False, default=0)                  # days sales outstanding
     dio_days = Column(Integer, nullable=False, default=0)                  # days inventory outstanding
     dpo_days = Column(Integer, nullable=False, default=0)                  # days payable outstanding
+
+    # Full cash flow — Phase 3c-deferred (WC deltas, CapEx, debt)
+    ar_change = Column(BigInteger, nullable=False, default=0)              # ΔAR vs prior period
+    inventory_change = Column(BigInteger, nullable=False, default=0)       # ΔInventory vs prior period
+    ap_change = Column(BigInteger, nullable=False, default=0)              # ΔAP vs prior period
+    capex = Column(BigInteger, nullable=False, default=0)                  # capital expenditure (cash out)
+    other_current_assets_change = Column(BigInteger, nullable=False, default=0)
+    current_debt_change = Column(BigInteger, nullable=False, default=0)    # positive = new borrowing (cash in)
+    long_term_debt_change = Column(BigInteger, nullable=False, default=0)  # positive = new borrowing (cash in)
+    projected_other_current_assets = Column(BigInteger, nullable=False, default=0)
+    projected_current_debt = Column(BigInteger, nullable=False, default=0)
+    projected_long_term_debt = Column(BigInteger, nullable=False, default=0)
 
     # Full audit trail — every intermediate calculation step
     # Format: {

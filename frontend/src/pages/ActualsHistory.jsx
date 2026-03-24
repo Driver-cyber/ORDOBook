@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getActuals, getActualsDetail, updateActuals } from '../api/ingestion'
+import { calculateForecast } from '../api/forecast'
 
 const MONTH_ABBR = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -134,6 +135,9 @@ export default function ActualsHistory() {
       await Promise.all(
         draftPeriods.map(p => updateActuals(clientId, p.fiscal_year, p.month, { status: 'confirmed' }))
       )
+      // Auto-sync forecast for each affected fiscal year — silently skip missing configs
+      const affectedYears = [...new Set(draftPeriods.map(p => p.fiscal_year))]
+      await Promise.all(affectedYears.map(y => calculateForecast(clientId, y).catch(() => {})))
       await load()
     } catch {}
     setConfirming(false)

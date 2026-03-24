@@ -5,7 +5,19 @@
       "Bash(curl -s http://127.0.0.1:8000/health)",
       "Read(//private/tmp/**)",
       "Bash(cd \"/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook/backend\" && source venv/bin/activate && python -m alembic upgrade head 2>&1)",
-      "Bash(cd \"/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook/backend\" && source venv/bin/activate && python -c \"from app.models.forecast_period import ForecastPeriod; from app.models.forecast_config import ForecastConfig; from app.schemas.forecast import ForecastConfigOut, ForecastPeriodOut; print\\('Models and schemas import OK'\\)\" 2>&1)"
+      "Bash(cd \"/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook/backend\" && source venv/bin/activate && python -c \"from app.models.forecast_period import ForecastPeriod; from app.models.forecast_config import ForecastConfig; from app.schemas.forecast import ForecastConfigOut, ForecastPeriodOut; print\\('Models and schemas import OK'\\)\" 2>&1)",
+      "Bash(chmod:*)",
+      "Bash(brew services:*)",
+      "Bash(/opt/homebrew/opt/postgresql@17/bin/pg_ctl -D /opt/homebrew/var/postgresql@17 status)",
+      "Bash(/opt/homebrew/opt/postgresql@17/bin/pg_ctl -D /opt/homebrew/var/postgresql@17 -l /tmp/pg_start.log start)",
+      "Bash(curl -s http://localhost:8000/api/clients)",
+      "Bash(python3 -c \":*)",
+      "Bash(for id:*)",
+      "Bash(do)",
+      "Bash(echo -n \"Client $id: \")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" -X POST \"http://localhost:8000/api/clients/$id/forecast/2026/calculate\")",
+      "Bash(done)",
+      "Bash(curl -s \"http://localhost:8000/api/clients/1/forecast/2026\")"
     ]
   }
 }

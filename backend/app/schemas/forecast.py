@@ -39,6 +39,11 @@ class ForecastConfigCreate(BaseModel):
     dio_monthly: dict = {}
     dpo_monthly: dict = {}
 
+    capex_monthly: dict[str, int] = {}
+    other_current_assets_change_monthly: dict[str, int] = {}
+    current_debt_change_monthly: dict[str, int] = {}
+    long_term_debt_change_monthly: dict[str, int] = {}
+
     notes: str | None = None
 
 
@@ -74,6 +79,11 @@ class ForecastConfigUpdate(BaseModel):
     dso_monthly: dict | None = None
     dio_monthly: dict | None = None
     dpo_monthly: dict | None = None
+
+    capex_monthly: dict[str, int] | None = None
+    other_current_assets_change_monthly: dict[str, int] | None = None
+    current_debt_change_monthly: dict[str, int] | None = None
+    long_term_debt_change_monthly: dict[str, int] | None = None
 
     notes: str | None = None
 
@@ -115,6 +125,11 @@ class ForecastConfigOut(BaseModel):
     dio_monthly: dict[str, Any]
     dpo_monthly: dict[str, Any]
 
+    capex_monthly: dict[str, Any]
+    other_current_assets_change_monthly: dict[str, Any]
+    current_debt_change_monthly: dict[str, Any]
+    long_term_debt_change_monthly: dict[str, Any]
+
     notes: str | None
 
     model_config = {"from_attributes": True}
@@ -155,6 +170,17 @@ class ForecastPeriodOut(BaseModel):
     dso_days: int = 0
     dio_days: int = 0
     dpo_days: int = 0
+
+    ar_change: int = 0
+    inventory_change: int = 0
+    ap_change: int = 0
+    capex: int = 0
+    other_current_assets_change: int = 0
+    current_debt_change: int = 0
+    long_term_debt_change: int = 0
+    projected_other_current_assets: int = 0
+    projected_current_debt: int = 0
+    projected_long_term_debt: int = 0
 
     calc_trace: dict[str, Any]
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getForecastView, createDrivers, updateDrivers } from '../api/forecast'
+import { getForecastView, createDrivers, updateDrivers, calculateForecast } from '../api/forecast'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -148,7 +148,7 @@ function DriverRow({ label, monthInts, actualsMonths = new Set(), getValue, getD
       </td>
       {monthInts.map(m =>
         actualsMonths.has(m)
-          ? <ActualsCell key={m} display={getDisplay ? getDisplay(m) : getValue(m)} />
+          ? <ActualsCell key={m} display={getDisplay ? getDisplay(m) : '—'} />
           : <EditCell key={m} value={getValue(m)} onChange={v => onChange(m, v)} />
       )}
       <td className="text-right px-2 py-1.5 font-mono text-[12px]"
@@ -202,6 +202,21 @@ function CalcRow({ label, periods, field, fields, highlight = false, sublabel })
   )
 }
 
+// ── Sub-section label ─────────────────────────────────────────────────────────
+
+function SubHeader({ label }) {
+  return (
+    <tr>
+      <td colSpan={15} className="px-3 pt-3 pb-0.5">
+        <span className="font-mono text-[9px] uppercase tracking-[0.14em]"
+              style={{ color: '#9a9590', opacity: 0.7 }}>
+          {label}
+        </span>
+      </td>
+    </tr>
+  )
+}
+
 // ── Section divider ───────────────────────────────────────────────────────────
 
 function SectionHeader({ label }) {
@@ -231,6 +246,7 @@ export default function ForecastDrivers() {
   const [draft, setDraft] = useState(null)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -248,7 +264,15 @@ export default function ForecastDrivers() {
       if (e.message.includes('404') || e.message.includes('not found')) {
         try {
           const newConfig = await createDrivers(clientId, fiscalYear, {})
-          setConfig(newConfig); setDraft(newConfig); setPeriods([])
+          setConfig(newConfig); setDraft(newConfig)
+          // Auto-run calculation so any existing actuals populate immediately
+          const calculated = await calculateForecast(clientId, fiscalYear).catch(() => null)
+          if (calculated) {
+            const fresh = await getForecastView(clientId, fiscalYear)
+            setConfig(fresh.config); setDraft(fresh.config); setPeriods(fresh.periods)
+          } else {
+            setPeriods([])
+          }
         } catch (e2) { setError(e2.message) }
       } else { setError(e.message) }
     } finally { setLoading(false) }
@@ -269,6 +293,17 @@ export default function ForecastDrivers() {
     for (let m = 1; m <= 12; m++) filled[String(m)] = val
     setDraft(prev => ({ ...prev, [field]: filled }))
     setDirty(true)
+  }
+
+  const handleSyncActuals = async () => {
+    setSyncing(true); setError(null)
+    try {
+      await calculateForecast(clientId, fiscalYear)
+      const updated = await getForecastView(clientId, fiscalYear)
+      setConfig(updated.config); setDraft(updated.config); setPeriods(updated.periods)
+      setDirty(false)
+    } catch (e) { setError(e.message) }
+    finally { setSyncing(false) }
   }
 
   const handleRecalculate = async () => {
@@ -330,10 +365,19 @@ export default function ForecastDrivers() {
             View Report →
           </button>
           <button
+            onClick={handleSyncActuals}
+            disabled={syncing || saving}
+            title="Re-run engine from imported actuals — fixes any months where actuals were overwritten"
+            className="px-4 py-1.5 rounded text-[12px] font-medium border transition-opacity"
+            style={{ borderColor: S.border, color: S.textSecondary, background: S.surface, opacity: (syncing || saving) ? 0.6 : 1 }}
+          >
+            {syncing ? 'Syncing…' : '↻ Sync Actuals'}
+          </button>
+          <button
             onClick={handleRecalculate}
-            disabled={saving}
+            disabled={saving || syncing}
             className="px-4 py-1.5 rounded text-[12px] font-medium transition-opacity"
-            style={{ background: S.gold, color: '#1a1918', opacity: saving ? 0.6 : 1 }}
+            style={{ background: S.gold, color: '#1a1918', opacity: (saving || syncing) ? 0.6 : 1 }}
           >
             {saving ? 'Saving…' : 'Recalculate'}
           </button>
@@ -577,9 +621,10 @@ export default function ForecastDrivers() {
             <CalcRow label="Other Income / Expense" periods={orderedPeriods} field="other_income_expense" />
             <CalcRow label="Net Profit" periods={orderedPeriods} field="net_profit" highlight />
 
-            {/* ══ CASH FLOW DRIVERS ══════════════════════════════════════════════ */}
-            <SectionHeader label="Cash Flow Drivers" />
+            {/* ══ CASH FLOW ══════════════════════════════════════════════════════ */}
+            <SectionHeader label="Cash Flow" />
 
+            <SubHeader label="Working Capital" />
             <DriverRow
               label="DSO — Days Sales Outstanding"
               monthInts={monthInts} actualsMonths={actualsMonths}
@@ -630,12 +675,54 @@ export default function ForecastDrivers() {
               onAutofill={val => autofillField('owner_tax_savings', val * 100)}
             />
 
-            <CalcRow label="Projected AR" periods={orderedPeriods} field="projected_ar" />
-            <CalcRow label="Projected Inventory" periods={orderedPeriods} field="projected_inventory" />
-            <CalcRow label="Projected AP" periods={orderedPeriods} field="projected_ap" />
-            <CalcRow label="Owner Distributions" periods={orderedPeriods} field="owner_distributions" />
-            <CalcRow label="Tax Savings Reserve" periods={orderedPeriods} field="owner_tax_savings" />
+            <SubHeader label="Investing & Financing" />
+            <DriverRow
+              label="Capital Expenditures ($)"
+              monthInts={monthInts} actualsMonths={actualsMonths}
+              getValue={m => Math.round(dv('capex_monthly', m) / 100)}
+              getDisplay={m => fmt(dv('capex_monthly', m))}
+              onChange={(m, v) => setMonthField('capex_monthly', m, v, 100)}
+              onAutofill={val => autofillField('capex_monthly', val * 100)}
+            />
+            <DriverRow
+              label="Other Current Assets Δ ($)"
+              monthInts={monthInts} actualsMonths={actualsMonths}
+              getValue={m => Math.round(dv('other_current_assets_change_monthly', m) / 100)}
+              getDisplay={m => fmt(dv('other_current_assets_change_monthly', m))}
+              onChange={(m, v) => setMonthField('other_current_assets_change_monthly', m, v, 100)}
+              onAutofill={val => autofillField('other_current_assets_change_monthly', val * 100)}
+            />
+            <DriverRow
+              label="Current Debt Change ($)"
+              monthInts={monthInts} actualsMonths={actualsMonths}
+              getValue={m => Math.round(dv('current_debt_change_monthly', m) / 100)}
+              getDisplay={m => fmt(dv('current_debt_change_monthly', m))}
+              onChange={(m, v) => setMonthField('current_debt_change_monthly', m, v, 100)}
+              onAutofill={val => autofillField('current_debt_change_monthly', val * 100)}
+            />
+            <DriverRow
+              label="Long-Term Debt Change ($)"
+              monthInts={monthInts} actualsMonths={actualsMonths}
+              getValue={m => Math.round(dv('long_term_debt_change_monthly', m) / 100)}
+              getDisplay={m => fmt(dv('long_term_debt_change_monthly', m))}
+              onChange={(m, v) => setMonthField('long_term_debt_change_monthly', m, v, 100)}
+              onAutofill={val => autofillField('long_term_debt_change_monthly', val * 100)}
+            />
+
             <CalcRow label="Net Cash Flow" periods={orderedPeriods} field="net_cash_flow" highlight />
+
+            {/* ══ PROJECTED BALANCE SHEET ════════════════════════════════════════ */}
+            <SectionHeader label="Projected Balance Sheet" />
+
+            <SubHeader label="Assets" />
+            <CalcRow label="Accounts Receivable"  periods={orderedPeriods} field="projected_ar" />
+            <CalcRow label="Inventory"            periods={orderedPeriods} field="projected_inventory" />
+            <CalcRow label="Other Current Assets" periods={orderedPeriods} field="projected_other_current_assets" />
+
+            <SubHeader label="Liabilities" />
+            <CalcRow label="Accounts Payable"          periods={orderedPeriods} field="projected_ap" />
+            <CalcRow label="Other Current Liabilities"  periods={orderedPeriods} field="projected_current_debt" />
+            <CalcRow label="Long-Term Liabilities"      periods={orderedPeriods} field="projected_long_term_debt" />
 
           </tbody>
         </table>

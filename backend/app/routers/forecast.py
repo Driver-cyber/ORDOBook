@@ -69,12 +69,28 @@ def _run_calculation(config: ForecastConfig, db: Session) -> list[ForecastPeriod
         "dso_monthly": config.dso_monthly or {},
         "dio_monthly": config.dio_monthly or {},
         "dpo_monthly": config.dpo_monthly or {},
+        "capex_monthly": config.capex_monthly or {},
+        "other_current_assets_change_monthly": config.other_current_assets_change_monthly or {},
+        "current_debt_change_monthly": config.current_debt_change_monthly or {},
+        "long_term_debt_change_monthly": config.long_term_debt_change_monthly or {},
     }
 
     periods = []
+    prior_projected: dict | None = None
     for month in range(1, 13):
         actuals = actuals_by_month.get(month)
-        period_data = build_forecast_period(month=month, config=config_dict, actuals=actuals)
+        period_data = build_forecast_period(
+            month=month, config=config_dict, actuals=actuals, prior_projected=prior_projected
+        )
+        # Carry forward projected balance sheet for next month's delta calculation
+        prior_projected = {
+            "projected_ar": period_data["projected_ar"],
+            "projected_inventory": period_data["projected_inventory"],
+            "projected_ap": period_data["projected_ap"],
+            "projected_other_current_assets": period_data["projected_other_current_assets"],
+            "projected_current_debt": period_data["projected_current_debt"],
+            "projected_long_term_debt": period_data["projected_long_term_debt"],
+        }
 
         existing = db.query(ForecastPeriod).filter(
             ForecastPeriod.client_id == config.client_id,

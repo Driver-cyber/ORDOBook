@@ -92,6 +92,11 @@ export default function MappingReview() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
+  // Derive rows/periods before any early return so hooks are always called in the same order
+  const periods = preview?.periods_detected ?? []
+  const rows = preview ? preview.rows.filter(r => r.row_type === 'line_item') : []
+  const totals = useMemo(() => computeTotals(rows, mappings, periods), [rows, mappings, periods])
+
   if (!preview) {
     return (
       <div className="flex-1 flex items-center justify-center text-text-muted text-sm">
@@ -100,14 +105,9 @@ export default function MappingReview() {
     )
   }
 
-  const periods = preview.periods_detected
-  const rows = preview.rows.filter(r => r.row_type === 'line_item')
-
   // Separate P&L and BS rows
   const plRows = rows.filter(r => ['income', 'cogs', 'expenses', 'other_income', 'other_expenses'].includes(r.section))
   const bsRows = rows.filter(r => ['assets', 'liabilities', 'liabilities_equity', 'equity'].includes(r.section))
-
-  const totals = useMemo(() => computeTotals(rows, mappings, periods), [rows, mappings, periods])
 
   const setMapping = (row, category) => {
     const key = `${row.section}::${row.account_name}`
@@ -232,9 +232,10 @@ export default function MappingReview() {
 
           {/* Running totals */}
           <section className="bg-surface border border-border rounded-xl p-5">
-            <h2 className="font-display font-semibold text-sm text-text-primary mb-4">
-              Category Totals (live preview)
+            <h2 className="font-display font-semibold text-sm text-text-primary mb-1">
+              Category Totals — {periods[0]}
             </h2>
+            <p className="text-[11px] text-text-muted mb-4">Live preview of your mapping for the first period. Updates as you reassign accounts below.</p>
             <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-[12px]">
               {Object.entries(totals[periods[0]] || {})
                 .filter(([, v]) => v !== 0)
@@ -315,21 +316,24 @@ function MappingTable({ title, rows, mappings, periods, onSetMapping, suggestion
               const suggestion = suggestionMap[row.account_name]
               const needsReview = suggestion?.needs_review && suggestion?.confidence !== 'saved'
 
+              const isSaved = suggestion?.confidence === 'saved'
+              const isNew = !isSaved
+
               return (
                 <tr
                   key={key}
-                  className={`border-b border-border/50 hover:bg-surface2/50 ${needsReview ? 'bg-[rgba(200,169,110,0.03)]' : ''}`}
+                  className={`border-b border-border/50 hover:bg-surface2/50 ${isNew ? 'bg-[rgba(92,158,110,0.04)]' : ''}`}
                 >
-                  <td className="px-5 py-2.5">
+                  <td className={`py-2.5 ${isNew ? 'pl-4 border-l-2 border-[#5c9e6e]' : 'px-5'}`}>
                     <div className="flex items-center gap-2">
-                      {needsReview && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#c8a96e] flex-shrink-0" />
-                      )}
-                      <span className={`text-text-${suggestion?.confidence === 'saved' ? 'muted' : 'secondary'}`}>
+                      <span className={`${isSaved ? 'text-text-muted' : 'text-text-secondary'}`}>
                         {row.account_name}
                       </span>
-                      {suggestion?.confidence === 'saved' && (
+                      {isSaved && (
                         <span className="font-mono text-[8px] text-text-muted border border-border rounded px-1">saved</span>
+                      )}
+                      {isNew && (
+                        <span className="font-mono text-[8px] text-[#5c9e6e] border border-[rgba(92,158,110,0.45)] bg-[rgba(92,158,110,0.07)] rounded px-1">new</span>
                       )}
                     </div>
                   </td>
@@ -338,7 +342,7 @@ function MappingTable({ title, rows, mappings, periods, onSetMapping, suggestion
                       value={m?.ordobook_category || 'overhead_expenses'}
                       onChange={e => onSetMapping(row, e.target.value)}
                       className={`w-full bg-surface2 border rounded-md px-2 py-1 text-[12px] text-text-primary focus:outline-none focus:border-accent transition-colors appearance-none ${
-                        needsReview ? 'border-[rgba(200,169,110,0.4)]' : 'border-border'
+                        isNew ? 'border-[rgba(92,158,110,0.45)]' : 'border-border'
                       }`}
                     >
                       {CATEGORIES.map(c => (

@@ -89,7 +89,8 @@ async def upload_files(
             company_name = parsed["company_name"]
         source_files.append(upload.filename)
 
-    # Sort periods chronologically
+    # Sort periods chronologically — drop any labels that don't parse as "Month YYYY"
+    # (e.g. QB sometimes emits a "Dec 31 – Dec 31 2024" sub-period column that should be ignored)
     def period_sort_key(label: str):
         try:
             y, m = _parse_period_label(label)
@@ -97,7 +98,10 @@ async def upload_files(
         except ValueError:
             return 0
 
-    sorted_periods = sorted(all_periods, key=period_sort_key)
+    sorted_periods = sorted(
+        [p for p in all_periods if period_sort_key(p) > 0],
+        key=period_sort_key,
+    )
 
     # Load existing account mappings for this client
     existing_db_mappings = db.query(AccountMapping).filter(

@@ -114,6 +114,21 @@ function DataRow({ label, values, ytd, highlight = false, muted = false, indent 
   )
 }
 
+// ── Sub-section label (lightweight, within a section) ─────────────────────────
+
+function SubHeader({ label }) {
+  return (
+    <tr>
+      <td colSpan={14} className="px-3 pt-3 pb-0.5">
+        <span className="font-mono text-[9px] uppercase tracking-[0.14em]"
+              style={{ color: S.textMuted, opacity: 0.7 }}>
+          {label}
+        </span>
+      </td>
+    </tr>
+  )
+}
+
 // ── Divider spacer ────────────────────────────────────────────────────────────
 
 function Divider() {
@@ -205,32 +220,26 @@ export default function ForecastReport() {
     isActual: p?.source_type === 'actual',
   }))
 
-  // Working capital cash flow impacts — month-over-month delta
-  // AR/Inventory increase = negative cash flow (sign -1); AP increase = positive (sign +1)
-  const wcImpact = (field, sign) => ordered.map((p, i) => {
+  // Stored delta fields — build cell from stored field (sign already correct from engine)
+  const deltaCell = (p, field) => {
     if (!p) return { display: '—', isActual: false, trace: null }
-    const curr = p[field] ?? 0
-    const prior = ordered[i - 1]?.[field] ?? 0
-    const impact = (curr - prior) * sign
-    const dir = impact < 0 ? 'increase → cash used' : impact > 0 ? 'decrease → cash released' : 'no change'
     return {
-      display: fmt(impact),
+      display: fmt(p[field] ?? 0),
       isActual: p.source_type === 'actual',
-      trace: `(${fmt(curr)} − ${fmt(prior)}) · ${dir}`,
+      trace: p.source_type === 'actual' ? 'Confirmed actual' : null,
     }
-  })
-  const arImpactCells  = wcImpact('projected_ar', -1)
-  const invImpactCells = wcImpact('projected_inventory', -1)
-  const apImpactCells  = wcImpact('projected_ap', +1)
+  }
+  const arChangeCells  = ordered.map(p => deltaCell(p, 'ar_change'))
+  const invChangeCells = ordered.map(p => deltaCell(p, 'inventory_change'))
+  const apChangeCells  = ordered.map(p => deltaCell(p, 'ap_change'))
+  const capexCells     = ordered.map(p => deltaCell(p, 'capex'))
+  const otherCaCells   = ordered.map(p => deltaCell(p, 'other_current_assets_change'))
+  const currDebtCells  = ordered.map(p => deltaCell(p, 'current_debt_change'))
+  const ltDebtCells    = ordered.map(p => deltaCell(p, 'long_term_debt_change'))
 
-  // YTD working capital impact = sign × last_balance (net change from starting balance of 0)
+  // For Projected Balances — show ending value (Dec or latest), not a sum
   const lastBalance = (field) =>
     [...ordered].reverse().find(p => p?.[field] != null)?.[field] ?? null
-  const ytdWcImpact = (field, sign) => {
-    const last = lastBalance(field)
-    return last != null ? fmt(last * sign) : '—'
-  }
-  // For Projected Balances — show ending value (Dec or latest), not a sum
   const lastBalanceFmt = (field) => {
     const last = lastBalance(field)
     return last != null ? fmt(last) : '—'
@@ -324,21 +333,60 @@ export default function ForecastReport() {
             <Divider />
             <DataRow label="Net Profit" values={ordered.map(p => cell(p, 'net_profit'))} ytd={ytd('net_profit')} highlight />
 
-            {/* ══ CASH FLOW DRIVERS ════════════════════════════════════════════ */}
-            <SectionHeader label="Cash Flow Drivers" />
-            <DataRow label="AR Change"        values={arImpactCells}  ytd={ytdWcImpact('projected_ar', -1)} muted />
-            <DataRow label="Inventory Change" values={invImpactCells} ytd={ytdWcImpact('projected_inventory', -1)} muted />
-            <DataRow label="AP Change"        values={apImpactCells}  ytd={ytdWcImpact('projected_ap', +1)} muted />
+            {/* ══ CASH FLOW ════════════════════════════════════════════════════ */}
+            <SectionHeader label="Cash Flow" />
+
+            <SubHeader label="Working Capital" />
+            <DataRow label="AR Change"           values={arChangeCells}  ytd={ytd('ar_change')} muted />
+            <DataRow label="Inventory Change"    values={invChangeCells} ytd={ytd('inventory_change')} muted />
+            <DataRow label="AP Change"           values={apChangeCells}  ytd={ytd('ap_change')} muted />
             <DataRow label="Owner Distributions" values={ordered.map(p => cell(p, 'owner_distributions'))} ytd={ytd('owner_distributions')} />
             <DataRow label="Tax Savings Reserve" values={ordered.map(p => cell(p, 'owner_tax_savings'))} ytd={ytd('owner_tax_savings')} />
+
+            <SubHeader label="Investing & Financing" />
+            <DataRow label="CapEx"                  values={capexCells}    ytd={ytd('capex')} muted />
+            <DataRow label="Other Current Assets Δ" values={otherCaCells}  ytd={ytd('other_current_assets_change')} muted />
+            <DataRow label="Current Debt Change"    values={currDebtCells} ytd={ytd('current_debt_change')} muted />
+            <DataRow label="LT Debt Change"         values={ltDebtCells}   ytd={ytd('long_term_debt_change')} muted />
+
             <Divider />
             <DataRow label="Net Cash Flow" values={ordered.map(p => cell(p, 'net_cash_flow'))} ytd={ytd('net_cash_flow')} highlight />
 
-            {/* ══ PROJECTED BALANCES ═══════════════════════════════════════════ */}
-            <SectionHeader label="Projected Balances" />
-            <DataRow label="Accounts Receivable" values={ordered.map(p => cell(p, 'projected_ar'))}          ytd={lastBalanceFmt('projected_ar')} />
-            <DataRow label="Inventory"           values={ordered.map(p => cell(p, 'projected_inventory'))}   ytd={lastBalanceFmt('projected_inventory')} muted />
-            <DataRow label="Accounts Payable"    values={ordered.map(p => cell(p, 'projected_ap'))}          ytd={lastBalanceFmt('projected_ap')} muted />
+            {/* ══ PROJECTED BALANCE SHEET ══════════════════════════════════════ */}
+            <SectionHeader label="Projected Balance Sheet" />
+
+            <SubHeader label="Assets" />
+            <DataRow label="Accounts Receivable"  values={ordered.map(p => cell(p, 'projected_ar'))}                   ytd={lastBalanceFmt('projected_ar')} indent />
+            <DataRow label="Inventory"            values={ordered.map(p => cell(p, 'projected_inventory'))}             ytd={lastBalanceFmt('projected_inventory')} indent muted />
+            <DataRow label="Other Current Assets" values={ordered.map(p => cell(p, 'projected_other_current_assets'))} ytd={lastBalanceFmt('projected_other_current_assets')} indent muted />
+            {/* Cash, Total Current Assets, Non-Current Assets, Total Assets — Phase 3d */}
+
+            <SubHeader label="Liabilities" />
+            <DataRow label="Accounts Payable"        values={ordered.map(p => cell(p, 'projected_ap'))}           ytd={lastBalanceFmt('projected_ap')} indent />
+            <DataRow label="Other Current Liabilities" values={ordered.map(p => cell(p, 'projected_current_debt'))} ytd={lastBalanceFmt('projected_current_debt')} indent muted />
+            <DataRow label="Long-Term Liabilities"   values={ordered.map(p => cell(p, 'projected_long_term_debt'))} ytd={lastBalanceFmt('projected_long_term_debt')} indent muted />
+            {/* Total Liabilities, Total Equity — Phase 3d */}
+
+            {/* ══ PROJECTED P&L SUMMARY ════════════════════════════════════════ */}
+            <SectionHeader label="Projected P&L Summary" />
+            <DataRow label="Revenue"               values={ordered.map(p => cell(p, 'revenue'))}               ytd={ytd('revenue')} highlight />
+            <DataRow label="Cost of Sales"         values={ordered.map(p => cell(p, 'cost_of_sales'))}         ytd={ytd('cost_of_sales')} indent muted />
+            <DataRow label="Gross Profit"          values={ordered.map(p => cell(p, 'gross_profit'))}          ytd={ytd('gross_profit')} highlight />
+            <DataRow label="Payroll"               values={ordered.map(p => cell(p, 'payroll_expenses'))}      ytd={ytd('payroll_expenses')} indent muted />
+            <DataRow label="Marketing / Advertising" values={ordered.map(p => cell(p, 'marketing_expenses'))} ytd={ytd('marketing_expenses')} indent muted />
+            <DataRow label="Depreciation & Amort." values={ordered.map(p => cell(p, 'depreciation_amortization'))} ytd={ytd('depreciation_amortization')} indent muted />
+            <DataRow label="Other Overhead"        values={ordered.map(p => cell(p, 'overhead_expenses'))}    ytd={ytd('overhead_expenses')} indent muted />
+            <DataRow label="Total Operating Expenses"
+              values={ordered.map(p => ({
+                display: fmt((p?.payroll_expenses ?? 0) + (p?.total_other_expenses ?? 0)),
+                isActual: p?.source_type === 'actual',
+                trace: 'Payroll + Other Expenses',
+              }))}
+              ytd={fmt(ordered.reduce((s, p) => s + (p?.payroll_expenses ?? 0) + (p?.total_other_expenses ?? 0), 0))}
+            />
+            <DataRow label="Other Income / Expense" values={ordered.map(p => cell(p, 'other_income_expense'))} ytd={ytd('other_income_expense')} muted />
+            <Divider />
+            <DataRow label="Net Profit"            values={ordered.map(p => cell(p, 'net_profit'))}            ytd={ytd('net_profit')} highlight />
 
           </tbody>
         </table>

@@ -15,6 +15,7 @@ def build_forecast_period(
     month: int,
     config: dict,
     actuals: dict | None,
+    prior_projected: dict | None = None,
 ) -> dict:
     """
     Build a single forecast period.
@@ -22,17 +23,24 @@ def build_forecast_period(
     If actuals exist for this month: source_type = "actual", copy from monthly_actuals.
     If no actuals: source_type = "forecast", run engine modules.
 
+    prior_projected: the previous period's projected balance sheet values, used to
+    compute month-over-month deltas for the full cash flow statement.
+    Keys: projected_ar, projected_inventory, projected_ap,
+          projected_other_current_assets, projected_current_debt, projected_long_term_debt
+
     Returns a full period dict including calc_trace.
     All monetary values in cents (int).
     """
     if actuals is not None:
-        return _period_from_actuals(month, actuals)
+        return _period_from_actuals(month, actuals, prior_projected)
 
-    return _period_from_drivers(month, config)
+    return _period_from_drivers(month, config, prior_projected)
 
 
-def _period_from_actuals(month: int, actuals: dict) -> dict:
+def _period_from_actuals(month: int, actuals: dict, prior_projected: dict | None = None) -> dict:
     """Copy actuals into forecast period format. No calculation needed."""
+    prior = prior_projected or {}
+
     revenue = actuals.get("revenue", 0)
     cos = actuals.get("cost_of_sales", 0)
     payroll = actuals.get("payroll_expenses", 0)
@@ -61,13 +69,41 @@ def _period_from_actuals(month: int, actuals: dict) -> dict:
     job_count = actuals.get("job_count", 0)
     blended_avg = (revenue // job_count) if job_count > 0 else 0
 
-    # Cash flow — derive days metrics from balance sheet actuals
+    # Balance sheet values from actuals
     ar = actuals.get("accounts_receivable", 0)
     inventory_val = actuals.get("inventory", 0)
     ap = actuals.get("accounts_payable", 0)
+    other_ca = actuals.get("other_current_assets", 0)
+    current_debt = actuals.get("other_current_liabilities", 0)
+    lt_debt = actuals.get("total_long_term_liabilities", 0)
+
+    # DSO/DIO/DPO from balance sheet
     dso_days = int(round(ar / revenue * 30)) if revenue > 0 else 0
     dio_days = int(round(inventory_val / cos * 30)) if cos > 0 else 0
     dpo_days = int(round(ap / cos * 30)) if cos > 0 else 0
+
+    # Month-over-month deltas vs prior period
+    ar_change = ar - prior.get("projected_ar", 0)
+    inventory_change = inventory_val - prior.get("projected_inventory", 0)
+    ap_change = ap - prior.get("projected_ap", 0)
+    other_ca_change = other_ca - prior.get("projected_other_current_assets", 0)
+    curr_debt_change = current_debt - prior.get("projected_current_debt", 0)
+    lt_debt_change = lt_debt - prior.get("projected_long_term_debt", 0)
+
+    # CapEx = 0 for actuals (can't isolate from depreciation in QB export)
+    capex = 0
+
+    # Full cash flow: net_profit ± working capital ± investing ± financing
+    net_cash = (
+        net_profit
+        - ar_change
+        - inventory_change
+        + ap_change
+        - capex
+        - other_ca_change
+        + curr_debt_change
+        + lt_debt_change
+    )
 
     return {
         "month": month,
@@ -85,16 +121,26 @@ def _period_from_actuals(month: int, actuals: dict) -> dict:
         "net_profit": net_profit,
         "total_job_count": job_count,
         "blended_avg_job_value": blended_avg,
-        "owner_total_draws": 0,  # not tracked in actuals yet
+        "owner_total_draws": 0,
         "projected_ar": ar,
         "projected_inventory": inventory_val,
         "projected_ap": ap,
         "owner_distributions": 0,
         "owner_tax_savings": 0,
-        "net_cash_flow": net_profit,  # actuals: no owner draw data yet
+        "net_cash_flow": net_cash,
         "dso_days": dso_days,
         "dio_days": dio_days,
         "dpo_days": dpo_days,
+        "ar_change": ar_change,
+        "inventory_change": inventory_change,
+        "ap_change": ap_change,
+        "capex": capex,
+        "other_current_assets_change": other_ca_change,
+        "current_debt_change": curr_debt_change,
+        "long_term_debt_change": lt_debt_change,
+        "projected_other_current_assets": other_ca,
+        "projected_current_debt": current_debt,
+        "projected_long_term_debt": lt_debt,
         "calc_trace": {
             "source": "monthly_actuals",
             "note": "Values copied directly from confirmed actuals — no engine calculation applied.",
@@ -102,8 +148,9 @@ def _period_from_actuals(month: int, actuals: dict) -> dict:
     }
 
 
-def _period_from_drivers(month: int, config: dict) -> dict:
+def _period_from_drivers(month: int, config: dict, prior_projected: dict | None = None) -> dict:
     """Run all engine modules from driver config for a forecast month."""
+    prior = prior_projected or {}
     month_key = str(month)
 
     # --- Revenue ---
@@ -211,7 +258,36 @@ def _period_from_drivers(month: int, config: dict) -> dict:
     projected_ar = int(revenue * dso / 30) if dso > 0 else 0
     projected_inventory_val = int(cos * dio / 30) if dio > 0 else 0
     projected_ap = int(cos * dpo / 30) if dpo > 0 else 0
-    net_cash = int(net_profit - distributions - tax_savings)
+
+    # --- Investing & financing drivers ---
+    capex = int(config.get("capex_monthly", {}).get(month_key, 0))
+    other_ca_change = int(config.get("other_current_assets_change_monthly", {}).get(month_key, 0))
+    curr_debt_change = int(config.get("current_debt_change_monthly", {}).get(month_key, 0))
+    lt_debt_change = int(config.get("long_term_debt_change_monthly", {}).get(month_key, 0))
+
+    # Running balance projections
+    proj_other_ca = prior.get("projected_other_current_assets", 0) + other_ca_change
+    proj_curr_debt = prior.get("projected_current_debt", 0) + curr_debt_change
+    proj_lt_debt = prior.get("projected_long_term_debt", 0) + lt_debt_change
+
+    # Month-over-month WC deltas
+    ar_change = projected_ar - prior.get("projected_ar", 0)
+    inventory_change = projected_inventory_val - prior.get("projected_inventory", 0)
+    ap_change = projected_ap - prior.get("projected_ap", 0)
+
+    # Full cash flow formula
+    net_cash = int(
+        net_profit
+        - distributions
+        - tax_savings
+        - ar_change
+        - inventory_change
+        + ap_change
+        - capex
+        - other_ca_change
+        + curr_debt_change
+        + lt_debt_change
+    )
 
     return {
         "month": month,
@@ -239,6 +315,16 @@ def _period_from_drivers(month: int, config: dict) -> dict:
         "dso_days": dso,
         "dio_days": dio,
         "dpo_days": dpo,
+        "ar_change": ar_change,
+        "inventory_change": inventory_change,
+        "ap_change": ap_change,
+        "capex": capex,
+        "other_current_assets_change": other_ca_change,
+        "current_debt_change": curr_debt_change,
+        "long_term_debt_change": lt_debt_change,
+        "projected_other_current_assets": proj_other_ca,
+        "projected_current_debt": proj_curr_debt,
+        "projected_long_term_debt": proj_lt_debt,
         "calc_trace": {
             "revenue": revenue_trace,
             "cost_of_sales": cos_trace,

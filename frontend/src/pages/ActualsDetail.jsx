@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getActualsDetail, updateActuals } from '../api/ingestion'
+import { calculateForecast } from '../api/forecast'
 
 const MONTH_NAMES = ['', 'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December']
@@ -64,6 +65,8 @@ export default function ActualsDetail() {
     setSaving(true)
     try {
       await updateActuals(id, year, month, { status: 'confirmed', job_count: jobCount })
+      // Auto-sync forecast — silently skip if no forecast config exists yet
+      await calculateForecast(id, Number(year)).catch(() => {})
       navigate(`/clients/${id}`)
     } catch {}
     setSaving(false)

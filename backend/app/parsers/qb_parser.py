@@ -329,6 +329,8 @@ def parse_invoice_report(file_bytes: bytes, filename: str) -> dict:
 
     company_name = str(all_rows[1][0]).strip() if len(all_rows) > 1 and all_rows[1][0] else ""
 
+    from datetime import date as _date, datetime as _datetime
+
     current_month = None
     counts: dict[str, int] = {}
 
@@ -339,24 +341,29 @@ def parse_invoice_report(file_bytes: bytes, filename: str) -> dict:
         col_b = row[1] if len(row) > 1 else None
 
         if col_a is not None:
+            # Format A: date object in col_a → invoice detail row
+            if isinstance(col_a, (_date, _datetime)) and current_month is not None:
+                counts[current_month] += 1
+                continue
+
             name = str(col_a).strip()
-            # Skip totals, footer, and header rows
+            # Skip totals, footer, and report-level header rows
             if name.startswith("Total") or name.startswith("TOTAL"):
                 continue
+
             if col_b is None:
-                # Check for month header: "January 2026"
+                # Month header: "December 2024"
                 parts = name.split()
                 if len(parts) == 2 and parts[0] in _MONTH_NAMES:
                     current_month = name
                     if current_month not in counts:
                         counts[current_month] = 0
+            elif isinstance(col_b, (_date, _datetime)) and current_month is not None:
+                # Format B: col_a = customer/invoice name, col_b = invoice date
+                counts[current_month] += 1
         elif col_b is not None and current_month is not None:
-            # Invoice detail row: col A is None, col B is an invoice date.
-            # openpyxl returns Excel dates as datetime objects — guard against
-            # grand-total rows at the bottom of the report that have col_a=None
-            # but col_b = a count/amount (not a date).
-            from datetime import date as _date, datetime as _datetime
-            if isinstance(col_b, (_date, _datetime)):
+            # Format C: col_a is None, col_b is an invoice date (datetime object or "MM/DD/YYYY" string)
+            if isinstance(col_b, (_date, _datetime)) or (isinstance(col_b, str) and '/' in col_b):
                 counts[current_month] += 1
 
     return {
