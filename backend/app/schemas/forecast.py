@@ -182,6 +182,16 @@ class ForecastPeriodOut(BaseModel):
     projected_current_debt: int = 0
     projected_long_term_debt: int = 0
 
+    # Phase 3d
+    projected_cash: int = 0
+    projected_fixed_assets: int = 0
+    projected_other_lt_assets: int = 0
+    projected_total_current_assets: int = 0
+    projected_total_assets: int = 0
+    projected_total_current_liabilities: int = 0
+    projected_total_liabilities: int = 0
+    projected_equity: int = 0
+
     calc_trace: dict[str, Any]
 
     model_config = {"from_attributes": True}

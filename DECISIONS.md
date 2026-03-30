@@ -13,7 +13,9 @@ Excel workbook process for a solo consulting practice. The immediate goal is to 
 monthly bookkeeping data ingestion from QuickBooks Online exports, run the analytical
 models, and produce the Scoreboard, 12-Month Forecast, and Action Plan deliverables.
 
-**Current Phase:** Phase 3a scaffold complete (2026-03-09). Analytical engine built, pending verification against Vetter Plumbing reference workbook.
+**Current Phase:** Phase 3d complete (2026-03-27). Projected Balance Sheet (cash, fixed assets, total assets, liabilities, equity) now live.
+13 months of Vetter Plumbing actuals (Dec 2024–Dec 2025) imported and serving as opening balance anchor.
+**Next:** Phase 4 — Targets & Scoring / Scoreboard.
 
 **Current Vibe:** Deliberate. Plan before building. Verify before shipping. One module at a time.
 
@@ -196,11 +198,14 @@ The API integration itself is deferred to Phase 3.
 | Phase | Focus | Est. Duration | Status |
 |---|---|---|---|
 | 1 | Foundation: project setup, hosting, DB, client profiles | Weeks 1-4 | ✅ Complete & verified (2026-03-04) |
-| 2 | Data Ingestion: QB export parsing, account mapping, Actuals | Weeks 5-10 | ✅ Code complete (2026-03-05) — needs end-to-end test |
-| 3a | Analytical Engine scaffold: data model, engine modules, API, Forecast Drivers page | Weeks 11-14 | ✅ Scaffold complete (2026-03-09) — **needs Vetter Plumbing verification** |
-| 3b | Analytical Engine: 12-month output view, overhead line items UI, God Mode/audit trail | Weeks 15-18 | 🔜 Not started — blocked on 3a verification |
-| 4 | Scoring & Targets: Targets UI, grading, Scoreboard, What If scenarios | Weeks 19-24 | 🔜 Not started |
-| 5 | Deliverable Generation: PDF exports, Action Plan editor, JSON outputs | Weeks 25-30 | 🔜 Not started |
+| 2 | Data Ingestion: QB export parsing, account mapping, Actuals | Weeks 5-10 | ✅ Complete & verified (2026-03-05) |
+| 3a | Analytical Engine scaffold: data model, engine modules, API, Forecast Drivers page | Weeks 11-14 | ✅ Complete (2026-03-09) |
+| 3b | Forecast UX, report view, audit trail Level 1, Actuals History | Weeks 15-18 | ✅ Complete |
+| 3c | Cash Flow Drivers: DSO/DIO/DPO, owner draws, projected balances, full cash flow | Weeks 19-21 | ✅ Complete (2026-03-23, migration 017) |
+| 3d | Projected Balance Sheet: cash, fixed assets, total assets, liabilities, equity | — | ✅ Complete (2026-03-27, migration 018) |
+| 4 | Scoring & Targets: Targets UI, grading, Scoreboard | — | 🔜 Next |
+| 4b | Scenario Sandbox | — | 🔜 Not started |
+| 5 | Deliverable Generation: PDF exports, Action Plan editor, JSON outputs | — | 🔜 Not started |
 
 ---
 
@@ -401,6 +406,90 @@ actionable — you can see the full bottom line while editing any driver.
 - Overhead line items UI (data model + engine support exists; no UI to add/edit named line items yet)
 - 12-month output view (read-only blended P&L report across all 12 months as a deliverable)
 - God Mode / Level 1-2-3 audit trail UI (calc_trace data exists; hover/click UI not yet built)
+
+---
+
+## 📦 Phase 2 Parser Hardening (2026-03-24)
+
+### [2026-03-24] QB ghost column: filter non-"Month YYYY" periods in ingestion router
+**Decision:** The ingestion router's `sorted_periods` now filters out any period label that
+doesn't parse as "Month YYYY" before returning to the frontend.
+**Reason:** QB P&L/BS exports sometimes include a single-day column like "Dec 31 – Dec 31 2024"
+when the export date range starts at a month boundary. This column has no meaningful data and
+would cause a 422 error in the confirm endpoint. Silently dropping it is correct behavior.
+**Implementation:** `period_sort_key` returns 0 for unparseable labels; `sorted_periods` filters
+`[p for p in all_periods if period_sort_key(p) > 0]`.
+
+### [2026-03-24] QB invoice report: dates are "MM/DD/YYYY" strings, not datetime objects
+**Decision:** The `parse_invoice_report` function now handles three formats for invoice detail rows:
+- Format A: col_a is a datetime object (openpyxl parsed the date natively)
+- Format B: col_a is a customer/invoice string, col_b is a datetime object
+- Format C: col_a is None, col_b is a "MM/DD/YYYY" string (confirmed Vetter Plumbing format)
+**Reason:** openpyxl reads QB invoice export dates as plain strings ("12/02/2024"), not datetime
+objects. The original isinstance(col_b, datetime) check always returned False, giving a count of 0
+for every month. The fix: also accept col_b strings containing "/" as valid invoice date rows.
+**Verification:** December 2024 = 29 invoices confirmed against known count.
+
+### [2026-03-24] MappingReview: `new` badge for all unsaved accounts
+**Decision:** Any account without `confidence === 'saved'` gets a green `new` badge and green
+left border on its row. Previously only `needs_review` accounts (low confidence) were flagged.
+**Reason:** High-confidence auto-mapped accounts (e.g., "Sales" → Revenue by section context)
+also need a glance on first import — they're new to the client's mapping database even if the
+rule is obvious. The `saved` / `new` visual split makes reviewing a 30-account list instant.
+
+### [2026-03-24] MappingReview: hooks must be ordered before early return
+**Decision:** `useMemo` (and any hook) in MappingReview.jsx must be called before the
+`if (!preview) { return ... }` early return guard.
+**Reason:** React's rules of hooks prohibit calling hooks conditionally. Calling `useMemo`
+after an early return changes the hook count between renders (when preview is null vs. not),
+which causes React to silently crash and render a blank white screen with no error message.
+**Fix:** `rows`, `periods`, and `totals` are now computed with safe defaults before the guard.
+
+---
+
+## 📦 Phase 3d — Projected Balance Sheet (2026-03-27)
+
+### [2026-03-27] Migration 018: 8 new forecast_periods columns
+**Decision:** Added `projected_cash`, `projected_fixed_assets`, `projected_other_lt_assets`,
+`projected_total_current_assets`, `projected_total_assets`, `projected_total_current_liabilities`,
+`projected_total_liabilities`, `projected_equity` to `forecast_periods`.
+**Reason:** Completes the projected balance sheet — ForecastReport now shows a full Balance Sheet
+with totals and equity, not just individual working capital line items.
+
+### [2026-03-27] Opening balance seeded from prior fiscal year December actuals
+**Decision:** `_run_calculation()` in the forecast router queries `monthly_actuals` for `fiscal_year-1, month=12`
+before the month 1-12 loop and uses those values as the initial `prior_projected` seed.
+For actuals months: balance sheet values read directly from `monthly_actuals`. For forecast months:
+rolled forward (cash += net_cash_flow, fixed assets += capex − depreciation, other LT flat).
+**Reason:** The projected balance sheet must be anchored to a real opening balance. Dec 2024 actuals
+serve as the anchor for the 2025 forecast. Without seeding, all projected values start from zero.
+
+### [2026-03-27] Equity = Total Assets − Total Liabilities
+**Decision:** `projected_equity` is computed as `projected_total_assets − projected_total_liabilities`.
+Not sourced from `equity_before_net_profit + net_profit_for_year` on the actuals record.
+**Reason:** Consistent formula across both actuals and forecast months. Avoids double-counting
+equity components. Total Assets − Total Liabilities is the fundamental accounting identity.
+
+### [2026-03-27] QB Balance Sheet parser: flexible header row detection + period label normalization
+**Decision:** Two parser improvements added together:
+1. `_find_header_row()` now falls back to detecting the header row by finding the first row whose
+   non-first cells contain month-name period labels — handles QB Balance Sheet exports that don't
+   use "Distribution account" as the first column header.
+2. `_normalize_period_label()` converts `"Dec 31, 2024"`, `"December 31, 2024"`, and
+   `"As of Dec 31, 2024"` → `"December 2024"` — handles single-date Balance Sheet exports.
+**Reason:** QB Balance Sheet "by Month" exports use a different header format than P&L exports.
+QB single-date Balance Sheet exports use date-format column headers that were being dropped by
+the ghost-column filter, resulting in all-zero balance sheet data for those periods.
+
+### [2026-03-27] Workspace: "Actuals History" + "Review Mapping" buttons added
+**Decision:** When actuals exist for a client, two secondary action buttons appear in the
+ClientWorkspace header alongside "Import Data":
+- **Actuals History** — navigates to `/actuals/history` (the full cross-month table)
+- **Review Mapping** — fetches stored raw_data + current mappings from new endpoint
+  `GET /actuals/mapping-review-data` and opens MappingReview pre-populated.
+**Reason:** Advisor needs to re-access mapping and history without re-uploading files.
+The "Review Mapping" flow reconstructs the preview from raw_data stored at import time —
+the original parsed rows are preserved in `monthly_actuals.raw_data` JSONB for exactly this purpose.
 
 ---
 

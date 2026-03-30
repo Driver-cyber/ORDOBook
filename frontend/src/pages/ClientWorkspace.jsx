@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getClient } from '../api/clients'
-import { getActuals } from '../api/ingestion'
+import { getActuals, getMappingReviewData } from '../api/ingestion'
 
 const MONTH_NAMES = ['', 'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December']
@@ -12,6 +12,21 @@ export default function ClientWorkspace() {
   const [client, setClient] = useState(null)
   const [actuals, setActuals] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMapping, setLoadingMapping] = useState(false)
+
+  const handleReviewMapping = async () => {
+    setLoadingMapping(true)
+    try {
+      const preview = await getMappingReviewData(id)
+      navigate(`/clients/${id}/mapping-review`, {
+        state: { preview, sourceFiles: [] }
+      })
+    } catch {
+      alert('Could not load import data. Try re-importing your QB files.')
+    } finally {
+      setLoadingMapping(false)
+    }
+  }
 
   useEffect(() => {
     Promise.all([getClient(id), getActuals(id)])
@@ -36,12 +51,31 @@ export default function ClientWorkspace() {
             {client?.industry || 'Client workspace'}
           </p>
         </div>
-        <button
-          onClick={() => navigate(`/clients/${id}/upload`)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-bg text-sm font-medium hover:bg-[#d4b87a] transition-colors"
-        >
-          <span className="text-base leading-none">↑</span> Import Data
-        </button>
+        <div className="flex items-center gap-2">
+          {actuals.length > 0 && (
+            <>
+              <button
+                onClick={() => navigate(`/clients/${id}/actuals/history`)}
+                className="px-4 py-2 rounded-lg border border-border text-text-secondary text-sm font-medium hover:border-accent/40 hover:text-text-primary transition-colors"
+              >
+                Actuals History
+              </button>
+              <button
+                onClick={handleReviewMapping}
+                disabled={loadingMapping}
+                className="px-4 py-2 rounded-lg border border-border text-text-secondary text-sm font-medium hover:border-accent/40 hover:text-text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {loadingMapping ? 'Loading…' : 'Review Mapping'}
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => navigate(`/clients/${id}/upload`)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-bg text-sm font-medium hover:bg-[#d4b87a] transition-colors"
+          >
+            <span className="text-base leading-none">↑</span> Import Data
+          </button>
+        </div>
       </div>
 
       {/* Content */}

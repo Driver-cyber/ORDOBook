@@ -30,6 +30,97 @@ def _parse_period_label(label: str) -> tuple[int, int]:
     return int(year_str), month
 
 
+@router.get("/{client_id}/actuals/mapping-review-data", response_model=ParsePreviewResponse)
+def get_mapping_review_data(
+    client_id: int,
+    db: Session = Depends(get_db),
+):
+    """
+    Reconstruct a mapping-review preview from the most recently uploaded import batch.
+    Allows the advisor to re-open MappingReview without re-uploading files.
+    """
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    # Find the most recently uploaded batch
+    latest = (
+        db.query(MonthlyActuals)
+        .filter(MonthlyActuals.client_id == client_id)
+        .order_by(MonthlyActuals.uploaded_at.desc())
+        .first()
+    )
+    if not latest or not latest.raw_data or "rows" not in latest.raw_data:
+        raise HTTPException(status_code=404, detail="No import data found for this client")
+
+    raw_rows = latest.raw_data["rows"]
+    source_files = latest.source_files or []
+
+    # Derive periods_detected from all values keys across all rows
+    all_periods: set[str] = set()
+    for row in raw_rows:
+        if isinstance(row.get("values"), dict):
+            all_periods.update(row["values"].keys())
+
+    def period_sort_key(label: str):
+        try:
+            y, m = _parse_period_label(label)
+            return y * 100 + m
+        except ValueError:
+            return 0
+
+    sorted_periods = sorted(
+        [p for p in all_periods if period_sort_key(p) > 0],
+        key=period_sort_key,
+    )
+
+    # Load current account mappings → format as "saved" suggestions
+    db_mappings = db.query(AccountMapping).filter(
+        AccountMapping.client_id == client_id
+    ).all()
+    existing_mappings = {
+        (m.report_type, m.qb_account_name): m.ordobook_category
+        for m in db_mappings
+    }
+
+    suggestions = suggest_mappings(raw_rows, existing_mappings)
+
+    # Derive report_types from row sections
+    pl_sections = {"income", "cogs", "expenses", "other_income", "other_expenses"}
+    bs_sections = {"assets", "liabilities", "liabilities_equity", "equity"}
+    report_types = []
+    for row in raw_rows:
+        section = row.get("section", "")
+        if section in pl_sections and "profit_and_loss" not in report_types:
+            report_types.append("profit_and_loss")
+        if section in bs_sections and "balance_sheet" not in report_types:
+            report_types.append("balance_sheet")
+
+    # job_counts from stored monthly_actuals records
+    all_records = (
+        db.query(MonthlyActuals)
+        .filter(MonthlyActuals.client_id == client_id)
+        .all()
+    )
+    month_names = ["", "January", "February", "March", "April", "May", "June",
+                   "July", "August", "September", "October", "November", "December"]
+    job_counts = {
+        f"{month_names[r.month]} {r.fiscal_year}": r.job_count
+        for r in all_records
+        if r.job_count
+    }
+
+    return ParsePreviewResponse(
+        client_id=client_id,
+        report_types=report_types,
+        company_name=client.name,
+        periods_detected=sorted_periods,
+        rows=raw_rows,
+        suggestions=suggestions,
+        job_counts=job_counts,
+    )
+
+
 @router.post("/{client_id}/upload", response_model=ParsePreviewResponse)
 async def upload_files(
     client_id: int,

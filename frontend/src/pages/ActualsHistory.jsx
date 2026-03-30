@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getActuals, getActualsDetail, updateActuals } from '../api/ingestion'
+import { getActuals, getActualsDetail, updateActuals, getMappingReviewData } from '../api/ingestion'
 import { calculateForecast } from '../api/forecast'
 
 const MONTH_ABBR = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -107,6 +107,7 @@ export default function ActualsHistory() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [confirming, setConfirming] = useState(false)
+  const [loadingMapping, setLoadingMapping] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -141,6 +142,20 @@ export default function ActualsHistory() {
       await load()
     } catch {}
     setConfirming(false)
+  }
+
+  const handleReviewMapping = async () => {
+    setLoadingMapping(true)
+    try {
+      const preview = await getMappingReviewData(clientId)
+      navigate(`/clients/${id}/mapping-review`, {
+        state: { preview, sourceFiles: preview.source_files || [] }
+      })
+    } catch (e) {
+      alert('Could not load import data. Try re-importing your QB files.')
+    } finally {
+      setLoadingMapping(false)
+    }
   }
 
   if (loading) {
@@ -209,6 +224,14 @@ export default function ActualsHistory() {
               {confirming ? 'Confirming…' : `Confirm All (${draftPeriods.length})`}
             </button>
           )}
+          <button
+            onClick={handleReviewMapping}
+            disabled={loadingMapping}
+            className="px-4 py-1.5 rounded text-[12px] font-medium border"
+            style={{ borderColor: S.border, color: S.textSecondary, background: S.surface, opacity: loadingMapping ? 0.5 : 1, cursor: loadingMapping ? 'not-allowed' : 'pointer' }}
+          >
+            {loadingMapping ? 'Loading…' : 'Review Mapping'}
+          </button>
           <button
             onClick={() => navigate(`/clients/${id}`)}
             className="px-4 py-1.5 rounded text-[12px] font-medium border"

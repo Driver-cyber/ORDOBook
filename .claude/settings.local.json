@@ -17,7 +17,10 @@
       "Bash(echo -n \"Client $id: \")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" -X POST \"http://localhost:8000/api/clients/$id/forecast/2026/calculate\")",
       "Bash(done)",
-      "Bash(curl -s \"http://localhost:8000/api/clients/1/forecast/2026\")"
+      "Bash(curl -s \"http://localhost:8000/api/clients/1/forecast/2026\")",
+      "Bash(curl -s -X POST \"http://localhost:8000/api/clients/3/forecast/2025/calculate\")",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s \"http://localhost:8000/api/clients/3/forecast/configs\")"
     ]
   }
 }

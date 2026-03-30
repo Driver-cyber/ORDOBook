@@ -21,3 +21,6 @@ export const getActualsDetail = (clientId, year, month) =>
 
 export const updateActuals = (clientId, year, month, data) =>
   api.put(`/clients/${clientId}/actuals/${year}/${month}`, data).then(r => r.data)
+
+export const getMappingReviewData = (clientId) =>
+  api.get(`/clients/${clientId}/actuals/mapping-review-data`).then(r => r.data)

@@ -356,16 +356,24 @@ export default function ForecastReport() {
             <SectionHeader label="Projected Balance Sheet" />
 
             <SubHeader label="Assets" />
-            <DataRow label="Accounts Receivable"  values={ordered.map(p => cell(p, 'projected_ar'))}                   ytd={lastBalanceFmt('projected_ar')} indent />
-            <DataRow label="Inventory"            values={ordered.map(p => cell(p, 'projected_inventory'))}             ytd={lastBalanceFmt('projected_inventory')} indent muted />
-            <DataRow label="Other Current Assets" values={ordered.map(p => cell(p, 'projected_other_current_assets'))} ytd={lastBalanceFmt('projected_other_current_assets')} indent muted />
-            {/* Cash, Total Current Assets, Non-Current Assets, Total Assets — Phase 3d */}
+            <DataRow label="Cash"                 values={ordered.map(p => cell(p, 'projected_cash'))}                  ytd={lastBalanceFmt('projected_cash')} indent />
+            <DataRow label="Accounts Receivable"  values={ordered.map(p => cell(p, 'projected_ar'))}                    ytd={lastBalanceFmt('projected_ar')} indent />
+            <DataRow label="Inventory"            values={ordered.map(p => cell(p, 'projected_inventory'))}              ytd={lastBalanceFmt('projected_inventory')} indent muted />
+            <DataRow label="Other Current Assets" values={ordered.map(p => cell(p, 'projected_other_current_assets'))}  ytd={lastBalanceFmt('projected_other_current_assets')} indent muted />
+            <DataRow label="Total Current Assets" values={ordered.map(p => cell(p, 'projected_total_current_assets'))}  ytd={lastBalanceFmt('projected_total_current_assets')} highlight />
+            <DataRow label="Fixed Assets"         values={ordered.map(p => cell(p, 'projected_fixed_assets'))}          ytd={lastBalanceFmt('projected_fixed_assets')} indent muted />
+            <DataRow label="Other LT Assets"      values={ordered.map(p => cell(p, 'projected_other_lt_assets'))}       ytd={lastBalanceFmt('projected_other_lt_assets')} indent muted />
+            <DataRow label="Total Assets"         values={ordered.map(p => cell(p, 'projected_total_assets'))}          ytd={lastBalanceFmt('projected_total_assets')} highlight />
 
             <SubHeader label="Liabilities" />
-            <DataRow label="Accounts Payable"        values={ordered.map(p => cell(p, 'projected_ap'))}           ytd={lastBalanceFmt('projected_ap')} indent />
-            <DataRow label="Other Current Liabilities" values={ordered.map(p => cell(p, 'projected_current_debt'))} ytd={lastBalanceFmt('projected_current_debt')} indent muted />
-            <DataRow label="Long-Term Liabilities"   values={ordered.map(p => cell(p, 'projected_long_term_debt'))} ytd={lastBalanceFmt('projected_long_term_debt')} indent muted />
-            {/* Total Liabilities, Total Equity — Phase 3d */}
+            <DataRow label="Accounts Payable"          values={ordered.map(p => cell(p, 'projected_ap'))}                    ytd={lastBalanceFmt('projected_ap')} indent />
+            <DataRow label="Other Current Liabilities" values={ordered.map(p => cell(p, 'projected_current_debt'))}           ytd={lastBalanceFmt('projected_current_debt')} indent muted />
+            <DataRow label="Total Current Liabilities" values={ordered.map(p => cell(p, 'projected_total_current_liabilities'))} ytd={lastBalanceFmt('projected_total_current_liabilities')} highlight />
+            <DataRow label="Long-Term Liabilities"     values={ordered.map(p => cell(p, 'projected_long_term_debt'))}         ytd={lastBalanceFmt('projected_long_term_debt')} indent muted />
+            <DataRow label="Total Liabilities"         values={ordered.map(p => cell(p, 'projected_total_liabilities'))}      ytd={lastBalanceFmt('projected_total_liabilities')} highlight />
+
+            <SubHeader label="Equity" />
+            <DataRow label="Projected Equity"     values={ordered.map(p => cell(p, 'projected_equity'))}                ytd={lastBalanceFmt('projected_equity')} highlight />
 
             {/* ══ PROJECTED P&L SUMMARY ════════════════════════════════════════ */}
             <SectionHeader label="Projected P&L Summary" />

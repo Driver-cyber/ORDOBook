@@ -24,9 +24,10 @@ def build_forecast_period(
     If no actuals: source_type = "forecast", run engine modules.
 
     prior_projected: the previous period's projected balance sheet values, used to
-    compute month-over-month deltas for the full cash flow statement.
+    compute month-over-month deltas and forward balance sheet projections.
     Keys: projected_ar, projected_inventory, projected_ap,
-          projected_other_current_assets, projected_current_debt, projected_long_term_debt
+          projected_other_current_assets, projected_current_debt, projected_long_term_debt,
+          projected_cash, projected_fixed_assets, projected_other_lt_assets
 
     Returns a full period dict including calc_trace.
     All monetary values in cents (int).
@@ -105,6 +106,17 @@ def _period_from_actuals(month: int, actuals: dict, prior_projected: dict | None
         + lt_debt_change
     )
 
+    # --- Phase 3d: balance sheet totals from actuals ---
+    cash = actuals.get("cash", 0)
+    fixed_assets = actuals.get("total_fixed_assets", 0)
+    other_lt_assets = actuals.get("total_other_long_term_assets", 0)
+
+    total_ca = cash + ar + inventory_val + other_ca
+    total_assets = total_ca + fixed_assets + other_lt_assets
+    total_cl = ap + current_debt
+    total_liabilities = total_cl + lt_debt
+    equity = total_assets - total_liabilities
+
     return {
         "month": month,
         "source_type": "actual",
@@ -141,6 +153,15 @@ def _period_from_actuals(month: int, actuals: dict, prior_projected: dict | None
         "projected_other_current_assets": other_ca,
         "projected_current_debt": current_debt,
         "projected_long_term_debt": lt_debt,
+        # Phase 3d
+        "projected_cash": cash,
+        "projected_fixed_assets": fixed_assets,
+        "projected_other_lt_assets": other_lt_assets,
+        "projected_total_current_assets": total_ca,
+        "projected_total_assets": total_assets,
+        "projected_total_current_liabilities": total_cl,
+        "projected_total_liabilities": total_liabilities,
+        "projected_equity": equity,
         "calc_trace": {
             "source": "monthly_actuals",
             "note": "Values copied directly from confirmed actuals — no engine calculation applied.",
@@ -289,6 +310,17 @@ def _period_from_drivers(month: int, config: dict, prior_projected: dict | None 
         + lt_debt_change
     )
 
+    # --- Phase 3d: forward balance sheet projections ---
+    proj_cash = prior.get("projected_cash", 0) + net_cash
+    proj_fixed = prior.get("projected_fixed_assets", 0) - int(depreciation) + capex
+    proj_other_lt = prior.get("projected_other_lt_assets", 0)  # flat — no driver yet
+
+    proj_total_ca = proj_cash + projected_ar + projected_inventory_val + proj_other_ca
+    proj_total_assets = proj_total_ca + proj_fixed + proj_other_lt
+    proj_total_cl = projected_ap + proj_curr_debt
+    proj_total_liabilities = proj_total_cl + proj_lt_debt
+    proj_equity = proj_total_assets - proj_total_liabilities
+
     return {
         "month": month,
         "source_type": "forecast",
@@ -325,6 +357,15 @@ def _period_from_drivers(month: int, config: dict, prior_projected: dict | None 
         "projected_other_current_assets": proj_other_ca,
         "projected_current_debt": proj_curr_debt,
         "projected_long_term_debt": proj_lt_debt,
+        # Phase 3d
+        "projected_cash": proj_cash,
+        "projected_fixed_assets": proj_fixed,
+        "projected_other_lt_assets": proj_other_lt,
+        "projected_total_current_assets": proj_total_ca,
+        "projected_total_assets": proj_total_assets,
+        "projected_total_current_liabilities": proj_total_cl,
+        "projected_total_liabilities": proj_total_liabilities,
+        "projected_equity": proj_equity,
         "calc_trace": {
             "revenue": revenue_trace,
             "cost_of_sales": cos_trace,

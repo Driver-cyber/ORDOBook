@@ -75,8 +75,42 @@ def _run_calculation(config: ForecastConfig, db: Session) -> list[ForecastPeriod
         "long_term_debt_change_monthly": config.long_term_debt_change_monthly or {},
     }
 
+    # Seed prior_projected from the prior fiscal year's December actuals.
+    # This anchors the balance sheet forward projections to real opening balances.
+    prior_dec = db.query(MonthlyActuals).filter(
+        MonthlyActuals.client_id == config.client_id,
+        MonthlyActuals.fiscal_year == config.fiscal_year - 1,
+        MonthlyActuals.month == 12,
+    ).first()
+
+    if prior_dec:
+        cash = prior_dec.cash or 0
+        ar = prior_dec.accounts_receivable or 0
+        inv = prior_dec.inventory or 0
+        other_ca = prior_dec.other_current_assets or 0
+        fixed = prior_dec.total_fixed_assets or 0
+        other_lt = prior_dec.total_other_long_term_assets or 0
+        ap = prior_dec.accounts_payable or 0
+        curr_debt = prior_dec.other_current_liabilities or 0
+        lt_debt = prior_dec.total_long_term_liabilities or 0
+        total_assets = cash + ar + inv + other_ca + fixed + other_lt
+        total_liabilities = ap + curr_debt + lt_debt
+        prior_projected: dict | None = {
+            "projected_ar": ar,
+            "projected_inventory": inv,
+            "projected_ap": ap,
+            "projected_other_current_assets": other_ca,
+            "projected_current_debt": curr_debt,
+            "projected_long_term_debt": lt_debt,
+            "projected_cash": cash,
+            "projected_fixed_assets": fixed,
+            "projected_other_lt_assets": other_lt,
+            "projected_equity": total_assets - total_liabilities,
+        }
+    else:
+        prior_projected: dict | None = None
+
     periods = []
-    prior_projected: dict | None = None
     for month in range(1, 13):
         actuals = actuals_by_month.get(month)
         period_data = build_forecast_period(
@@ -90,6 +124,11 @@ def _run_calculation(config: ForecastConfig, db: Session) -> list[ForecastPeriod
             "projected_other_current_assets": period_data["projected_other_current_assets"],
             "projected_current_debt": period_data["projected_current_debt"],
             "projected_long_term_debt": period_data["projected_long_term_debt"],
+            # Phase 3d
+            "projected_cash": period_data["projected_cash"],
+            "projected_fixed_assets": period_data["projected_fixed_assets"],
+            "projected_other_lt_assets": period_data["projected_other_lt_assets"],
+            "projected_equity": period_data["projected_equity"],
         }
 
         existing = db.query(ForecastPeriod).filter(

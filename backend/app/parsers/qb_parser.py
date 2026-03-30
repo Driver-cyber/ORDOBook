@@ -19,6 +19,44 @@ _MONTH_NAMES = frozenset([
     "July", "August", "September", "October", "November", "December",
 ])
 
+_MONTH_ABBR_TO_FULL = {
+    m[:3].lower(): m for m in _MONTH_NAMES
+}
+
+
+def _normalize_period_label(label: str) -> str:
+    """
+    Normalize a QB period column header to "Month YYYY" format.
+
+    QB Balance Sheet exports sometimes use date-format headers:
+      "December 2024"     → "December 2024"  (no change)
+      "Dec 31, 2024"      → "December 2024"
+      "December 31, 2024" → "December 2024"
+
+    Returns the original label unchanged if it can't be normalized.
+    """
+    import re
+    label = label.strip()
+
+    # Already "Month YYYY"?
+    parts = label.split()
+    if len(parts) == 2 and parts[0] in _MONTH_NAMES and parts[1].isdigit() and len(parts[1]) == 4:
+        return label
+
+    # Strip leading "As of " prefix (e.g. "As of Dec 31, 2024")
+    stripped = re.sub(r'^[Aa]s\s+of\s+', '', label).strip()
+
+    # "Mon DD, YYYY" or "Month DD, YYYY" (with or without comma)
+    m = re.match(r'^([A-Za-z]{3,9})\s+\d{1,2},?\s+(\d{4})$', stripped)
+    if m:
+        month_key = m.group(1).lower()[:3]
+        year = m.group(2)
+        full_month = _MONTH_ABBR_TO_FULL.get(month_key)
+        if full_month:
+            return f"{full_month} {year}"
+
+    return label
+
 # Rows that are calculated totals — skip them for mapping (would cause double-counting)
 _PL_SKIP_NAMES = frozenset([
     "Gross Profit",
@@ -48,12 +86,38 @@ def _detect_report_type(cell_value) -> str:
     return "unknown"
 
 
+def _row_has_period_columns(row: tuple) -> bool:
+    """Return True if any non-first cell in the row looks like a month/date period label."""
+    import re
+    for cell in row[1:]:
+        if cell is None:
+            continue
+        label = str(cell).strip()
+        # Matches "Month YYYY", "Mon DD, YYYY", "As of Mon DD, YYYY", date ranges, etc.
+        if re.search(r'\b(January|February|March|April|May|June|July|August|September|October|November|December)\b', label):
+            return True
+    return False
+
+
 def _find_header_row(all_rows: list) -> int:
-    """Find the row index containing 'Distribution account' (the column header row)."""
+    """
+    Find the column header row — the row whose subsequent cells contain period labels.
+
+    QB P&L exports label this row with "Distribution account" in col A.
+    QB Balance Sheet exports may leave col A blank or use "Account".
+    We detect by finding the first row that has at least one month-name period column.
+    """
+    # Prefer the exact "Distribution account" label (P&L)
     for i, row in enumerate(all_rows):
         if row and row[0] is not None and str(row[0]).strip() == "Distribution account":
             return i
-    raise ValueError("Could not find 'Distribution account' header row in this file. "
+
+    # Fall back: find the first row whose non-first cells look like period labels (Balance Sheet)
+    for i, row in enumerate(all_rows):
+        if row and _row_has_period_columns(row):
+            return i
+
+    raise ValueError("Could not find the column header row in this file. "
                      "Is this a QuickBooks export?")
 
 
@@ -61,6 +125,7 @@ def _parse_period_columns(header_row: tuple) -> list[tuple[str, int]]:
     """
     Return list of (period_label, column_index) for all month columns.
     Skips 'Total' and None columns.
+    Period labels are normalized to "Month YYYY" where possible (e.g. "Dec 31, 2024" → "December 2024").
     """
     result = []
     for col_idx, cell in enumerate(header_row):
@@ -71,7 +136,7 @@ def _parse_period_columns(header_row: tuple) -> list[tuple[str, int]]:
         label = str(cell).strip()
         if label.lower() == "total" or not label:
             continue
-        result.append((label, col_idx))
+        result.append((_normalize_period_label(label), col_idx))
     return result
 
 

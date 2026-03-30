@@ -57,6 +57,16 @@ class ForecastPeriod(Base):
     projected_current_debt = Column(BigInteger, nullable=False, default=0)
     projected_long_term_debt = Column(BigInteger, nullable=False, default=0)
 
+    # Balance sheet totals — Phase 3d
+    projected_cash = Column(BigInteger, nullable=False, default=0)
+    projected_fixed_assets = Column(BigInteger, nullable=False, default=0)
+    projected_other_lt_assets = Column(BigInteger, nullable=False, default=0)
+    projected_total_current_assets = Column(BigInteger, nullable=False, default=0)
+    projected_total_assets = Column(BigInteger, nullable=False, default=0)
+    projected_total_current_liabilities = Column(BigInteger, nullable=False, default=0)
+    projected_total_liabilities = Column(BigInteger, nullable=False, default=0)
+    projected_equity = Column(BigInteger, nullable=False, default=0)
+
     # Full audit trail — every intermediate calculation step
     # Format: {
     #   "revenue": {
