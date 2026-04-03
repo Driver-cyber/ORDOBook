@@ -169,10 +169,53 @@ Excel replacement, reject it. We are building something better.
   downstream recalculation on any driver change. Toggle off returns to clean view.
 - God Mode is the "spreadsheet view" — designed for the auditor brain, not the client brain.
 
-### Module 4 — Scoring & Targets
-- Targets interface: set annual targets per KPI per client
-- Grade assignment UI: select Green / Yellow / Red per metric
-- Scoreboard view: visual summary of grades with YTD actuals and forecast
+### Module 4 — Scoring & Targets ✅ COMPLETE (migration 019, iterated 2026-03-31)
+
+**Targets page** (`/clients/:id/targets/:year`):
+- Annual target per KPI per client per fiscal year, stored in `client_targets`
+- Year selector (previous / current / next year)
+- **Section order**: Operations → P&L → Cash Flow → Projected Balance Sheet
+- **Editable driver fields**: Total Jobs, Avg Job Value, COS ($ or % of revenue toggle), Payroll,
+  Marketing, Overhead, Other Income/Expense, DSO, DIO, DPO, Owner Draws
+- **Computed/read-only fields** (derived from drivers, saved to DB for Scoreboard grading):
+  Revenue = Jobs × Avg Job Value; Gross Profit; Net Op Profit; Net Profit;
+  CF: Asset Changes = −(ΔAR + ΔInventory) vs prior year Dec ending balance;
+  CF: Liability Changes = ΔAP vs prior year Dec ending balance; Net Cash Flow
+- **Working capital cash flow logic**: Target AR = Revenue/365 × DSO, Target Inventory = COS/365 × DIO,
+  Target AP = COS/365 × DPO — compared against Dec prior year ending balances to compute cash impact
+- **Three columns**: [Year] Target | [Year−1] Actual | [Year] Forecast
+- **Projected Balance Sheet section**: Cash, AR, Inventory, AP, Net Equity —
+  shows Prior Year Ending vs Projected (Cash = prior + Net CF; AR/Inv/AP from DSO/DIO/DPO targets)
+  Requires Dec prior year actuals to be imported; shows placeholder message if not available
+
+**Net Cash Flow formula** (targets context):
+`Net CF = Net Profit − Owner Draws + CF: Asset Changes + CF: Liability Changes`
+Both CF metrics are signed positive-favorable. Do NOT subtract CF: Asset Changes.
+
+**Scoreboard page** (`/clients/:id/scoreboard/:year`):
+- Columns: Metric | Prior Year | YTD Actual | Full Year Forecast | Annual Target | vs Target | Grade
+- Targets prorated by months elapsed for YTD grading
+- Auto-grade thresholds: Green ≥ 95%, Yellow 80–94%, Red < 80% (inverted for expense/lower-is-better metrics)
+- Manual grade override: advisor can set any grade; overrides persist and are flagged with ★
+- Summary banner: Overall Grade + counts + focus lists (Top Priorities / Also Needs Attention / Monitor)
+
+**Advisory philosophy — Max 3 Red Priorities:**
+- The scoreboard supports marking up to 3 red items as "Top Priority"
+- Remaining red items surface as "Also Needs Attention"
+- Yellow items surface as "Monitor / Discuss"
+- Rationale: realistic prioritization — clients can only meaningfully act on 3 things at once.
+  Red items get the whole meeting; yellow/green are acknowledged, not solved that day.
+- This is advisor-guided (not auto-enforced) — the system surfaces the concept, the advisor decides.
+
+**KPIs (18 total):**
+Operations: Total Jobs, Avg Job Value → computed Revenue
+P&L: COS, Gross Profit, Payroll, Marketing, Overhead, Net Op Profit, Other Income/Expense, Net Profit
+Cash Flow: DSO, DIO, DPO, CF Asset Changes, CF Liability Changes, Net Cash Flow, Owner Draws
+
+**Scoreboard notes field** — private per-metric advisor note, never exported to client
+
+**Navigation**: Forecast Drivers accessed via Workspace card (not sidebar). Sidebar has Forecast Report link.
+Sidebar years auto-collapse except the current year by default.
 
 ### Module 4b — Scenario Sandbox
 - Replaces and combines the What If column and 5-Year Plan tab into one tool
@@ -349,6 +392,22 @@ After completing each module or significant pivot:
 2. Log the decision with date, what was decided, and why
 3. If the conversation exceeds ~20 messages without a clear stopping point,
    suggest: "We should probably summarize where we are and start a fresh context."
+
+### Red Team Checkpoints (every ~10,000 tokens)
+At approximately every 10,000 tokens of conversation work, Claude must pause and prompt:
+
+> "**Red Team checkpoint.** Let's spend a few minutes being skeptical of what we've built.
+> I'll argue against our own decisions — you push back or agree. Goal: validate what's working,
+> catch anything that's wrong or over-engineered before we go further."
+
+Both parties take the devil's advocate position on recently built features. The outcome is
+one of: (a) confirmed — decision stands and we move on, (b) revised — we identify a better
+approach and backlog a cleanup, or (c) scheduled — flagged for re-evaluation at a natural break.
+
+**Token milestone estimation:** approximately every 2–3 completed major features or screens,
+at the end of each Phase, or at the start of a new session after a significant time gap
+(picking up a project after days/weeks away). Time gaps are as valid a trigger as token count
+because the user works in bursts, not continuous sessions.
 
 ---
 

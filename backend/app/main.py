@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
 from app.routers import clients, ingestion, actuals
 from app.routers import forecast as forecast_router
+from app.routers import targets as targets_router
 
 load_dotenv()
 
@@ -27,6 +28,7 @@ app.include_router(clients.router)
 app.include_router(ingestion.router)
 app.include_router(actuals.router)
 app.include_router(forecast_router.router)
+app.include_router(targets_router.router)
 
 
 @app.get("/api/health")

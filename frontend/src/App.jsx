@@ -10,6 +10,8 @@ import ActualsDetail from './pages/ActualsDetail'
 import ActualsHistory from './pages/ActualsHistory'
 import ForecastDrivers from './pages/ForecastDrivers'
 import ForecastReport from './pages/ForecastReport'
+import Targets from './pages/Targets'
+import Scoreboard from './pages/Scoreboard'
 import { getClients } from './api/clients'
 
 function ClientLayout({ clients, onClientUpdated, onClientDeleted, children }) {
@@ -110,6 +112,22 @@ export default function App() {
           element={
             <ClientLayout clients={clients} onClientUpdated={handleClientUpdated} onClientDeleted={handleClientDeleted}>
               {() => <ForecastReport />}
+            </ClientLayout>
+          }
+        />
+        <Route
+          path="/clients/:id/targets/:year"
+          element={
+            <ClientLayout clients={clients} onClientUpdated={handleClientUpdated} onClientDeleted={handleClientDeleted}>
+              {() => <Targets />}
+            </ClientLayout>
+          }
+        />
+        <Route
+          path="/clients/:id/scoreboard/:year"
+          element={
+            <ClientLayout clients={clients} onClientUpdated={handleClientUpdated} onClientDeleted={handleClientDeleted}>
+              {() => <Scoreboard />}
             </ClientLayout>
           }
         />

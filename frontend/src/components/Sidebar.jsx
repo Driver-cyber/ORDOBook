@@ -23,7 +23,13 @@ export default function Sidebar({ clients, activeClientId }) {
 
   useEffect(() => {
     if (!activeClientId) { setPeriods([]); return }
-    getActuals(activeClientId).then(setPeriods).catch(() => setPeriods([]))
+    getActuals(activeClientId).then(data => {
+      setPeriods(data)
+      // Collapse all years except the current year by default
+      const currentYear = new Date().getFullYear()
+      const allYears = [...new Set(data.map(p => p.fiscal_year))]
+      setCollapsedYears(new Set(allYears.filter(y => y !== currentYear)))
+    }).catch(() => setPeriods([]))
   }, [activeClientId])
 
   // Group periods by fiscal year
@@ -109,8 +115,7 @@ export default function Sidebar({ clients, activeClientId }) {
 
             {[
               { to: `/clients/${activeClientId}`, end: true, icon: '⊞', label: 'Workspace' },
-              { to: `/clients/${activeClientId}/forecast/${new Date().getFullYear()}`, end: true, icon: '◈', label: 'Forecast' },
-              { to: `/clients/${activeClientId}/forecast/${new Date().getFullYear()}/report`, end: false, icon: '▤', label: 'Report' },
+              { to: `/clients/${activeClientId}/forecast/${new Date().getFullYear()}/report`, end: false, icon: '▤', label: 'Forecast Report' },
               { to: `/clients/${activeClientId}/upload`, end: false, icon: '↑', label: 'Import Data' },
               { to: `/clients/${activeClientId}/profile`, end: false, icon: '◎', label: 'Profile & Settings' },
             ].map(({ to, end, icon, label }) => (
