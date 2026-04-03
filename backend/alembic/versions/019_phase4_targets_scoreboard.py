@@ -1,4 +1,5 @@
 """Phase 4: client_targets and scoreboard_entries tables
+
 Revision ID: 019
 Revises: 018
 Create Date: 2026-03-30
