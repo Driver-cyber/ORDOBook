@@ -371,7 +371,7 @@ export default function Scoreboard() {
             ))}
           </div>
           <button
-            onClick={() => navigate(`/clients/${id}/targets/${year}`)}
+            onClick={() => navigate(`/clients/${id}/workspace/targets/${year}`)}
             className="px-4 py-2 rounded-lg border border-border text-text-secondary text-sm font-medium hover:border-accent/40 hover:text-text-primary transition-colors"
           >
             Edit Targets

@@ -358,7 +358,7 @@ export default function ForecastDrivers() {
             <span className="text-[11px] font-mono" style={{ color: S.gold }}>Unsaved changes</span>
           )}
           <button
-            onClick={() => navigate(`/clients/${id}/forecast/${year}/report`)}
+            onClick={() => navigate(`/clients/${id}/reports/forecast/${year}`)}
             className="px-4 py-1.5 rounded text-[12px] font-medium border transition-colors"
             style={{ borderColor: S.border, color: S.textSecondary, background: S.surface }}
           >

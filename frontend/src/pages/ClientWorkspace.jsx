@@ -48,7 +48,7 @@ export default function ClientWorkspace() {
             {client?.name}
           </h1>
           <p className="text-text-muted text-[12px] mt-0.5">
-            {client?.industry || 'Client workspace'}
+            {client?.industry || 'Actuals'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -81,56 +81,6 @@ export default function ClientWorkspace() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-8 py-6">
         <div className="max-w-2xl space-y-6">
-
-          {/* Deliverables */}
-          {actuals.length > 0 && (
-            <section>
-              <h2 className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-3">
-                Deliverables
-              </h2>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  {
-                    label: 'Forecast',
-                    description: '12-month forward model',
-                    icon: '▤',
-                    path: `/clients/${id}/forecast/${new Date().getFullYear()}`,
-                  },
-                  {
-                    label: 'Scoreboard',
-                    description: 'YTD grades vs targets',
-                    icon: '◈',
-                    path: `/clients/${id}/scoreboard/${new Date().getFullYear()}`,
-                  },
-                  {
-                    label: 'Targets',
-                    description: 'Set annual KPI targets',
-                    icon: '◎',
-                    path: `/clients/${id}/targets/${new Date().getFullYear()}`,
-                  },
-                ].map(item => (
-                  <button
-                    key={item.label}
-                    onClick={() => navigate(item.path)}
-                    className="text-left bg-surface border border-border rounded-xl px-5 py-3.5 hover:border-accent/40 hover:bg-surface2 transition-all group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-accent">{item.icon}</span>
-                          <span className="font-display font-semibold text-text-primary group-hover:text-accent transition-colors">
-                            {item.label}
-                          </span>
-                        </div>
-                        <p className="text-text-muted text-[11px]">{item.description}</p>
-                      </div>
-                      <span className="text-text-muted group-hover:text-accent transition-colors">→</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
 
           {/* Periods */}
           <section>

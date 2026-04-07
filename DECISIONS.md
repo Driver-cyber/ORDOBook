@@ -13,9 +13,10 @@ Excel workbook process for a solo consulting practice. The immediate goal is to 
 monthly bookkeeping data ingestion from QuickBooks Online exports, run the analytical
 models, and produce the Scoreboard, 12-Month Forecast, and Action Plan deliverables.
 
-**Current Phase:** Phase 3d complete (2026-03-27). Projected Balance Sheet (cash, fixed assets, total assets, liabilities, equity) now live.
-13 months of Vetter Plumbing actuals (Dec 2024–Dec 2025) imported and serving as opening balance anchor.
-**Next:** Phase 4 — Targets & Scoring / Scoreboard.
+**Current Phase:** Phase 4 complete (2026-03-31). Targets v2 + Scoreboard live. Migrations 001–019 applied.
+13 months of Vetter Plumbing actuals (Dec 2024–Dec 2025) imported.
+Navigation architecture decided (2026-04-05) — implementation pending.
+**Next:** Nav restructure → Phase 4b (Scenario Sandbox) → Phase 5 (PDF/JSON exports + Action Plan).
 
 **Current Vibe:** Deliberate. Plan before building. Verify before shipping. One module at a time.
 
@@ -203,7 +204,8 @@ The API integration itself is deferred to Phase 3.
 | 3b | Forecast UX, report view, audit trail Level 1, Actuals History | Weeks 15-18 | ✅ Complete |
 | 3c | Cash Flow Drivers: DSO/DIO/DPO, owner draws, projected balances, full cash flow | Weeks 19-21 | ✅ Complete (2026-03-23, migration 017) |
 | 3d | Projected Balance Sheet: cash, fixed assets, total assets, liabilities, equity | — | ✅ Complete (2026-03-27, migration 018) |
-| 4 | Scoring & Targets: Targets UI, grading, Scoreboard | — | 🔜 Next |
+| 4 | Scoring & Targets: Targets UI, grading, Scoreboard | — | ✅ Complete (2026-03-31, migration 019) |
+| 4a | Navigation restructure: Workspace + Reports two-space model | — | 🔜 Decided, implementation pending |
 | 4b | Scenario Sandbox | — | 🔜 Not started |
 | 5 | Deliverable Generation: PDF exports, Action Plan editor, JSON outputs | — | 🔜 Not started |
 
@@ -490,6 +492,54 @@ ClientWorkspace header alongside "Import Data":
 **Reason:** Advisor needs to re-access mapping and history without re-uploading files.
 The "Review Mapping" flow reconstructs the preview from raw_data stored at import time —
 the original parsed rows are preserved in `monthly_actuals.raw_data` JSONB for exactly this purpose.
+
+---
+
+## 📦 Phase 4 — Scoring, Targets & Navigation Architecture (2026-03-31 / 2026-04-05)
+
+### [2026-03-31] Phase 4 complete: Targets v2 + Scoreboard (migration 019)
+**Decision:** Targets page uses driver-computed fields (Jobs × Avg = Revenue, COS toggle, projected BS).
+Scoreboard shows YTD/forecast/target/prior year with grade pills, summary banner, max-3-red advisory philosophy.
+See MEMORY.md Targets Page Architecture and Phase 4 Scoreboard Architecture sections for full detail.
+
+### [2026-04-05] Application Navigation: Two-space model (Workspace + Reports)
+**Decision:** ORDOBOOK's primary navigation is organized into two spaces:
+
+**Workspace** — where the advisor does analytical work:
+- **Actuals tab** — working view of actuals with cash flow and profit driver results displayed
+  (similar in density to the Forecast Drivers page). Import button lives here as a contextual
+  action. Sidebar also has a persistent Import shortcut.
+- **Forecast Drivers tab** — the 13-column forecast model, editable drivers
+- **Targets tab** — annual targets with driver-computed fields, COS toggle, projected BS
+
+**Reports** — what gets produced and shared with clients (4 tabs, all in one tabbed view):
+1. **Actuals** — clean Balance Sheet + P&L (rebranded QB output, simpler than workspace view)
+2. **Forecast** — 12-month combined actuals + forecast report
+3. **Scoreboard** — 1-page dashboard with red/yellow/green grades
+4. **Action Plan** — editable-in-place structured text report (assignee + due date per item)
+
+**Reason:**
+- Workspace = input/analysis tools. Reports = deliverable outputs. Clean mental model.
+- Advisor and client look at different views of the same data — workspace has more analytical
+  density, reports are client-presentation clean.
+- Tabbed Reports view enables flipping between Scoreboard → Forecast → Action Plan during a meeting.
+- Import lives contextually inside Workspace > Actuals tab (natural workflow: import → see actuals
+  → move to forecast), plus a sidebar shortcut for direct access.
+- Action Plan is both a working document and a deliverable — treating it as an editable Report tab
+  keeps it in the deliverables space without requiring a separate edit mode.
+- Scoreboard moves OUT of workspace cards → INTO Reports tabs. It's an output, not a working tool.
+
+**Routes implied (pending implementation):**
+```
+/clients/:id/workspace/actuals     — working actuals view + import button
+/clients/:id/workspace/forecast    — forecast drivers
+/clients/:id/workspace/targets     — targets
+
+/clients/:id/reports/actuals       — clean BS + P&L
+/clients/:id/reports/forecast      — 12-month forecast report
+/clients/:id/reports/scoreboard    — scoreboard
+/clients/:id/reports/action-plan   — action plan editor
+```
 
 ---
 

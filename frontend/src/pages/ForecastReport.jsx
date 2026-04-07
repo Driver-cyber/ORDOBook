@@ -259,7 +259,7 @@ export default function ForecastReport() {
           </p>
         </div>
         <button
-          onClick={() => navigate(`/clients/${id}/forecast/${year}`)}
+          onClick={() => navigate(`/clients/${id}/workspace/forecast/${year}`)}
           className="px-4 py-1.5 rounded text-[12px] font-medium border transition-colors"
           style={{ borderColor: S.border, color: S.textSecondary, background: S.surface }}
         >

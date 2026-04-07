@@ -85,7 +85,7 @@ The JSON export format is the handoff layer. Keep the products architecturally s
 
 ## 🗂 Application Structure
 
-ORDOBOOK is organized **client-first, then chronologically.** This is not negotiable.
+ORDOBOOK is organized **client-first, then by space (Workspace vs. Reports).** This is not negotiable.
 
 ```
 ORDOBOOK
@@ -93,17 +93,28 @@ ORDOBOOK
     └── [Client Name]
         ├── Client Profile & Settings
         │   ├── Business info & terminology
-        │   ├── Account mapping (QuickBooks → ORDOBOOK)
-        │   └── Annual targets
-        └── [Year]
-            └── [Month]
-                ├── Status: Imported → Mapped → Reviewed → Scored → Exported
-                ├── Actuals (parsed from QB export)
-                ├── Forecast (actuals + forward model)
-                ├── Targets & Scoring
-                ├── Scoreboard
-                └── Action Plan
+        │   └── Account mapping (QuickBooks → ORDOBOOK)
+        │
+        ├── Workspace (tabbed — where the advisor does analytical work)
+        │   ├── Actuals tab — working view with cash flow + profit driver results
+        │   │                 Import button lives here; sidebar also has import shortcut
+        │   ├── Forecast Drivers tab — 13-column editable forecast model
+        │   └── Targets tab — annual targets, driver-computed fields, projected BS
+        │
+        └── Reports (tabbed — what gets produced and shared with clients)
+            ├── Actuals — clean Balance Sheet + P&L
+            ├── Forecast — 12-month combined actuals + forecast
+            ├── Scoreboard — red/yellow/green 1-page dashboard
+            └── Action Plan — editable-in-place structured report (assignee + due date)
 ```
+
+**The core distinction:**
+- **Workspace** = analyst density. The advisor uses this to do the work.
+- **Reports** = client-presentation clean. The advisor uses this to have the conversation.
+
+Same data, two different lenses. The Workspace Actuals tab and the Reports Actuals tab show
+the same underlying numbers — the workspace adds driver analysis and cash flow context;
+the report strips down to a clean BS + P&L the client can read.
 
 The UX mental model is **"Projects" UI** — like a file manager where each client is a project
 folder. You open a client, you're in their world. You should never feel lost about where you are.
@@ -214,8 +225,12 @@ Cash Flow: DSO, DIO, DPO, CF Asset Changes, CF Liability Changes, Net Cash Flow,
 
 **Scoreboard notes field** — private per-metric advisor note, never exported to client
 
-**Navigation**: Forecast Drivers accessed via Workspace card (not sidebar). Sidebar has Forecast Report link.
-Sidebar years auto-collapse except the current year by default.
+**Navigation** (decided 2026-04-05):
+- Targets → Workspace tab (it's a working tool — the advisor sets inputs here)
+- Scoreboard → Reports tab (it's a deliverable — output driven by Targets inputs)
+- Forecast Drivers → Workspace tab
+- Forecast Report → Reports tab
+- Sidebar has two primary links: Workspace + Reports. Import shortcut also in sidebar.
 
 ### Module 4b — Scenario Sandbox
 - Replaces and combines the What If column and 5-Year Plan tab into one tool

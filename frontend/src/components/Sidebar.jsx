@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, useMatch } from 'react-router-dom'
 import logo from '../assets/logo.svg'
 import { getActuals } from '../api/ingestion'
 
@@ -18,6 +18,8 @@ const S = {
 export default function Sidebar({ clients, activeClientId }) {
   const navigate = useNavigate()
   const activeClient = clients?.find(c => c.id === activeClientId)
+  const inWorkspace = useMatch(`/clients/${activeClientId}/workspace/*`)
+  const inReports   = useMatch(`/clients/${activeClientId}/reports/*`)
   const [periods, setPeriods] = useState([])
   const [collapsedYears, setCollapsedYears] = useState(new Set())
 
@@ -114,19 +116,35 @@ export default function Sidebar({ clients, activeClientId }) {
             </p>
 
             {[
-              { to: `/clients/${activeClientId}`, end: true, icon: '⊞', label: 'Workspace' },
-              { to: `/clients/${activeClientId}/forecast/${new Date().getFullYear()}/report`, end: false, icon: '▤', label: 'Forecast Report' },
-              { to: `/clients/${activeClientId}/upload`, end: false, icon: '↑', label: 'Import Data' },
-              { to: `/clients/${activeClientId}/profile`, end: false, icon: '◎', label: 'Profile & Settings' },
-            ].map(({ to, end, icon, label }) => (
+              {
+                icon: '⊞', label: 'Workspace',
+                to: `/clients/${activeClientId}/workspace`,
+                active: !!inWorkspace,
+              },
+              {
+                icon: '▤', label: 'Reports',
+                to: `/clients/${activeClientId}/reports/scoreboard/${new Date().getFullYear()}`,
+                active: !!inReports,
+              },
+              {
+                icon: '↑', label: 'Import Data',
+                to: `/clients/${activeClientId}/upload`,
+                active: false,
+              },
+              {
+                icon: '◎', label: 'Profile & Settings',
+                to: `/clients/${activeClientId}/profile`,
+                active: false,
+              },
+            ].map(({ to, icon, label, active }) => (
               <NavLink
-                key={to}
+                key={label}
                 to={to}
-                end={end}
+                end={false}
                 className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] transition-colors"
-                style={({ isActive }) => ({
-                  background: isActive ? 'rgba(200,169,110,0.1)' : 'transparent',
-                  color: isActive ? '#c8a96e' : S.textSecondary,
+                style={() => ({
+                  background: active ? 'rgba(200,169,110,0.1)' : 'transparent',
+                  color: active ? '#c8a96e' : S.textSecondary,
                 })}
               >
                 <span>{icon}</span> {label}
