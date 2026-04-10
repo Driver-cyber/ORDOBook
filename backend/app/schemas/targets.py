@@ -17,8 +17,7 @@ class TargetOut(BaseModel):
     target_value: int
     target_type: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class TargetsResponse(BaseModel):

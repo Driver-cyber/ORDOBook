@@ -46,6 +46,15 @@ def _normalize_period_label(label: str) -> str:
     # Strip leading "As of " prefix (e.g. "As of Dec 31, 2024")
     stripped = re.sub(r'^[Aa]s\s+of\s+', '', label).strip()
 
+    # "Mon YYYY" or "Month YYYY" with abbreviated month (e.g. "Jan 2026" → "January 2026")
+    m = re.match(r'^([A-Za-z]{3,9})\s+(\d{4})$', stripped)
+    if m:
+        month_key = m.group(1).lower()[:3]
+        year = m.group(2)
+        full_month = _MONTH_ABBR_TO_FULL.get(month_key)
+        if full_month:
+            return f"{full_month} {year}"
+
     # "Mon DD, YYYY" or "Month DD, YYYY" (with or without comma)
     m = re.match(r'^([A-Za-z]{3,9})\s+\d{1,2},?\s+(\d{4})$', stripped)
     if m:
@@ -93,8 +102,13 @@ def _row_has_period_columns(row: tuple) -> bool:
         if cell is None:
             continue
         label = str(cell).strip()
-        # Matches "Month YYYY", "Mon DD, YYYY", "As of Mon DD, YYYY", date ranges, etc.
-        if re.search(r'\b(January|February|March|April|May|June|July|August|September|October|November|December)\b', label):
+        # Matches full names ("January 2026") AND 3-letter abbreviations ("Jan 31, 2026")
+        # QB Balance Sheet multi-month exports often use abbreviated headers.
+        if re.search(
+            r'\b(January|February|March|April|May|June|July|August|September|October|November|December'
+            r'|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b',
+            label
+        ):
             return True
     return False
 
@@ -417,10 +431,11 @@ def parse_invoice_report(file_bytes: bytes, filename: str) -> dict:
                 continue
 
             if col_b is None:
-                # Month header: "December 2024"
-                parts = name.split()
-                if len(parts) == 2 and parts[0] in _MONTH_NAMES:
-                    current_month = name
+                # Month header: "December 2024" or "Dec 2024"
+                normalized = _normalize_period_label(name)
+                parts = normalized.split()
+                if len(parts) == 2 and parts[0] in _MONTH_NAMES and parts[1].isdigit():
+                    current_month = normalized
                     if current_month not in counts:
                         counts[current_month] = 0
             elif isinstance(col_b, (_date, _datetime)) and current_month is not None:

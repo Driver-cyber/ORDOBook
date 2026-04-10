@@ -35,9 +35,9 @@ class ForecastConfigCreate(BaseModel):
     depreciation_monthly: dict[str, int] = {}
     other_income_expense_monthly: dict[str, int] = {}
 
-    dso_monthly: dict = {}
-    dio_monthly: dict = {}
-    dpo_monthly: dict = {}
+    dso_monthly: dict[str, int] = {}
+    dio_monthly: dict[str, int] = {}
+    dpo_monthly: dict[str, int] = {}
 
     capex_monthly: dict[str, int] = {}
     other_current_assets_change_monthly: dict[str, int] = {}
@@ -76,9 +76,9 @@ class ForecastConfigUpdate(BaseModel):
     depreciation_monthly: dict[str, int] | None = None
     other_income_expense_monthly: dict[str, int] | None = None
 
-    dso_monthly: dict | None = None
-    dio_monthly: dict | None = None
-    dpo_monthly: dict | None = None
+    dso_monthly: dict[str, int] | None = None
+    dio_monthly: dict[str, int] | None = None
+    dpo_monthly: dict[str, int] | None = None
 
     capex_monthly: dict[str, int] | None = None
     other_current_assets_change_monthly: dict[str, int] | None = None

@@ -14,6 +14,7 @@ import ForecastDrivers from './pages/ForecastDrivers'
 import ForecastReport from './pages/ForecastReport'
 import Targets from './pages/Targets'
 import Scoreboard from './pages/Scoreboard'
+import ScenarioSandbox from './pages/ScenarioSandbox'
 import { getClients } from './api/clients'
 
 // Redirect helpers — need useParams so they must be components
@@ -72,7 +73,6 @@ export default function App() {
     getClients().then(setClients).catch(() => {})
   }, [])
 
-  const handleClientsLoaded = (data) => setClients(data)
   const handleClientUpdated = (updated) => setClients(prev => prev.map(c => c.id === updated.id ? updated : c))
   const handleClientDeleted = (id) => setClients(prev => prev.filter(c => c.id !== id))
 
@@ -96,7 +96,7 @@ export default function App() {
           element={
             <>
               <Sidebar clients={clients} activeClientId={null} />
-              <ClientRoster onClientsLoaded={handleClientsLoaded} />
+              <ClientRoster />
             </>
           }
         />
@@ -136,6 +136,9 @@ export default function App() {
           path="/clients/:id/reports/action-plan"
           element={<CL>{() => <ReportsShell><ComingSoon title="Action Plan" phase="Phase 5" /></ReportsShell>}</CL>}
         />
+
+        {/* ── Scenario Sandbox (no shell — full screen) ── */}
+        <Route path="/clients/:id/scenarios" element={<CL>{() => <ScenarioSandbox />}</CL>} />
 
         {/* ── Support screens (no shell) ── */}
         <Route

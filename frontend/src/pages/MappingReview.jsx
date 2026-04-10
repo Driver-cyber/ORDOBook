@@ -53,6 +53,12 @@ function computeTotals(rows, mappings, periods) {
     cats['total_expenses'] = rows
       .filter(r => r.row_type === 'line_item' && r.section === 'expenses')
       .reduce((sum, r) => sum + (r.values[p] || 0), 0)
+    // Overhead is the residual: everything in total_expenses not already in the other 3 buckets.
+    // This matches the reference workbook definition "Overhead Expenses (less Payroll, Dep)".
+    cats['overhead_expenses'] = cats['total_expenses']
+      - (cats['payroll_expenses'] || 0)
+      - (cats['marketing_expenses'] || 0)
+      - (cats['depreciation_amortization'] || 0)
     result[p] = cats
   })
   return result

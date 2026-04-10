@@ -18,8 +18,9 @@ const S = {
 export default function Sidebar({ clients, activeClientId }) {
   const navigate = useNavigate()
   const activeClient = clients?.find(c => c.id === activeClientId)
-  const inWorkspace = useMatch(`/clients/${activeClientId}/workspace/*`)
-  const inReports   = useMatch(`/clients/${activeClientId}/reports/*`)
+  const inWorkspace  = useMatch(`/clients/${activeClientId}/workspace/*`)
+  const inReports    = useMatch(`/clients/${activeClientId}/reports/*`)
+  const inScenarios  = useMatch(`/clients/${activeClientId}/scenarios`)
   const [periods, setPeriods] = useState([])
   const [collapsedYears, setCollapsedYears] = useState(new Set())
 
@@ -125,6 +126,11 @@ export default function Sidebar({ clients, activeClientId }) {
                 icon: '▤', label: 'Reports',
                 to: `/clients/${activeClientId}/reports/scoreboard/${new Date().getFullYear()}`,
                 active: !!inReports,
+              },
+              {
+                icon: '⟁', label: 'Scenarios',
+                to: `/clients/${activeClientId}/scenarios`,
+                active: !!inScenarios,
               },
               {
                 icon: '↑', label: 'Import Data',

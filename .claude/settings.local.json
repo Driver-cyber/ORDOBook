@@ -20,7 +20,13 @@
       "Bash(curl -s \"http://localhost:8000/api/clients/1/forecast/2026\")",
       "Bash(curl -s -X POST \"http://localhost:8000/api/clients/3/forecast/2025/calculate\")",
       "Bash(python3 -m json.tool)",
-      "Bash(curl -s \"http://localhost:8000/api/clients/3/forecast/configs\")"
+      "Bash(curl -s \"http://localhost:8000/api/clients/3/forecast/configs\")",
+      "Bash(grep -n \"// TODO\\\\|# TODO\\\\|FIXME\\\\|XXX\\\\|BUG\" \"/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook/backend/app/routers\"/*.py \"/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook/frontend/src\"/*.jsx)",
+      "Bash(grep -n \"raise HTTPException\" \"/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook/backend/app/routers\"/*.py)",
+      "Bash(python -c \"from app.routers.scenarios import router; print\\('Router OK'\\)\")",
+      "Bash(python3 -c \"from app.routers.scenarios import router; print\\('Router OK'\\)\")",
+      "Bash(\"/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook/backend/venv/bin/python3\" -c \"from app.routers.scenarios import router; print\\('Router OK'\\)\")",
+      "Bash(venv/bin/python3 -c \"from app.main import app; print\\('App OK — routes:', [r.path for r in app.routes if '/scenario' in r.path]\\)\")"
     ]
   }
 }

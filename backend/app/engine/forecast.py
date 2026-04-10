@@ -312,7 +312,7 @@ def _period_from_drivers(month: int, config: dict, prior_projected: dict | None 
 
     # --- Phase 3d: forward balance sheet projections ---
     proj_cash = prior.get("projected_cash", 0) + net_cash
-    proj_fixed = prior.get("projected_fixed_assets", 0) - int(depreciation) + capex
+    proj_fixed = max(0, prior.get("projected_fixed_assets", 0) - int(depreciation) + capex)
     proj_other_lt = prior.get("projected_other_lt_assets", 0)  # flat — no driver yet
 
     proj_total_ca = proj_cash + projected_ar + projected_inventory_val + proj_other_ca

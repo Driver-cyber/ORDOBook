@@ -132,6 +132,7 @@ export default function ActualsHistory() {
 
   const handleConfirmAll = async () => {
     setConfirming(true)
+    setError(null)
     try {
       await Promise.all(
         draftPeriods.map(p => updateActuals(clientId, p.fiscal_year, p.month, { status: 'confirmed' }))
@@ -140,7 +141,9 @@ export default function ActualsHistory() {
       const affectedYears = [...new Set(draftPeriods.map(p => p.fiscal_year))]
       await Promise.all(affectedYears.map(y => calculateForecast(clientId, y).catch(() => {})))
       await load()
-    } catch {}
+    } catch (e) {
+      setError(e.message || 'Failed to confirm actuals')
+    }
     setConfirming(false)
   }
 

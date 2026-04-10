@@ -76,7 +76,14 @@ def _aggregate_actuals(actuals: list) -> dict:
     total_marketing = sum(a.marketing_expenses or 0 for a in actuals)
     total_overhead = sum(a.overhead_expenses or 0 for a in actuals)
     total_other_ie = sum(a.other_income_expense or 0 for a in actuals)
-    total_net_profit = sum(a.net_profit_for_year or 0 for a in actuals)
+    # net_profit_for_year is the QB Balance Sheet equity line: a cumulative YTD figure, NOT monthly.
+    # Summing all months would inflate the result. Use the latest imported month's value,
+    # which is the best available approximation of full-year net profit.
+    actuals_with_np = [a for a in actuals if (a.net_profit_for_year or 0) != 0]
+    if actuals_with_np:
+        total_net_profit = max(actuals_with_np, key=lambda a: a.month).net_profit_for_year or 0
+    else:
+        total_net_profit = 0
     # net_op = net_profit - other_income_expense (algebraically equivalent to GP - total_expenses)
     net_op_profit = total_net_profit - total_other_ie
     return {

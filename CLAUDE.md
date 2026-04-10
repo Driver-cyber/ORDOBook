@@ -233,13 +233,38 @@ Cash Flow: DSO, DIO, DPO, CF Asset Changes, CF Liability Changes, Net Cash Flow,
 - Sidebar has two primary links: Workspace + Reports. Import shortcut also in sidebar.
 
 ### Module 4b — Scenario Sandbox
-- Replaces and combines the What If column and 5-Year Plan tab into one tool
-- Purpose: connect a number on a report to a real-world decision or trade-off
-- Supports current-year and 2-3 year forward scenario modeling
-- Scenarios are clearly isolated from the working forecast — no scenario change
-  ever overwrites actuals or the committed forecast
-- Designed as a live conversation tool for advisory meetings, not a precision engine
-- Frame: "What happens if we hire in April?" not "predict 2029 revenue exactly"
+**Purpose:** Advisor prep tool for translating client questions ("what if we hire in Q3?") into
+numbers and delivering a clear answer. Not a live meeting tool — the advisor builds scenarios
+beforehand and uses the client-view toggle to present findings if needed.
+
+**Core design:**
+- 3 scenario columns side by side — framed as Good / Better / Best (or any named set)
+- Optionally one column can be "Current Forecast" as the baseline
+- Inputs at annual level (entered once per scenario, same driver set as Forecast Drivers)
+- Outputs aggregated to full-year summary; optionally expandable to fiscal quarters
+- Quarterly values computed as annual ÷ 4 average in v1 (quarter-level editing deferred to God Mode)
+- Current fiscal year only — reuses existing forecast engine, no multi-year complexity
+
+**Isolation principle:**
+- Scenarios NEVER overwrite actuals or the committed working forecast
+- Fully ephemeral in v1 — state lives in React only, no DB writes
+- Save-as-JSON is on the future ideas list (nice-to-have, not v1 requirement)
+
+**Client view toggle:**
+- Hides input rows; surfaces only key output metrics (Revenue, Gross Profit, Net Profit,
+  Net Cash Flow, and any other highlights) in a clean presentation layout
+- Designed for screen-share or a quick summary printout — not a detailed deep-dive
+- The advisor delivers the answer/advice; the client sees the numbers that support it
+
+**Navigation:**
+- Own sidebar entry ("⟁ Scenarios" or similar) — separate from Workspace and Reports
+- Dedicated full-screen page; no shell/tab wrapper needed
+
+**Architecture:**
+- Backend: POST `/api/clients/:id/scenario/calculate` — takes annual driver inputs per scenario,
+  returns computed full-year outputs. No DB writes. Reuses `build_forecast_period` engine.
+- Frontend: `ScenarioSandbox.jsx` — 3-column layout, annual inputs, quarterly toggle, client view
+- Frame: "What happens if we hire in April?" not "predict 2029 exactly"
 
 ### Module 4c — Advisor Context Layer (private, never exported)
 - Each client profile has a private notes field visible only to the advisor
@@ -336,6 +361,22 @@ Before any multi-file edit or new module, Claude must:
 - Formula changes require explicit documentation of what changed and why
 - **Every displayed calculated value must have a stored source chain.** A number that
   cannot be traced back to its inputs will not be displayed. No exceptions.
+- **Overhead is a plug/residual:** `overhead_expenses = total_expenses − payroll − marketing − depreciation`
+  Never sum accounts directly into overhead — it is always derived as the catch-all remainder.
+  This matches the reference workbook definition "Overhead Expenses (less Payroll, Dep)". (confirmed 2026-04-09)
+- **`net_profit_for_year` in MonthlyActuals is QB's cumulative YTD BS equity line, not a monthly figure.**
+  Never sum it across months — doing so inflates the total by ~6×. Use the latest imported month's
+  non-zero value as the best available annual approximation. (fixed 2026-04-09)
+- **`proj_fixed_assets` must have a `max(0, ...)` floor guard** — depreciation can theoretically
+  exceed the prior balance in a forecast month; assets cannot go below zero.
+
+### Frontend Code Conventions
+- **All API files use relative paths** (e.g. `/api/clients/...`). Never hardcode `http://localhost:8000`
+  or any absolute URL in frontend code. The Vite proxy (`vite.config.js`) handles dev routing.
+- **All Pydantic schemas use `model_config = {"from_attributes": True}`** (Pydantic v2 style).
+  Never use the v1 `class Config: from_attributes = True` pattern.
+- **Monthly driver dicts are always typed `dict[str, int]`** — string month keys `"1"`–`"12"`, int cents.
+  Never use bare `dict` for these fields.
 
 ### Branding
 - The primary user has brand assets (logo, color palette, typography) that will be

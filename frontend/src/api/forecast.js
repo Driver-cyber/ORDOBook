@@ -1,9 +1,7 @@
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-
-const base = (clientId, year) => `${BASE}/api/clients/${clientId}/forecast/${year}`
+const base = (clientId, year) => `/api/clients/${clientId}/forecast/${year}`
 
 export async function getForecastView(clientId, year) {
-  const res = await fetch(`${base(clientId, year)}`)
+  const res = await fetch(base(clientId, year))
   if (!res.ok) throw new Error(await res.text())
   return res.json()
 }

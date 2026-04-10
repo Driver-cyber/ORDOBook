@@ -543,6 +543,24 @@ See MEMORY.md Targets Page Architecture and Phase 4 Scoreboard Architecture sect
 
 ---
 
+## 📦 Parser Hardening — 2026 Format Support (2026-04-09)
+
+### [2026-04-09] QB 2026 Balance Sheet: abbreviated month headers + two-stage parser fix
+**Problem:** QB Balance Sheet multi-month exports for 2026 use abbreviated column headers
+("Jan 2026", "Feb 2026", "Mar 2026") instead of full names or date-format labels.
+This caused two sequential failures:
+1. `_row_has_period_columns` only matched full month names → couldn't find the header row at all → "Could not find column header row" error
+2. After fixing detection, `_normalize_period_label` had no case for "Mon YYYY" (abbreviated + year, no day) → labels passed through unchanged → `period_sort_key` in the ingestion router rejected them → "0 periods detected"
+
+**Fix:**
+1. `_row_has_period_columns` regex now includes 3-letter abbreviations (Jan, Feb, Mar, Apr, Jun, Jul, Aug, Sep, Oct, Nov, Dec) alongside full month names
+2. `_normalize_period_label` now handles "Mon YYYY" format as first match case (before "Mon DD, YYYY"), converting "Jan 2026" → "January 2026"
+3. `parse_invoice_report` month header detection now routes through `_normalize_period_label` so abbreviated headers ("Jan 2026") are recognized the same as full names
+
+**Confirmed format (Vetter Plumbing, April 2026 import):** "Jan 2026", "Feb 2026", "Mar 2026"
+
+---
+
 ## 💡 Parking Lot (Acknowledged Future Ideas)
 
 These are real ideas that belong in a future version or a separate project.
