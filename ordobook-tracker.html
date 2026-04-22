@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORDOBOOK — Build Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fraunces:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --walnut: #2C1A0E;
+  --walnut-dark: #1e1108;
+  --walnut-mid: #3d2510;
+  --walnut-light: #4f3018;
+  --amber: #F2A24A;
+  --amber-dim: rgba(242,162,74,0.15);
+  --amber-pale: rgba(242,162,74,0.06);
+  --wheat: #F5DEB3;
+  --wheat-dim: rgba(245,222,179,0.55);
+  --wheat-pale: rgba(245,222,179,0.25);
+  --border: rgba(242,162,74,0.18);
+  --border-dim: rgba(245,222,179,0.08);
+  --green: #6aad7a;
+  --green-dim: rgba(106,173,122,0.15);
+  --red: #c97070;
+}
+
+body {
+  background: var(--walnut-dark);
+  color: var(--wheat);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13.5px;
+  line-height: 1.6;
+  min-height: 100vh;
+  padding: 0;
+}
+
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 52px 32px 80px;
+}
+
+/* HEADER */
+.header {
+  margin-bottom: 44px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 28px;
+}
+
+.header-top {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.logo {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--amber);
+  letter-spacing: -0.5px;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--walnut);
+  background: var(--amber);
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+
+.header-desc {
+  color: var(--wheat-dim);
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.header-meta {
+  font-size: 11.5px;
+  color: var(--wheat-pale);
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.header-meta span { display: flex; align-items: center; gap: 5px; }
+
+/* PHASE STATUS STRIP */
+.phase-strip {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 36px;
+  flex-wrap: wrap;
+}
+
+.phase-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 100px;
+  letter-spacing: 0.04em;
+}
+
+.phase-pill.done {
+  background: var(--green-dim);
+  color: var(--green);
+  border: 1px solid rgba(106,173,122,0.25);
+}
+
+.phase-pill.active {
+  background: var(--amber-dim);
+  color: var(--amber);
+  border: 1px solid rgba(242,162,74,0.35);
+}
+
+.phase-pill.pending {
+  background: transparent;
+  color: var(--wheat-dim);
+  border: 1px solid var(--border-dim);
+}
+
+/* BOARD */
+.board {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+.column {
+  background: var(--walnut);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.col-header {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--walnut-mid);
+}
+
+.col-name {
+  font-family: 'Fraunces', serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--wheat);
+  margin-bottom: 2px;
+}
+
+.col-sub {
+  font-size: 11.5px;
+  color: var(--amber);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.col-body { padding: 18px 22px; }
+
+/* PRIORITIES */
+.section-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.priority-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.priority-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  background: var(--amber-pale);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+.priority-num {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  background: var(--amber);
+  color: var(--walnut-dark);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.priority-content { flex: 1; min-width: 0; }
+
+.priority-title {
+  font-weight: 600;
+  color: var(--wheat);
+  font-size: 13.5px;
+  margin-bottom: 2px;
+}
+
+.priority-note {
+  color: var(--wheat-dim);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* BACKLOG */
+.backlog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.backlog-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--wheat-pale);
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.backlog-item:last-child { border-bottom: none; }
+
+.backlog-bullet {
+  flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--walnut-light);
+  margin-top: 6px;
+}
+
+/* FOOTER */
+.footer {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-dim);
+  font-size: 11px;
+  color: var(--wheat-pale);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <span class="logo">ORDOBOOK</span>
+      <span class="badge">Build Tracker</span>
+    </div>
+    <div class="header-desc">Financial advisory workflow app — QB ingestion → analytical engine → client deliverables</div>
+    <div class="header-meta">
+      <span>Updated: 2026-04-22</span>
+      <span>Branch: claude/add-project-tracker-zGrFN</span>
+      <span>Stack: React + Vite · FastAPI · SQLite · Electron</span>
+    </div>
+  </div>
+
+  <!-- PHASE STATUS STRIP -->
+  <div class="phase-strip">
+    <span class="phase-pill done">✓ Ph1 Foundation</span>
+    <span class="phase-pill done">✓ Ph2 Ingestion</span>
+    <span class="phase-pill done">✓ Ph3 Engine</span>
+    <span class="phase-pill done">✓ Ph4 Scoring</span>
+    <span class="phase-pill active">▸ Ph4a Nav</span>
+    <span class="phase-pill pending">Ph4b Scenarios</span>
+    <span class="phase-pill pending">Ph5 Deliverables</span>
+    <span class="phase-pill pending">Ph6 Electron</span>
+  </div>
+
+  <!-- BOARD -->
+  <div class="board">
+
+    <div class="column">
+      <div class="col-header">
+        <div class="col-name">ORDOBook</div>
+        <div class="col-sub">React · FastAPI · SQLite · Local-first desktop</div>
+      </div>
+      <div class="col-body">
+
+        <div class="section-label">Next 3 Priorities</div>
+        <div class="priority-list">
+
+          <div class="priority-item">
+            <div class="priority-num">1</div>
+            <div class="priority-content">
+              <div class="priority-title">Phase 4a — Navigation Restructure</div>
+              <div class="priority-note">Implement the two-space model: Workspace tabs (Actuals / Forecast Drivers / Targets) + Reports tabs (Actuals / Forecast / Scoreboard / Action Plan). New routes /workspace/* and /reports/*. Sidebar restructure. Decision logged 2026-04-05 — implementation pending.</div>
+            </div>
+          </div>
+
+          <div class="priority-item">
+            <div class="priority-num">2</div>
+            <div class="priority-content">
+              <div class="priority-title">Phase 4b — Scenario Sandbox</div>
+              <div class="priority-note">3-column annual driver comparison (Good / Better / Best). Ephemeral — no DB writes. Client view toggle hides inputs, surfaces key outputs. Backend: POST /api/clients/:id/scenario/calculate reuses forecast engine. Frontend: ScenarioSandbox.jsx.</div>
+            </div>
+          </div>
+
+          <div class="priority-item">
+            <div class="priority-num">3</div>
+            <div class="priority-content">
+              <div class="priority-title">Phase 5 — Deliverable Generation</div>
+              <div class="priority-note">Action Plan structured editor (objective, next steps, owner, due date). WeasyPrint PDF exports for Scoreboard, Forecast, Action Plan. Structured JSON output for all deliverables (Product 2 handoff layer). Advisor notes excluded from all exports.</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="section-label">Backlog</div>
+        <div class="backlog-list">
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>God Mode / Level 1–3 audit trail UI — calc_trace data already stored, hover/panel/fullscreen UI not built</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>Meeting Mode — quiet app-menu toggle, action plan review + live editor, "End Meeting" save</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>Advisor Context Layer — private per-client notes field (energy, pressures, goals beyond numbers)</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>Electron packaging — wrap React + FastAPI, SQLite migration from PostgreSQL, electron-builder</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>Code signing + auto-update — macOS notarization, electron-updater, distribution prep</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>QuickBooks API integration — OAuth 2.0 direct pull (Phase 3 enhancement, ingestion layer pre-abstracted)</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>Overhead line items UI — data model + engine support exists; no UI to add/edit named line items yet</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>Verify analytical engine against Vetter Plumbing Jan 2026 reference workbook (Module 3 requirement)</span></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <span>ORDOBOOK · driver-cyber/ordobook · ordobook-tracker.html</span>
+    <span>Feeds project-dashboard-6a7.pages.dev via GitHub Contents API</span>
+  </div>
+
+</div>
+
+<script id="tracker-data" type="application/json">
+{
+  "project": "ORDOBOOK",
+  "description": "Financial advisory workflow app — QB ingestion → analytical engine → client deliverables",
+  "updated": "2026-04-22",
+  "columns": [
+    {
+      "name": "ORDOBook",
+      "sub": "React · FastAPI · SQLite · Local-first desktop",
+      "priorities": [
+        {
+          "title": "Phase 4a — Navigation Restructure",
+          "note": "Two-space model: Workspace tabs (Actuals / Forecast Drivers / Targets) + Reports tabs (Actuals / Forecast / Scoreboard / Action Plan). New routes /workspace/* and /reports/*. Decision logged 2026-04-05 — implementation pending."
+        },
+        {
+          "title": "Phase 4b — Scenario Sandbox",
+          "note": "3-column annual driver comparison (Good / Better / Best). Ephemeral, no DB writes. Client view toggle. Backend: POST /scenario/calculate reuses forecast engine. Frontend: ScenarioSandbox.jsx."
+        },
+        {
+          "title": "Phase 5 — Deliverable Generation",
+          "note": "Action Plan editor, WeasyPrint PDF exports (Scoreboard, Forecast, Action Plan), structured JSON output for all deliverables as Product 2 handoff layer."
+        }
+      ],
+      "backlog": [
+        "God Mode / Level 1–3 audit trail UI (calc_trace stored, hover/panel/fullscreen UI not built)",
+        "Meeting Mode — app-menu toggle, action plan review + live editor",
+        "Advisor Context Layer — private per-client notes field",
+        "Electron packaging + SQLite migration from PostgreSQL",
+        "Code signing + auto-update (macOS notarization, electron-updater)",
+        "QuickBooks API integration — OAuth 2.0 direct pull (Phase 3+)",
+        "Overhead line items UI (engine support exists, no UI yet)",
+        "Verify engine against Vetter Plumbing Jan 2026 reference workbook"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>
