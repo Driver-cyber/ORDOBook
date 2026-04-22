@@ -561,6 +561,23 @@ This caused two sequential failures:
 
 ---
 
+## 📦 Build Tracker Added (2026-04-22)
+
+### [2026-04-22] Cross-project build tracker added as founding doc
+**What:** Created `ordobook-tracker.html` — a standalone visual priority board with an embedded
+machine-readable JSON block (`#tracker-data`) that feeds the cross-project dashboard at
+`project-dashboard-6a7.pages.dev` via the GitHub Contents API.
+
+**Initial top-3 priorities captured in tracker:**
+1. Phase 4a — Navigation Restructure (two-space Workspace + Reports model, decided 2026-04-05, implementation pending)
+2. Phase 4b — Scenario Sandbox (3-column annual driver comparison, ephemeral, reuses forecast engine)
+3. Phase 5 — Deliverable Generation (Action Plan editor, WeasyPrint PDFs, structured JSON output)
+
+**CLAUDE.md updated** with session startup checklist (read tracker first) and session-end protocol
+(update tracker when priorities change, bump the date).
+
+---
+
 ## 💡 Parking Lot (Acknowledged Future Ideas)
 
 These are real ideas that belong in a future version or a separate project.

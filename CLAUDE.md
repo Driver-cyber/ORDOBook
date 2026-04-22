@@ -449,6 +449,15 @@ After completing each module or significant pivot:
 3. If the conversation exceeds ~20 messages without a clear stopping point,
    suggest: "We should probably summarize where we are and start a fresh context."
 
+### Session Startup Checklist
+- Check the tracker: Read `ordobook-tracker.html` for current priorities and what's actively being built.
+- Review DECISIONS.md for the latest phase status and any pending implementation decisions.
+
+### Build Tracker
+- Update `ordobook-tracker.html` at the end of any session that changes priorities or completes planned work.
+- Bump the `"updated"` date in both the visual header and the JSON block.
+- Session-end protocol: move completed items to backlog, pull next priorities up, bump the date.
+
 ### Red Team Checkpoints (every ~10,000 tokens)
 At approximately every 10,000 tokens of conversation work, Claude must pause and prompt:
 
