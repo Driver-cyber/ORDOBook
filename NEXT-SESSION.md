@@ -1,21 +1,26 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-03-27 | Phase 3d complete (018), Phase 4 is next
+> Last updated: 2026-04-22 | Phase 4 complete (019), nav architecture decided, tracker added
 
 ---
 
 ## Where We Are
 
-- Phase 3d: ✅ Projected Balance Sheet — migration 018
-  - 8 new forecast_periods fields (cash, fixed assets, total CA, total assets, total CL, total liabilities, equity)
-  - Opening balance seeded from prior fiscal year Dec actuals before month 1-12 loop
-  - Actuals months: read directly from monthly_actuals; forecast months: rolled forward
-  - ForecastReport now shows full Projected Balance Sheet with totals + equity row
-- QB parser hardening: ✅ flexible header detection + period label normalization ("As of Dec 31, 2024" → "December 2024")
-- Workspace buttons: ✅ "Actuals History" + "Review Mapping" added to ClientWorkspace header
-- ActualsHistory: ✅ "Review Mapping" button — reconstructs mapping view from stored raw_data
-- New backend endpoint: `GET /api/clients/{id}/actuals/mapping-review-data`
+Phases 1–4 are fully complete. Migrations 001–019 applied. 13 months of Vetter Plumbing
+actuals (Dec 2024–Dec 2025) imported. Nav architecture for Phase 4a decided and logged.
 
-**Next up: Phase 4 — Targets & Scoring / Scoreboard**
+### Completed (chronological)
+- Phase 1 ✅ Foundation — client profiles, DB, routing
+- Phase 2 ✅ Data Ingestion — QB .xlsx parsing, account mapping, MappingReview UI
+- Phase 3a ✅ Engine scaffold — revenue/payroll/overhead engine, Forecast Drivers page
+- Phase 3b ✅ Forecast UX, report view, audit trail Level 1, ActualsHistory
+- Phase 3c ✅ Cash Flow Drivers — DSO/DIO/DPO, owner draws, projected WC balances
+- Phase 3d ✅ Projected Balance Sheet — migration 018, equity = Assets − Liabilities
+- Phase 4 ✅ Scoring & Targets — Targets v2 (driver-computed), Scoreboard with grade pills,
+  summary banner, max-3-red advisory philosophy, manual grade overrides — migration 019
+- Parser hardening ✅ QB ghost column filter, invoice date format fix, abbreviated 2026
+  headers ("Jan 2026" → "January 2026"), "As of Dec 31, 2024" normalization
+- Nav architecture ✅ Two-space model decided 2026-04-05 (implementation still pending)
+- Build tracker ✅ `ordobook-tracker.html` added 2026-04-22 as cross-project dashboard doc
 
 ---
 
@@ -29,7 +34,7 @@ Click **ORDOBOOK** in the Dock. It will:
 
 Manual fallback if needed:
 ```bash
-# Postgres
+# Postgres (use pg_ctl directly — NOT brew services, stale pid issue)
 /opt/homebrew/opt/postgresql@17/bin/pg_ctl -D /opt/homebrew/var/postgresql@17 start
 
 # Backend
@@ -43,41 +48,63 @@ npm run dev
 
 ---
 
-## Phase 4 Plan (to be confirmed)
+## Phase 4a — Navigation Restructure (first up)
 
-### Module 4 — Scoring & Targets
-- Annual targets per KPI per client (stored in DB, per fiscal year)
-- Grade assignment: Green / Yellow / Red per metric per period
-- Scoreboard view: visual summary — grades, YTD actuals vs. target, variance %
-- Key metrics to score: Revenue, Gross Profit %, Net Operating Profit, Net Cash Flow, Job Count
+**Decision:** ORDOBOOK's primary navigation is two spaces:
 
-### Data model additions needed:
-- `targets` table: client_id, fiscal_year, metric_name, target_value
-- `scorecard_grades` table (or column on forecast_periods): grade per metric per month
-- OR: keep grades simple — computed on the fly from actuals vs. targets, no separate storage
+**Workspace** (analyst density — the advisor does the work here):
+- Actuals tab — working view + Import button
+- Forecast Drivers tab — 13-column editable model
+- Targets tab — annual targets with driver-computed fields
 
-### UX:
-- Targets UI in Client Profile & Settings (set once per year)
-- Scoreboard view: monthly grid, color-coded cells (green/yellow/red)
-- Grade thresholds: TBD (likely % of target: ≥100% = green, 85–99% = yellow, <85% = red)
+**Reports** (client-presentation clean — what gets produced and shared):
+- Actuals tab — clean BS + P&L
+- Forecast tab — 12-month combined actuals + forecast
+- Scoreboard tab — 1-page red/yellow/green dashboard
+- Action Plan tab — editable-in-place structured report
+
+**Routes to implement:**
+```
+/clients/:id/workspace/actuals
+/clients/:id/workspace/forecast
+/clients/:id/workspace/targets
+
+/clients/:id/reports/actuals
+/clients/:id/reports/forecast
+/clients/:id/reports/scoreboard
+/clients/:id/reports/action-plan
+```
+
+**Sidebar:** Two primary links (Workspace, Reports) + persistent Import shortcut.
+Scoreboard moves OUT of workspace cards → INTO Reports tabs.
 
 ---
 
-## Key Notes
-
-- Light theme: DO NOT reintroduce dark hex values (`#1a1d22`, `#0e0f11`, etc.)
-- Owner draws / tax savings are balance sheet items — do NOT reduce Net Income
-- Net Cash Flow = Net Profit − Owner Distributions − Tax Savings − WC changes − CapEx ± debt
-- Projected equity = Total Assets − Total Liabilities (not from equity_before_net_profit)
-- prior_projected now includes: projected_cash, projected_fixed_assets, projected_other_lt_assets,
-  projected_equity (in addition to the Phase 3c keys)
-- QB Balance Sheet header detection: falls back to finding first row with month-name columns
-- QB period normalization: "As of Dec 31, 2024" → "December 2024" (handled in parser)
-- DO NOT use `brew services` for Postgres — stale pid issue; use pg_ctl directly
-
 ## Roadmap Order
-1. ✅ Phase 3c-deferred — full cash flow (done 2026-03-23)
-2. ✅ Phase 3d — Projected Balance Sheet (done 2026-03-27)
-3. **Phase 4** — Targets & Scoring / Scoreboard
-4. Phase 4b — Scenario Sandbox
-5. Phase 5 — PDF + JSON exports
+
+1. ✅ Phase 3c — full cash flow (2026-03-23)
+2. ✅ Phase 3d — Projected Balance Sheet (2026-03-27)
+3. ✅ Phase 4 — Targets & Scoring / Scoreboard (2026-03-31)
+4. **Phase 4a** — Navigation restructure ← **NEXT**
+5. Phase 4b — Scenario Sandbox
+6. Phase 5 — PDF + JSON exports + Action Plan editor
+7. Phase 6 — Electron packaging + SQLite migration
+
+---
+
+## Key Notes (carry-forward constraints)
+
+- **Light theme:** DO NOT reintroduce dark hex values (`#1a1d22`, `#0e0f11`, etc.)
+- **Overhead is a plug:** `overhead = total_expenses − payroll − marketing − depreciation` — never sum accounts directly
+- **`net_profit_for_year` in MonthlyActuals** is QB's cumulative YTD BS equity line — never sum across months
+- **`proj_fixed_assets`** must have `max(0, ...)` floor guard — depreciation can exceed prior balance
+- **Owner draws / tax savings** are balance sheet items — do NOT reduce Net Income
+- **Net Cash Flow** = Net Profit − Owner Draws + CF Asset Changes + CF Liability Changes (both CF metrics positive-favorable)
+- **Projected equity** = Total Assets − Total Liabilities (not from equity_before_net_profit)
+- **Pydantic v2** — use `model_config = {"from_attributes": True}`, never the v1 `class Config` pattern
+- **All API paths** use relative `/api/...` — never hardcode `http://localhost:8000` in frontend
+- **Monthly driver dicts** are `dict[str, int]` — string keys "1"–"12", int cents
+
+## Tracker Reminder
+At session end: update `ordobook-tracker.html` — move completed items to backlog, pull next
+priorities up, bump the `"updated"` date in both the visual header and the JSON block.
