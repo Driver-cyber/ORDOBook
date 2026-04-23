@@ -1,5 +1,5 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-04-22 | Phase 4 complete (019), nav architecture decided, tracker added
+> Last updated: 2026-04-23 | Phases 4a + 4b confirmed complete, Phase 5 is active priority
 
 ---
 
@@ -19,7 +19,8 @@ actuals (Dec 2024–Dec 2025) imported. Nav architecture for Phase 4a decided an
   summary banner, max-3-red advisory philosophy, manual grade overrides — migration 019
 - Parser hardening ✅ QB ghost column filter, invoice date format fix, abbreviated 2026
   headers ("Jan 2026" → "January 2026"), "As of Dec 31, 2024" normalization
-- Nav architecture ✅ Two-space model decided 2026-04-05 (implementation still pending)
+- Phase 4a ✅ Navigation Restructure — WorkspaceShell / ReportsShell / two-space routing / sidebar (confirmed complete 2026-04-23)
+- Phase 4b ✅ Scenario Sandbox — ScenarioSandbox.jsx, 3-col inputs, computed results, quarterly toggle, client view, POST /scenario/calculate (confirmed complete 2026-04-23)
 - Build tracker ✅ `ordobook-tracker.html` added 2026-04-22 as cross-project dashboard doc
 
 ---
@@ -48,35 +49,33 @@ npm run dev
 
 ---
 
-## Phase 4a — Navigation Restructure (first up)
+## Phase 5 — Deliverable Generation (active)
 
-**Decision:** ORDOBOOK's primary navigation is two spaces:
+**Phases 4a and 4b are fully complete** — confirmed by reading the codebase 2026-04-23.
+Routes, shells, sidebar, and ScenarioSandbox are all built and wired.
 
-**Workspace** (analyst density — the advisor does the work here):
-- Actuals tab — working view + Import button
-- Forecast Drivers tab — 13-column editable model
-- Targets tab — annual targets with driver-computed fields
+**Phase 5 build order:**
 
-**Reports** (client-presentation clean — what gets produced and shared):
-- Actuals tab — clean BS + P&L
-- Forecast tab — 12-month combined actuals + forecast
-- Scoreboard tab — 1-page red/yellow/green dashboard
-- Action Plan tab — editable-in-place structured report
+### 1. Action Plan Editor
+- DB model: `action_plan_items` table (client_id, year, objective, current_results, next_steps, owner, due_date, notes, sort_order)
+- API: GET/POST/PATCH/DELETE `/api/clients/:id/action-plan/:year`
+- Frontend: replace ComingSoon at `/reports/action-plan` with editable-in-place structured editor matching Excel layout
 
-**Routes to implement:**
-```
-/clients/:id/workspace/actuals
-/clients/:id/workspace/forecast
-/clients/:id/workspace/targets
+### 2. Reports → Actuals Clean View
+- Replace ComingSoon at `/reports/actuals` with clean BS + P&L
+- Same underlying data as Workspace Actuals — strip driver analysis, clean layout for client read
 
-/clients/:id/reports/actuals
-/clients/:id/reports/forecast
-/clients/:id/reports/scoreboard
-/clients/:id/reports/action-plan
-```
+### 3. PDF Exports (WeasyPrint)
+- Install WeasyPrint in backend
+- HTML/CSS templates → PDF, rendered locally, saved to `~/Library/Application Support/ORDOBOOK/exports/`
+- Endpoints: POST `/api/clients/:id/export/pdf/scoreboard/:year`, `/forecast/:year`, `/action-plan/:year`
+- Download button on each relevant Reports tab
 
-**Sidebar:** Two primary links (Workspace, Reports) + persistent Import shortcut.
-Scoreboard moves OUT of workspace cards → INTO Reports tabs.
+### 4. JSON Export
+- POST `/api/clients/:id/export/json/:year/:month`
+- Follows the CLAUDE.md export schema exactly
+- Naming: `{client-id}_{year}_{month}_export.json`
+- Excludes advisor notes
 
 ---
 
@@ -85,9 +84,9 @@ Scoreboard moves OUT of workspace cards → INTO Reports tabs.
 1. ✅ Phase 3c — full cash flow (2026-03-23)
 2. ✅ Phase 3d — Projected Balance Sheet (2026-03-27)
 3. ✅ Phase 4 — Targets & Scoring / Scoreboard (2026-03-31)
-4. **Phase 4a** — Navigation restructure ← **NEXT**
-5. Phase 4b — Scenario Sandbox
-6. Phase 5 — PDF + JSON exports + Action Plan editor
+4. ✅ Phase 4a — Navigation restructure (confirmed 2026-04-23)
+5. ✅ Phase 4b — Scenario Sandbox (confirmed 2026-04-23)
+6. **Phase 5** — Action Plan editor + Reports Actuals + PDF/JSON exports ← **ACTIVE**
 7. Phase 6 — Electron packaging + SQLite migration
 
 ---

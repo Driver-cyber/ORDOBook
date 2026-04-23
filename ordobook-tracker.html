@@ -285,7 +285,7 @@ body {
     </div>
     <div class="header-desc">Financial advisory workflow app — QB ingestion → analytical engine → client deliverables</div>
     <div class="header-meta">
-      <span>Updated: 2026-04-22</span>
+      <span>Updated: 2026-04-23</span>
       <span>Branch: claude/add-project-tracker-zGrFN</span>
       <span>Stack: React + Vite · FastAPI · SQLite · Electron</span>
     </div>
@@ -297,9 +297,9 @@ body {
     <span class="phase-pill done">✓ Ph2 Ingestion</span>
     <span class="phase-pill done">✓ Ph3 Engine</span>
     <span class="phase-pill done">✓ Ph4 Scoring</span>
-    <span class="phase-pill active">▸ Ph4a Nav</span>
-    <span class="phase-pill pending">Ph4b Scenarios</span>
-    <span class="phase-pill pending">Ph5 Deliverables</span>
+    <span class="phase-pill done">✓ Ph4a Nav</span>
+    <span class="phase-pill done">✓ Ph4b Scenarios</span>
+    <span class="phase-pill active">▸ Ph5 Deliverables</span>
     <span class="phase-pill pending">Ph6 Electron</span>
   </div>
 
@@ -313,30 +313,30 @@ body {
       </div>
       <div class="col-body">
 
-        <div class="section-label">Next 3 Priorities</div>
+        <div class="section-label">Phase 5 — Active Priorities</div>
         <div class="priority-list">
 
           <div class="priority-item">
             <div class="priority-num">1</div>
             <div class="priority-content">
-              <div class="priority-title">Phase 4a — Navigation Restructure</div>
-              <div class="priority-note">Implement the two-space model: Workspace tabs (Actuals / Forecast Drivers / Targets) + Reports tabs (Actuals / Forecast / Scoreboard / Action Plan). New routes /workspace/* and /reports/*. Sidebar restructure. Decision logged 2026-04-05 — implementation pending.</div>
+              <div class="priority-title">Action Plan Editor</div>
+              <div class="priority-note">DB model + CRUD API for action plan items (objective, current results, next steps, owner, due date, notes). Frontend editor at /reports/action-plan — editable in place, same layout as current Excel template. Advisor notes never exported.</div>
             </div>
           </div>
 
           <div class="priority-item">
             <div class="priority-num">2</div>
             <div class="priority-content">
-              <div class="priority-title">Phase 4b — Scenario Sandbox</div>
-              <div class="priority-note">3-column annual driver comparison (Good / Better / Best). Ephemeral — no DB writes. Client view toggle hides inputs, surfaces key outputs. Backend: POST /api/clients/:id/scenario/calculate reuses forecast engine. Frontend: ScenarioSandbox.jsx.</div>
+              <div class="priority-title">Reports → Actuals Clean View</div>
+              <div class="priority-note">Client-facing BS + P&L at /reports/actuals. Same data as Workspace Actuals but stripped of driver analysis — clean layout the client can read. Currently shows ComingSoon placeholder.</div>
             </div>
           </div>
 
           <div class="priority-item">
             <div class="priority-num">3</div>
             <div class="priority-content">
-              <div class="priority-title">Phase 5 — Deliverable Generation</div>
-              <div class="priority-note">Action Plan structured editor (objective, next steps, owner, due date). WeasyPrint PDF exports for Scoreboard, Forecast, Action Plan. Structured JSON output for all deliverables (Product 2 handoff layer). Advisor notes excluded from all exports.</div>
+              <div class="priority-title">PDF + JSON Exports (WeasyPrint)</div>
+              <div class="priority-note">PDF export for Scoreboard, 12-Month Forecast, Action Plan via WeasyPrint (HTML/CSS → PDF, local, no network). Structured JSON export for all deliverables — the Product 2 handoff layer. Naming: {client-id}_{year}_{month}_export.json.</div>
             </div>
           </div>
 
@@ -352,6 +352,8 @@ body {
           <div class="backlog-item"><div class="backlog-bullet"></div><span>QuickBooks API integration — OAuth 2.0 direct pull (Phase 3 enhancement, ingestion layer pre-abstracted)</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>Overhead line items UI — data model + engine support exists; no UI to add/edit named line items yet</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>Verify analytical engine against Vetter Plumbing Jan 2026 reference workbook (Module 3 requirement)</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>✓ Phase 4a Nav Restructure — complete (WorkspaceShell, ReportsShell, two-space routing, sidebar)</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>✓ Phase 4b Scenario Sandbox — complete (ScenarioSandbox.jsx, 3-column, client view, quarterly toggle, POST /scenario/calculate)</span></div>
         </div>
 
       </div>
@@ -370,23 +372,23 @@ body {
 {
   "project": "ORDOBOOK",
   "description": "Financial advisory workflow app — QB ingestion → analytical engine → client deliverables",
-  "updated": "2026-04-22",
+  "updated": "2026-04-23",
   "columns": [
     {
       "name": "ORDOBook",
       "sub": "React · FastAPI · SQLite · Local-first desktop",
       "priorities": [
         {
-          "title": "Phase 4a — Navigation Restructure",
-          "note": "Two-space model: Workspace tabs (Actuals / Forecast Drivers / Targets) + Reports tabs (Actuals / Forecast / Scoreboard / Action Plan). New routes /workspace/* and /reports/*. Decision logged 2026-04-05 — implementation pending."
+          "title": "Phase 5 — Action Plan Editor",
+          "note": "DB model + CRUD API for action plan items (objective, current results, next steps, owner, due date, notes). Frontend editor at /reports/action-plan. Currently ComingSoon placeholder."
         },
         {
-          "title": "Phase 4b — Scenario Sandbox",
-          "note": "3-column annual driver comparison (Good / Better / Best). Ephemeral, no DB writes. Client view toggle. Backend: POST /scenario/calculate reuses forecast engine. Frontend: ScenarioSandbox.jsx."
+          "title": "Phase 5 — Reports Actuals Clean View",
+          "note": "Client-facing BS + P&L at /reports/actuals. Same data as Workspace Actuals stripped of driver analysis. Currently ComingSoon placeholder."
         },
         {
-          "title": "Phase 5 — Deliverable Generation",
-          "note": "Action Plan editor, WeasyPrint PDF exports (Scoreboard, Forecast, Action Plan), structured JSON output for all deliverables as Product 2 handoff layer."
+          "title": "Phase 5 — PDF + JSON Exports",
+          "note": "WeasyPrint PDF for Scoreboard, Forecast, Action Plan. Structured JSON export for all deliverables as Product 2 handoff layer. Naming: {client-id}_{year}_{month}_export.json."
         }
       ],
       "backlog": [
@@ -397,7 +399,9 @@ body {
         "Code signing + auto-update (macOS notarization, electron-updater)",
         "QuickBooks API integration — OAuth 2.0 direct pull (Phase 3+)",
         "Overhead line items UI (engine support exists, no UI yet)",
-        "Verify engine against Vetter Plumbing Jan 2026 reference workbook"
+        "Verify engine against Vetter Plumbing Jan 2026 reference workbook",
+        "DONE: Phase 4a Nav Restructure (WorkspaceShell, ReportsShell, two-space routing, sidebar)",
+        "DONE: Phase 4b Scenario Sandbox (ScenarioSandbox.jsx, 3-col, client view, POST /scenario/calculate)"
       ]
     }
   ]
