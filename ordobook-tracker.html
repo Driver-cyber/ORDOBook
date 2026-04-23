@@ -285,7 +285,7 @@ body {
     </div>
     <div class="header-desc">Financial advisory workflow app — QB ingestion → analytical engine → client deliverables</div>
     <div class="header-meta">
-      <span>Updated: 2026-04-23</span>
+      <span>Updated: 2026-04-23 (Phase 5 built)</span>
       <span>Branch: claude/add-project-tracker-zGrFN</span>
       <span>Stack: React + Vite · FastAPI · SQLite · Electron</span>
     </div>
@@ -299,8 +299,8 @@ body {
     <span class="phase-pill done">✓ Ph4 Scoring</span>
     <span class="phase-pill done">✓ Ph4a Nav</span>
     <span class="phase-pill done">✓ Ph4b Scenarios</span>
-    <span class="phase-pill active">▸ Ph5 Deliverables</span>
-    <span class="phase-pill pending">Ph6 Electron</span>
+    <span class="phase-pill done">✓ Ph5 Deliverables</span>
+    <span class="phase-pill active">▸ Ph6 Electron</span>
   </div>
 
   <!-- BOARD -->
@@ -313,30 +313,30 @@ body {
       </div>
       <div class="col-body">
 
-        <div class="section-label">Phase 5 — Active Priorities</div>
+        <div class="section-label">Phase 6 — Active Priorities</div>
         <div class="priority-list">
 
           <div class="priority-item">
             <div class="priority-num">1</div>
             <div class="priority-content">
-              <div class="priority-title">Action Plan Editor</div>
-              <div class="priority-note">DB model + CRUD API for action plan items (objective, current results, next steps, owner, due date, notes). Frontend editor at /reports/action-plan — editable in place, same layout as current Excel template. Advisor notes never exported.</div>
+              <div class="priority-title">Electron Packaging</div>
+              <div class="priority-note">Wrap React + FastAPI in Electron shell using electron-builder. Migrate database from PostgreSQL to SQLite (SQLAlchemy makes this a contained swap — only alembic.ini + DATABASE_URL need changing). Bundle Python venv inside the app package.</div>
             </div>
           </div>
 
           <div class="priority-item">
             <div class="priority-num">2</div>
             <div class="priority-content">
-              <div class="priority-title">Reports → Actuals Clean View</div>
-              <div class="priority-note">Client-facing BS + P&L at /reports/actuals. Same data as Workspace Actuals but stripped of driver analysis — clean layout the client can read. Currently shows ComingSoon placeholder.</div>
+              <div class="priority-title">Code Signing + Auto-Update</div>
+              <div class="priority-note">macOS notarization (Apple Developer account required), electron-updater for automatic update delivery. Windows signing TBD. Required before distributing to any client machine.</div>
             </div>
           </div>
 
           <div class="priority-item">
             <div class="priority-num">3</div>
             <div class="priority-content">
-              <div class="priority-title">PDF + JSON Exports (WeasyPrint)</div>
-              <div class="priority-note">PDF export for Scoreboard, 12-Month Forecast, Action Plan via WeasyPrint (HTML/CSS → PDF, local, no network). Structured JSON export for all deliverables — the Product 2 handoff layer. Naming: {client-id}_{year}_{month}_export.json.</div>
+              <div class="priority-title">Engine Verification vs. Vetter Plumbing Jan 2026</div>
+              <div class="priority-note">Run the analytical engine against the Jan 2026 Vetter Plumbing workbook and verify all outputs match. Module 3 hard requirement — no module considered complete until verified. Overhead plug formula confirmed; net_profit_for_year handling confirmed. Systematic diff needed.</div>
             </div>
           </div>
 
@@ -352,8 +352,9 @@ body {
           <div class="backlog-item"><div class="backlog-bullet"></div><span>QuickBooks API integration — OAuth 2.0 direct pull (Phase 3 enhancement, ingestion layer pre-abstracted)</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>Overhead line items UI — data model + engine support exists; no UI to add/edit named line items yet</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>Verify analytical engine against Vetter Plumbing Jan 2026 reference workbook (Module 3 requirement)</span></div>
-          <div class="backlog-item"><div class="backlog-bullet"></div><span>✓ Phase 4a Nav Restructure — complete (WorkspaceShell, ReportsShell, two-space routing, sidebar)</span></div>
-          <div class="backlog-item"><div class="backlog-bullet"></div><span>✓ Phase 4b Scenario Sandbox — complete (ScenarioSandbox.jsx, 3-column, client view, quarterly toggle, POST /scenario/calculate)</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>DONE: Phase 4a Nav Restructure (WorkspaceShell, ReportsShell, two-space routing, sidebar)</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>DONE: Phase 4b Scenario Sandbox (ScenarioSandbox.jsx, 3-col, client view, POST /scenario/calculate)</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>DONE: Phase 5 Deliverables — Action Plan editor (migration 021, CRUD API, ActionPlan.jsx), Reports Actuals (ReportsActuals.jsx), JSON export, PDF export via WeasyPrint</span></div>
         </div>
 
       </div>
@@ -379,29 +380,27 @@ body {
       "sub": "React · FastAPI · SQLite · Local-first desktop",
       "priorities": [
         {
-          "title": "Phase 5 — Action Plan Editor",
-          "note": "DB model + CRUD API for action plan items (objective, current results, next steps, owner, due date, notes). Frontend editor at /reports/action-plan. Currently ComingSoon placeholder."
+          "title": "Phase 6 — Electron Packaging",
+          "note": "Wrap React + FastAPI in Electron shell. Migrate DB from PostgreSQL to SQLite. Bundle Python venv. electron-builder config."
         },
         {
-          "title": "Phase 5 — Reports Actuals Clean View",
-          "note": "Client-facing BS + P&L at /reports/actuals. Same data as Workspace Actuals stripped of driver analysis. Currently ComingSoon placeholder."
+          "title": "Phase 6 — Code Signing + Auto-Update",
+          "note": "macOS notarization (Apple Developer account required), electron-updater for auto-updates. Required before distributing."
         },
         {
-          "title": "Phase 5 — PDF + JSON Exports",
-          "note": "WeasyPrint PDF for Scoreboard, Forecast, Action Plan. Structured JSON export for all deliverables as Product 2 handoff layer. Naming: {client-id}_{year}_{month}_export.json."
+          "title": "Engine Verification vs. Vetter Plumbing Jan 2026",
+          "note": "Systematic diff of analytical engine outputs against the reference workbook. Module 3 hard requirement."
         }
       ],
       "backlog": [
         "God Mode / Level 1–3 audit trail UI (calc_trace stored, hover/panel/fullscreen UI not built)",
         "Meeting Mode — app-menu toggle, action plan review + live editor",
         "Advisor Context Layer — private per-client notes field",
-        "Electron packaging + SQLite migration from PostgreSQL",
-        "Code signing + auto-update (macOS notarization, electron-updater)",
         "QuickBooks API integration — OAuth 2.0 direct pull (Phase 3+)",
         "Overhead line items UI (engine support exists, no UI yet)",
-        "Verify engine against Vetter Plumbing Jan 2026 reference workbook",
         "DONE: Phase 4a Nav Restructure (WorkspaceShell, ReportsShell, two-space routing, sidebar)",
-        "DONE: Phase 4b Scenario Sandbox (ScenarioSandbox.jsx, 3-col, client view, POST /scenario/calculate)"
+        "DONE: Phase 4b Scenario Sandbox (ScenarioSandbox.jsx, 3-col, client view, POST /scenario/calculate)",
+        "DONE: Phase 5 Deliverables — Action Plan (migration 021, CRUD API, ActionPlan.jsx), Reports Actuals, JSON export, PDF export (WeasyPrint)"
       ]
     }
   ]

@@ -13,10 +13,11 @@ Excel workbook process for a solo consulting practice. The immediate goal is to 
 monthly bookkeeping data ingestion from QuickBooks Online exports, run the analytical
 models, and produce the Scoreboard, 12-Month Forecast, and Action Plan deliverables.
 
-**Current Phase:** Phase 4 complete (2026-03-31). Targets v2 + Scoreboard live. Migrations 001–019 applied.
-13 months of Vetter Plumbing actuals (Dec 2024–Dec 2025) imported.
-Navigation architecture decided (2026-04-05) — implementation pending.
-**Next:** Nav restructure → Phase 4b (Scenario Sandbox) → Phase 5 (PDF/JSON exports + Action Plan).
+**Current Phase:** Phase 5 active (2026-04-23). Phases 1–4b complete. Migrations 001–021 applied.
+13 months of Vetter Plumbing actuals (Dec 2024–Dec 2025) imported. Phase 4a nav restructure confirmed
+complete (WorkspaceShell / ReportsShell / two-space routing). Phase 4b Scenario Sandbox confirmed complete.
+Phase 5 Action Plan editor, Reports Actuals view, JSON export, and PDF export (WeasyPrint) built 2026-04-23.
+**Next:** Phase 6 — Electron packaging + SQLite migration from PostgreSQL.
 
 **Current Vibe:** Deliberate. Plan before building. Verify before shipping. One module at a time.
 
@@ -558,6 +559,37 @@ This caused two sequential failures:
 3. `parse_invoice_report` month header detection now routes through `_normalize_period_label` so abbreviated headers ("Jan 2026") are recognized the same as full names
 
 **Confirmed format (Vetter Plumbing, April 2026 import):** "Jan 2026", "Feb 2026", "Mar 2026"
+
+---
+
+## 📦 Phase 5 — Deliverable Generation (2026-04-23)
+
+### Action Plan Editor
+- DB model: `action_plan_items` table (migration 021) — client_id, fiscal_year, sort_order, objective, current_results, next_steps, owner, due_date, notes (advisor-only)
+- API: GET / POST / PATCH / DELETE `/api/clients/{id}/action-plan/{year}`
+- Frontend: `ActionPlan.jsx` — editable-in-place table, auto-saves on blur, private notes popover (starred icon), year picker, Export JSON + Export PDF buttons
+- Advisor notes column excluded from all JSON and PDF exports
+
+### Reports Actuals Clean View
+- `ReportsActuals.jsx` at `/reports/actuals` — replaces ComingSoon placeholder
+- Period dropdown selector (defaults to latest confirmed period)
+- Clean two-column BS + P&L layout — same data as Workspace Actuals, no driver analysis
+
+### JSON Export
+- GET `/api/clients/{id}/export/json/{year}` — returns structured JSON per CLAUDE.md export schema
+- Advisor notes explicitly excluded
+- Frontend: `downloadJson()` in `api/exports.js`, triggered from Scoreboard and Action Plan pages
+
+### PDF Export (WeasyPrint)
+- GET `/api/clients/{id}/export/pdf/{type}/{year}` — type: scoreboard | action-plan
+- WeasyPrint renders HTML/CSS templates locally, no network
+- Graceful 503 with install instructions if WeasyPrint not installed (system deps: brew install cairo pango)
+- Added weasyprint + jinja2 to requirements.txt
+- Export buttons on Scoreboard and Action Plan pages
+
+### Phase 4a / 4b Confirmed Complete
+- Both phases were already built in a prior session but tracker showed them pending
+- Confirmed complete by reading codebase 2026-04-23: WorkspaceShell, ReportsShell, two-space routing, sidebar, ScenarioSandbox all fully implemented
 
 ---
 

@@ -1,12 +1,13 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-04-23 | Phases 4a + 4b confirmed complete, Phase 5 is active priority
+> Last updated: 2026-04-23 | Phase 5 complete, Phase 6 (Electron packaging) is next
 
 ---
 
 ## Where We Are
 
-Phases 1–4 are fully complete. Migrations 001–019 applied. 13 months of Vetter Plumbing
-actuals (Dec 2024–Dec 2025) imported. Nav architecture for Phase 4a decided and logged.
+Phases 1–5 are fully complete. Migrations 001–021 applied. 13 months of Vetter Plumbing
+actuals (Dec 2024–Dec 2025) imported. All deliverable generation (Action Plan, Reports Actuals,
+JSON export, PDF export) built and wired. Phase 6 (Electron packaging + SQLite migration) is next.
 
 ### Completed (chronological)
 - Phase 1 ✅ Foundation — client profiles, DB, routing
@@ -21,6 +22,15 @@ actuals (Dec 2024–Dec 2025) imported. Nav architecture for Phase 4a decided an
   headers ("Jan 2026" → "January 2026"), "As of Dec 31, 2024" normalization
 - Phase 4a ✅ Navigation Restructure — WorkspaceShell / ReportsShell / two-space routing / sidebar (confirmed complete 2026-04-23)
 - Phase 4b ✅ Scenario Sandbox — ScenarioSandbox.jsx, 3-col inputs, computed results, quarterly toggle, client view, POST /scenario/calculate (confirmed complete 2026-04-23)
+- Phase 5 ✅ Deliverable Generation (2026-04-23):
+  - Migration 021 + ActionPlanItem model + CRUD API (`/api/clients/:id/action-plan/:year`)
+  - ActionPlan.jsx — editable-in-place table, auto-save on blur, private notes popover, year picker, Export JSON + PDF buttons
+  - ReportsActuals.jsx — clean BS + P&L at /reports/actuals, period dropdown, replaces ComingSoon
+  - JSON export: GET `/api/clients/:id/export/json/:year` — follows CLAUDE.md schema, advisor notes excluded
+  - PDF export: GET `/api/clients/:id/export/pdf/:type/:year` (scoreboard | action-plan) via WeasyPrint
+  - Export buttons on Scoreboard page (Export JSON + Export PDF)
+  - weasyprint + jinja2 added to requirements.txt
+  - PDF install: `brew install cairo pango && pip install weasyprint` on Mac
 - Build tracker ✅ `ordobook-tracker.html` added 2026-04-22 as cross-project dashboard doc
 
 ---
@@ -49,33 +59,37 @@ npm run dev
 
 ---
 
-## Phase 5 — Deliverable Generation (active)
+## Phase 6 — Electron Packaging (next up)
 
-**Phases 4a and 4b are fully complete** — confirmed by reading the codebase 2026-04-23.
-Routes, shells, sidebar, and ScenarioSandbox are all built and wired.
+**Phase 5 is complete** — all deliverables built and wired 2026-04-23.
 
-**Phase 5 build order:**
+### Phase 6 build order:
 
-### 1. Action Plan Editor
-- DB model: `action_plan_items` table (client_id, year, objective, current_results, next_steps, owner, due_date, notes, sort_order)
-- API: GET/POST/PATCH/DELETE `/api/clients/:id/action-plan/:year`
-- Frontend: replace ComingSoon at `/reports/action-plan` with editable-in-place structured editor matching Excel layout
+### 1. SQLite Migration
+- Change `DATABASE_URL` in `.env` from `postgresql://...` to `sqlite:///path/to/ordobook.db`
+- Update `alembic.ini` sqlalchemy.url
+- Install `aiosqlite` if needed for async driver
+- Run `alembic upgrade head` against SQLite — all migrations should apply cleanly via SQLAlchemy abstraction
+- Test data path: `~/Library/Application Support/ORDOBOOK/ordobook.db`
 
-### 2. Reports → Actuals Clean View
-- Replace ComingSoon at `/reports/actuals` with clean BS + P&L
-- Same underlying data as Workspace Actuals — strip driver analysis, clean layout for client read
+### 2. Electron Shell
+- `npm install electron electron-builder --save-dev` in project root
+- `main.js` — starts FastAPI backend process on launch, opens browser window to localhost
+- `electron-builder.yml` — macOS + Windows targets, bundle Python venv
+- Dev mode: separate terminals for uvicorn + vite (unchanged)
+- Production: Electron spawns uvicorn with bundled Python
 
-### 3. PDF Exports (WeasyPrint)
-- Install WeasyPrint in backend
-- HTML/CSS templates → PDF, rendered locally, saved to `~/Library/Application Support/ORDOBOOK/exports/`
-- Endpoints: POST `/api/clients/:id/export/pdf/scoreboard/:year`, `/forecast/:year`, `/action-plan/:year`
-- Download button on each relevant Reports tab
+### 3. Code Signing + Distribution
+- Apple Developer account required for macOS notarization
+- `electron-builder` handles signing if `CSC_LINK` + `APPLE_ID` env vars set
+- `electron-updater` for auto-updates via GitHub Releases
+- Windows: EV cert or self-signed (self-signed requires user to click through SmartScreen)
 
-### 4. JSON Export
-- POST `/api/clients/:id/export/json/:year/:month`
-- Follows the CLAUDE.md export schema exactly
-- Naming: `{client-id}_{year}_{month}_export.json`
-- Excludes advisor notes
+### Key Constraints Carry Forward
+- All API paths: relative `/api/...` — never hardcode localhost
+- SQLite: monetary values BIGINT cents (no change from Postgres)
+- Pydantic v2: `model_config = {"from_attributes": True}` throughout
+- WeasyPrint PDF requires system libs on user machine: `brew install cairo pango`
 
 ---
 
@@ -86,8 +100,8 @@ Routes, shells, sidebar, and ScenarioSandbox are all built and wired.
 3. ✅ Phase 4 — Targets & Scoring / Scoreboard (2026-03-31)
 4. ✅ Phase 4a — Navigation restructure (confirmed 2026-04-23)
 5. ✅ Phase 4b — Scenario Sandbox (confirmed 2026-04-23)
-6. **Phase 5** — Action Plan editor + Reports Actuals + PDF/JSON exports ← **ACTIVE**
-7. Phase 6 — Electron packaging + SQLite migration
+6. ✅ Phase 5 — Action Plan + Reports Actuals + PDF/JSON exports (2026-04-23)
+7. **Phase 6** — Electron packaging + SQLite migration ← **NEXT**
 
 ---
 
