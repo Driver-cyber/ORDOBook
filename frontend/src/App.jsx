@@ -15,6 +15,8 @@ import ForecastReport from './pages/ForecastReport'
 import Targets from './pages/Targets'
 import Scoreboard from './pages/Scoreboard'
 import ScenarioSandbox from './pages/ScenarioSandbox'
+import ActionPlan from './pages/ActionPlan'
+import ReportsActuals from './pages/ReportsActuals'
 import { getClients } from './api/clients'
 
 // Redirect helpers — need useParams so they must be components
@@ -122,7 +124,7 @@ export default function App() {
         <Route path="/clients/:id/reports" element={<CL>{() => <ToReports />}</CL>} />
         <Route
           path="/clients/:id/reports/actuals"
-          element={<CL>{() => <ReportsShell><ComingSoon title="Actuals Report" phase="Phase 5" /></ReportsShell>}</CL>}
+          element={<CL>{() => <ReportsShell><ReportsActuals /></ReportsShell>}</CL>}
         />
         <Route
           path="/clients/:id/reports/forecast/:year"
@@ -134,7 +136,7 @@ export default function App() {
         />
         <Route
           path="/clients/:id/reports/action-plan"
-          element={<CL>{() => <ReportsShell><ComingSoon title="Action Plan" phase="Phase 5" /></ReportsShell>}</CL>}
+          element={<CL>{() => <ReportsShell><ActionPlan /></ReportsShell>}</CL>}
         />
 
         {/* ── Scenario Sandbox (no shell — full screen) ── */}

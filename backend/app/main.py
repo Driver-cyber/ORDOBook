@@ -7,6 +7,8 @@ from app.routers import clients, ingestion, actuals
 from app.routers import forecast as forecast_router
 from app.routers import targets as targets_router
 from app.routers import scenarios as scenarios_router
+from app.routers import action_plan as action_plan_router
+from app.routers import exports as exports_router
 
 load_dotenv()
 
@@ -31,6 +33,8 @@ app.include_router(actuals.router)
 app.include_router(forecast_router.router)
 app.include_router(targets_router.router)
 app.include_router(scenarios_router.router)
+app.include_router(action_plan_router.router)
+app.include_router(exports_router.router)
 
 
 @app.get("/api/health")

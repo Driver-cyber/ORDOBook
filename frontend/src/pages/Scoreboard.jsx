@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getClient } from '../api/clients'
 import { getScoreboard, setGradeOverride, recalculateGrades } from '../api/targets'
+import { downloadPdf, downloadJson } from '../api/exports'
 
 // ─── Formatting helpers ────────────────────────────────────────────────────
 
@@ -294,6 +295,21 @@ export default function Scoreboard() {
   const [loading, setLoading] = useState(true)
   const [recalculating, setRecalculating] = useState(false)
   const [editingMetric, setEditingMetric] = useState(null)
+  const [exporting, setExporting] = useState(null)
+
+  const handleExportPdf = async () => {
+    setExporting('pdf')
+    try { await downloadPdf(id, 'scoreboard', year) }
+    catch (e) { alert(e.message) }
+    finally { setExporting(null) }
+  }
+
+  const handleExportJson = async () => {
+    setExporting('json')
+    try { await downloadJson(id, year) }
+    catch (e) { alert(e.message) }
+    finally { setExporting(null) }
+  }
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -382,6 +398,20 @@ export default function Scoreboard() {
             className="px-4 py-2 rounded-lg border border-border text-text-secondary text-sm font-medium hover:border-accent/40 hover:text-text-primary transition-colors disabled:opacity-40"
           >
             {recalculating ? 'Recalculating…' : '↻ Recalculate'}
+          </button>
+          <button
+            onClick={handleExportJson}
+            disabled={exporting !== null}
+            className="px-4 py-2 rounded-lg border border-border text-text-secondary text-sm font-medium hover:border-accent/40 hover:text-text-primary transition-colors disabled:opacity-40"
+          >
+            {exporting === 'json' ? 'Exporting…' : 'Export JSON'}
+          </button>
+          <button
+            onClick={handleExportPdf}
+            disabled={exporting !== null}
+            className="px-4 py-2 rounded-lg border border-border text-text-secondary text-sm font-medium hover:border-accent/40 hover:text-text-primary transition-colors disabled:opacity-40"
+          >
+            {exporting === 'pdf' ? 'Generating…' : 'Export PDF'}
           </button>
         </div>
       </div>
