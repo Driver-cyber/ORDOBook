@@ -1,5 +1,5 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-04-23 | Phase 5 complete, Phase 6 (Electron packaging) is next
+> Last updated: 2026-04-23 (session close) | Phase 5 complete, Phase 6 (Electron packaging) is next
 
 ---
 
@@ -90,6 +90,9 @@ npm run dev
 - SQLite: monetary values BIGINT cents (no change from Postgres)
 - Pydantic v2: `model_config = {"from_attributes": True}` throughout
 - WeasyPrint PDF requires system libs on user machine: `brew install cairo pango`
+- **WeasyPrint installed on Mac** (Python 3.9 system Python, pip3 install, 2026-04-23). If PDF
+  export returns 503, the backend venv may need its own install:
+  `cd backend && source venv/bin/activate && pip install weasyprint`
 
 ---
 
