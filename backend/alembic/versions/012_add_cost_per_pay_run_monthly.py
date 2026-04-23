@@ -7,7 +7,6 @@ Create Date: 2026-03-13
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONB
 
 revision: str = '012'
 down_revision: Union[str, None] = '011'
@@ -18,7 +17,7 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.add_column(
         "forecast_configs",
-        sa.Column("cost_per_pay_run_monthly", JSONB(), nullable=False, server_default='{}'),
+        sa.Column("cost_per_pay_run_monthly", sa.JSON(), nullable=False, server_default="'{}'"),
     )
 
 

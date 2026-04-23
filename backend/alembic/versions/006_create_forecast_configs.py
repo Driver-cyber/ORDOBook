@@ -7,7 +7,6 @@ Create Date: 2026-03-09
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONB
 
 revision: str = "006"
 down_revision: Union[str, None] = "005"
@@ -23,24 +22,24 @@ def upgrade() -> None:
         sa.Column("fiscal_year", sa.Integer(), nullable=False),
 
         # Revenue
-        sa.Column("small_job_counts", JSONB(), nullable=False, server_default="{}"),
+        sa.Column("small_job_counts", sa.JSON(), nullable=False, server_default="'{}'"),
         sa.Column("small_job_avg_value", sa.BigInteger(), nullable=False, server_default="0"),
-        sa.Column("medium_job_counts", JSONB(), nullable=False, server_default="{}"),
+        sa.Column("medium_job_counts", sa.JSON(), nullable=False, server_default="'{}'"),
         sa.Column("medium_job_avg_value", sa.BigInteger(), nullable=False, server_default="0"),
-        sa.Column("large_job_counts", JSONB(), nullable=False, server_default="{}"),
+        sa.Column("large_job_counts", sa.JSON(), nullable=False, server_default="'{}'"),
         sa.Column("large_job_avg_value", sa.BigInteger(), nullable=False, server_default="0"),
 
         # Payroll
         sa.Column("cost_per_pay_run", sa.BigInteger(), nullable=False, server_default="0"),
-        sa.Column("pay_runs_per_month", JSONB(), nullable=False, server_default="{}"),
-        sa.Column("payroll_one_off", JSONB(), nullable=False, server_default="{}"),
+        sa.Column("pay_runs_per_month", sa.JSON(), nullable=False, server_default="'{}'"),
+        sa.Column("payroll_one_off", sa.JSON(), nullable=False, server_default="'{}'"),
 
         # Owner Draws
-        sa.Column("owner_distributions", JSONB(), nullable=False, server_default="{}"),
-        sa.Column("owner_tax_savings", JSONB(), nullable=False, server_default="{}"),
+        sa.Column("owner_distributions", sa.JSON(), nullable=False, server_default="'{}'"),
+        sa.Column("owner_tax_savings", sa.JSON(), nullable=False, server_default="'{}'"),
 
         # Overhead
-        sa.Column("overhead_schedule", JSONB(), nullable=False, server_default="[]"),
+        sa.Column("overhead_schedule", sa.JSON(), nullable=False, server_default="'[]'"),
 
         sa.Column("notes", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),

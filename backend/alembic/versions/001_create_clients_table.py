@@ -7,7 +7,6 @@ Create Date: 2026-03-04
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONB
 
 revision: str = "001"
 down_revision: Union[str, None] = None
@@ -23,7 +22,7 @@ def upgrade() -> None:
         sa.Column("industry", sa.String(length=255), nullable=True),
         sa.Column("fiscal_year_start_month", sa.Integer(), nullable=True, server_default="1"),
         sa.Column("timezone", sa.String(length=100), nullable=True, server_default="America/Chicago"),
-        sa.Column("terminology_config", JSONB(), nullable=True, server_default="{}"),
+        sa.Column("terminology_config", sa.JSON(), nullable=True, server_default="'{}'"),
         sa.Column("advisor_notes", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),

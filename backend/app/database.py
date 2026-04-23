@@ -5,9 +5,11 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/ordobook")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./ordobook.db")
 
-engine = create_engine(DATABASE_URL)
+# SQLite requires check_same_thread=False for FastAPI's threaded workers
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

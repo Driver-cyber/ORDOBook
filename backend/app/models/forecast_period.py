@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, BigInteger, String, DateTime, ForeignKey, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON
 from app.database import Base
 
 
@@ -81,7 +81,7 @@ class ForecastPeriod(Base):
     #   "payroll_expenses": {...},
     #   ...
     # }
-    calc_trace = Column(JSONB, nullable=False, default=dict)
+    calc_trace = Column(JSON, nullable=False, default=dict)
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),

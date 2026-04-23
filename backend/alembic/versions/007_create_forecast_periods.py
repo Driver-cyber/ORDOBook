@@ -7,7 +7,6 @@ Create Date: 2026-03-09
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONB
 
 revision: str = "007"
 down_revision: Union[str, None] = "006"
@@ -43,7 +42,7 @@ def upgrade() -> None:
         sa.Column("owner_total_draws", sa.BigInteger(), nullable=False, server_default="0"),
 
         # Audit trail
-        sa.Column("calc_trace", JSONB(), nullable=False, server_default="{}"),
+        sa.Column("calc_trace", sa.JSON(), nullable=False, server_default="'{}'"),
 
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),

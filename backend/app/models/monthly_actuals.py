@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, BigInteger, String, DateTime, ForeignKey, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON
 from app.database import Base
 
 
@@ -40,8 +40,8 @@ class MonthlyActuals(Base):
     job_count = Column(Integer, nullable=False, default=0)
 
     # Audit trail
-    raw_data = Column(JSONB, nullable=False, default=dict)
-    source_files = Column(JSONB, nullable=False, default=list)
+    raw_data = Column(JSON, nullable=False, default=dict)
+    source_files = Column(JSON, nullable=False, default=list)
     uploaded_at = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

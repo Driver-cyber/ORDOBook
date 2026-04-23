@@ -7,7 +7,6 @@ Create Date: 2026-03-05
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONB
 
 revision: str = "003"
 down_revision: Union[str, None] = "002"
@@ -50,8 +49,8 @@ def upgrade() -> None:
         sa.Column("job_count", sa.Integer(), nullable=False, server_default="0"),
 
         # Audit trail — full parsed rows before mapping, stored for traceability
-        sa.Column("raw_data", JSONB(), nullable=False, server_default="{}"),
-        sa.Column("source_files", JSONB(), nullable=False, server_default="[]"),
+        sa.Column("raw_data", sa.JSON(), nullable=False, server_default="'{}'"),
+        sa.Column("source_files", sa.JSON(), nullable=False, server_default="'[]'"),
         sa.Column("uploaded_at", sa.DateTime(timezone=True), nullable=True),
 
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),

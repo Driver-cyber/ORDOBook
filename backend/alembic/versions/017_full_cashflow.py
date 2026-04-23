@@ -7,7 +7,6 @@ Create Date: 2026-03-23
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 revision: str = '017'
 down_revision: Union[str, None] = '016'
@@ -18,13 +17,13 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # ── forecast_configs: 4 new driver input fields ────────────────────────
     op.add_column('forecast_configs',
-        sa.Column('capex_monthly', postgresql.JSONB(), nullable=False, server_default='{}'))
+        sa.Column('capex_monthly', sa.JSON(), nullable=False, server_default="'{}'"))
     op.add_column('forecast_configs',
-        sa.Column('other_current_assets_change_monthly', postgresql.JSONB(), nullable=False, server_default='{}'))
+        sa.Column('other_current_assets_change_monthly', sa.JSON(), nullable=False, server_default="'{}'"))
     op.add_column('forecast_configs',
-        sa.Column('current_debt_change_monthly', postgresql.JSONB(), nullable=False, server_default='{}'))
+        sa.Column('current_debt_change_monthly', sa.JSON(), nullable=False, server_default="'{}'"))
     op.add_column('forecast_configs',
-        sa.Column('long_term_debt_change_monthly', postgresql.JSONB(), nullable=False, server_default='{}'))
+        sa.Column('long_term_debt_change_monthly', sa.JSON(), nullable=False, server_default="'{}'"))
 
     # ── forecast_periods: 10 new computed output fields ────────────────────
     # Working capital deltas

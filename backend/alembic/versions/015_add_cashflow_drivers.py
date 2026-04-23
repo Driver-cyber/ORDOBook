@@ -7,7 +7,6 @@ Create Date: 2026-03-13
 from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONB
 
 revision: str = '015'
 down_revision: Union[str, None] = '014'
@@ -16,9 +15,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute("ALTER TABLE forecast_configs ADD COLUMN IF NOT EXISTS dso_monthly JSONB NOT NULL DEFAULT '{}'::jsonb")
-    op.execute("ALTER TABLE forecast_configs ADD COLUMN IF NOT EXISTS dio_monthly JSONB NOT NULL DEFAULT '{}'::jsonb")
-    op.execute("ALTER TABLE forecast_configs ADD COLUMN IF NOT EXISTS dpo_monthly JSONB NOT NULL DEFAULT '{}'::jsonb")
+    # Idempotent: check before adding in case of prior partial run
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    existing = {c['name'] for c in inspector.get_columns('forecast_configs')}
+    for col_name in ('dso_monthly', 'dio_monthly', 'dpo_monthly'):
+        if col_name not in existing:
+            op.add_column('forecast_configs',
+                sa.Column(col_name, sa.JSON(), nullable=False, server_default="'{}'"))
 
 
 def downgrade() -> None:
