@@ -300,7 +300,8 @@ body {
     <span class="phase-pill done">✓ Ph4a Nav</span>
     <span class="phase-pill done">✓ Ph4b Scenarios</span>
     <span class="phase-pill done">✓ Ph5 Deliverables</span>
-    <span class="phase-pill active">▸ Ph6 Electron</span>
+    <span class="phase-pill done">✓ Ph6a SQLite</span>
+    <span class="phase-pill active">▸ Demo → Ph6b Electron</span>
   </div>
 
   <!-- BOARD -->
@@ -313,30 +314,30 @@ body {
       </div>
       <div class="col-body">
 
-        <div class="section-label">Phase 6 — Active Priorities</div>
+        <div class="section-label">Current Gate — Active Priorities</div>
         <div class="priority-list">
 
           <div class="priority-item">
             <div class="priority-num">1</div>
             <div class="priority-content">
-              <div class="priority-title">Electron Packaging</div>
-              <div class="priority-note">Wrap React + FastAPI in Electron shell using electron-builder. Migrate database from PostgreSQL to SQLite (SQLAlchemy makes this a contained swap — only alembic.ini + DATABASE_URL need changing). Bundle Python venv inside the app package.</div>
+              <div class="priority-title">Demo Run-Through (GATE)</div>
+              <div class="priority-note">Full end-to-end demo before Electron packaging. Checklist in DEMO-CHECKLIST.md — covers import, all workspace tabs, scoreboard, reports, scenario sandbox, action plan, PDF/JSON export. Fix any bugs found. Demo sign-off unlocks Phase 6b.</div>
             </div>
           </div>
 
           <div class="priority-item">
             <div class="priority-num">2</div>
             <div class="priority-content">
-              <div class="priority-title">Code Signing + Auto-Update</div>
-              <div class="priority-note">macOS notarization (Apple Developer account required), electron-updater for automatic update delivery. Windows signing TBD. Required before distributing to any client machine.</div>
+              <div class="priority-title">Phase 6b — Electron Shell (gated on demo)</div>
+              <div class="priority-note">Wrap React + FastAPI in Electron shell using electron-builder. SQLite migration code is done (Phase 6a) — dev stays on PostgreSQL. Switch to SQLite path when packaging. Bundle Python venv inside the app package.</div>
             </div>
           </div>
 
           <div class="priority-item">
             <div class="priority-num">3</div>
             <div class="priority-content">
-              <div class="priority-title">Engine Verification vs. Vetter Plumbing Jan 2026</div>
-              <div class="priority-note">Run the analytical engine against the Jan 2026 Vetter Plumbing workbook and verify all outputs match. Module 3 hard requirement — no module considered complete until verified. Overhead plug formula confirmed; net_profit_for_year handling confirmed. Systematic diff needed.</div>
+              <div class="priority-title">Phase 6c — Code Signing + Distribution</div>
+              <div class="priority-note">macOS notarization (Apple Developer account required), electron-updater for automatic update delivery. Required before distributing to any client machine.</div>
             </div>
           </div>
 
@@ -347,8 +348,7 @@ body {
           <div class="backlog-item"><div class="backlog-bullet"></div><span>God Mode / Level 1–3 audit trail UI — calc_trace data already stored, hover/panel/fullscreen UI not built</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>Meeting Mode — quiet app-menu toggle, action plan review + live editor, "End Meeting" save</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>Advisor Context Layer — private per-client notes field (energy, pressures, goals beyond numbers)</span></div>
-          <div class="backlog-item"><div class="backlog-bullet"></div><span>Electron packaging — wrap React + FastAPI, SQLite migration from PostgreSQL, electron-builder</span></div>
-          <div class="backlog-item"><div class="backlog-bullet"></div><span>Code signing + auto-update — macOS notarization, electron-updater, distribution prep</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>DONE (6a): SQLite migration code — models, migrations, config all DB-agnostic. Dev stays on Postgres until Electron build.</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>QuickBooks API integration — OAuth 2.0 direct pull (Phase 3 enhancement, ingestion layer pre-abstracted)</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>Overhead line items UI — data model + engine support exists; no UI to add/edit named line items yet</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>Verify analytical engine against Vetter Plumbing Jan 2026 reference workbook (Module 3 requirement)</span></div>
@@ -373,23 +373,23 @@ body {
 {
   "project": "ORDOBOOK",
   "description": "Financial advisory workflow app — QB ingestion → analytical engine → client deliverables",
-  "updated": "2026-04-23",
+  "updated": "2026-04-24",
   "columns": [
     {
       "name": "ORDOBook",
       "sub": "React · FastAPI · SQLite · Local-first desktop",
       "priorities": [
         {
-          "title": "Phase 6 — Electron Packaging",
-          "note": "Wrap React + FastAPI in Electron shell. Migrate DB from PostgreSQL to SQLite. Bundle Python venv. electron-builder config."
+          "title": "Demo Run-Through (GATE)",
+          "note": "Full end-to-end demo before packaging. DEMO-CHECKLIST.md covers all screens. Fix bugs found. Demo sign-off unlocks Phase 6b."
         },
         {
-          "title": "Phase 6 — Code Signing + Auto-Update",
-          "note": "macOS notarization (Apple Developer account required), electron-updater for auto-updates. Required before distributing."
+          "title": "Phase 6b — Electron Shell (gated on demo)",
+          "note": "Wrap React + FastAPI in Electron. SQLite code done (Phase 6a), dev on Postgres. Switch at packaging time. Bundle Python venv."
         },
         {
-          "title": "Engine Verification vs. Vetter Plumbing Jan 2026",
-          "note": "Systematic diff of analytical engine outputs against the reference workbook. Module 3 hard requirement."
+          "title": "Phase 6c — Code Signing + Distribution",
+          "note": "macOS notarization, electron-updater for auto-updates. Required before distributing to any client machine."
         }
       ],
       "backlog": [
@@ -400,7 +400,8 @@ body {
         "Overhead line items UI (engine support exists, no UI yet)",
         "DONE: Phase 4a Nav Restructure (WorkspaceShell, ReportsShell, two-space routing, sidebar)",
         "DONE: Phase 4b Scenario Sandbox (ScenarioSandbox.jsx, 3-col, client view, POST /scenario/calculate)",
-        "DONE: Phase 5 Deliverables — Action Plan (migration 021, CRUD API, ActionPlan.jsx), Reports Actuals, JSON export, PDF export (WeasyPrint)"
+        "DONE: Phase 5 Deliverables — Action Plan (migration 021, CRUD API, ActionPlan.jsx), Reports Actuals, JSON export, PDF export (WeasyPrint)",
+        "DONE: Phase 6a SQLite migration — models/migrations/config DB-agnostic, dev stays on Postgres"
       ]
     }
   ]

@@ -1,5 +1,5 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-04-23 (session close) | Phase 5 complete, Phase 6 (Electron packaging) is next
+> Last updated: 2026-04-24 | Phase 6a (SQLite migration code) done. Demo required before Phase 6b (Electron packaging).
 
 ---
 
@@ -7,7 +7,13 @@
 
 Phases 1–5 are fully complete. Migrations 001–021 applied. 13 months of Vetter Plumbing
 actuals (Dec 2024–Dec 2025) imported. All deliverable generation (Action Plan, Reports Actuals,
-JSON export, PDF export) built and wired. Phase 6 (Electron packaging + SQLite migration) is next.
+JSON export, PDF export) built and wired.
+
+**Phase 6a done (2026-04-24):** SQLite migration code complete — all models, migrations, and
+config updated to be DB-agnostic. Dev stays on PostgreSQL (existing .env unchanged). SQLite
+activates automatically when Electron is packaged (DATABASE_URL points to app-support path).
+
+**GATE: Demo run-through required before Phase 6b (Electron shell).** See `DEMO-CHECKLIST.md`.
 
 ### Completed (chronological)
 - Phase 1 ✅ Foundation — client profiles, DB, routing
@@ -32,6 +38,13 @@ JSON export, PDF export) built and wired. Phase 6 (Electron packaging + SQLite m
   - weasyprint + jinja2 added to requirements.txt
   - PDF install: `brew install cairo pango && pip install weasyprint` on Mac
 - Build tracker ✅ `ordobook-tracker.html` added 2026-04-22 as cross-project dashboard doc
+- Phase 6a ✅ SQLite migration code (2026-04-24):
+  - 4 model files: postgresql.JSONB → sqlalchemy.JSON
+  - 11 migration files: same + server_default literals fixed + raw PG SQL replaced
+  - database.py: default URL → sqlite:///./ordobook.db, check_same_thread=False
+  - alembic/env.py: render_as_batch=True
+  - requirements.txt: removed psycopg2-binary
+  - Dev stays on PostgreSQL via existing .env — no action needed until Electron packaging
 
 ---
 
@@ -59,20 +72,14 @@ npm run dev
 
 ---
 
-## Phase 6 — Electron Packaging (next up)
+## Phase 6 — Electron Packaging
 
-**Phase 5 is complete** — all deliverables built and wired 2026-04-23.
+**Phase 6a (SQLite migration code) is done.** Dev stays on PostgreSQL.
 
-### Phase 6 build order:
+**NEXT STEP: Complete the demo run-through (`DEMO-CHECKLIST.md`) first.**
+Fix any bugs found during demo, then proceed to Phase 6b.
 
-### 1. SQLite Migration
-- Change `DATABASE_URL` in `.env` from `postgresql://...` to `sqlite:///path/to/ordobook.db`
-- Update `alembic.ini` sqlalchemy.url
-- Install `aiosqlite` if needed for async driver
-- Run `alembic upgrade head` against SQLite — all migrations should apply cleanly via SQLAlchemy abstraction
-- Test data path: `~/Library/Application Support/ORDOBOOK/ordobook.db`
-
-### 2. Electron Shell
+### Phase 6b — Electron Shell (GATED on demo)
 - `npm install electron electron-builder --save-dev` in project root
 - `main.js` — starts FastAPI backend process on launch, opens browser window to localhost
 - `electron-builder.yml` — macOS + Windows targets, bundle Python venv
@@ -104,7 +111,10 @@ npm run dev
 4. ✅ Phase 4a — Navigation restructure (confirmed 2026-04-23)
 5. ✅ Phase 4b — Scenario Sandbox (confirmed 2026-04-23)
 6. ✅ Phase 5 — Action Plan + Reports Actuals + PDF/JSON exports (2026-04-23)
-7. **Phase 6** — Electron packaging + SQLite migration ← **NEXT**
+7. ✅ Phase 6a — SQLite migration code (2026-04-24) — dev still on Postgres
+8. **Demo run-through** ← CURRENT GATE (see DEMO-CHECKLIST.md)
+9. Phase 6b — Electron shell (gated on demo)
+10. Phase 6c — Code signing + .dmg distribution
 
 ---
 
