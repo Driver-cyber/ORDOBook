@@ -13,11 +13,10 @@ Excel workbook process for a solo consulting practice. The immediate goal is to 
 monthly bookkeeping data ingestion from QuickBooks Online exports, run the analytical
 models, and produce the Scoreboard, 12-Month Forecast, and Action Plan deliverables.
 
-**Current Phase:** Phase 5 active (2026-04-23). Phases 1–4b complete. Migrations 001–021 applied.
-13 months of Vetter Plumbing actuals (Dec 2024–Dec 2025) imported. Phase 4a nav restructure confirmed
-complete (WorkspaceShell / ReportsShell / two-space routing). Phase 4b Scenario Sandbox confirmed complete.
-Phase 5 Action Plan editor, Reports Actuals view, JSON export, and PDF export (WeasyPrint) built 2026-04-23.
-**Next:** Phase 6 — Electron packaging + SQLite migration from PostgreSQL.
+**Current Phase:** Phase 6a complete (2026-04-28). Phases 1–5 complete. Migrations 001–021 applied.
+SQLite migration code done — all models, migrations, and config are DB-agnostic. Dev stays on PostgreSQL
+(existing .env unchanged); SQLite activates at Electron packaging time via DATABASE_URL.
+**GATE:** Demo run-through (DEMO-CHECKLIST.md) required before Phase 6b (Electron shell).
 
 **Current Vibe:** Deliberate. Plan before building. Verify before shipping. One module at a time.
 
@@ -206,9 +205,12 @@ The API integration itself is deferred to Phase 3.
 | 3c | Cash Flow Drivers: DSO/DIO/DPO, owner draws, projected balances, full cash flow | Weeks 19-21 | ✅ Complete (2026-03-23, migration 017) |
 | 3d | Projected Balance Sheet: cash, fixed assets, total assets, liabilities, equity | — | ✅ Complete (2026-03-27, migration 018) |
 | 4 | Scoring & Targets: Targets UI, grading, Scoreboard | — | ✅ Complete (2026-03-31, migration 019) |
-| 4a | Navigation restructure: Workspace + Reports two-space model | — | 🔜 Decided, implementation pending |
-| 4b | Scenario Sandbox | — | 🔜 Not started |
-| 5 | Deliverable Generation: PDF exports, Action Plan editor, JSON outputs | — | 🔜 Not started |
+| 4a | Navigation restructure: Workspace + Reports two-space model | — | ✅ Complete (confirmed 2026-04-23) |
+| 4b | Scenario Sandbox | — | ✅ Complete (confirmed 2026-04-23) |
+| 5 | Deliverable Generation: PDF exports, Action Plan editor, JSON outputs | — | ✅ Complete (2026-04-23, migration 021) |
+| 6a | SQLite migration: DB-agnostic models + migrations, dev stays on Postgres | — | ✅ Complete (2026-04-28) |
+| 6b | Electron shell: wrap app, bundle Python venv, one-click launch | — | 🔜 Gated on demo run-through |
+| 6c | Code signing + distribution: macOS notarization, electron-updater | — | 🔜 Not started |
 
 ---
 
@@ -607,6 +609,43 @@ machine-readable JSON block (`#tracker-data`) that feeds the cross-project dashb
 
 **CLAUDE.md updated** with session startup checklist (read tracker first) and session-end protocol
 (update tracker when priorities change, bump the date).
+
+---
+
+## 📦 Phase 6a — SQLite Migration (2026-04-28)
+
+### [2026-04-28] Dev stays on PostgreSQL; SQLite is the production target
+**Decision:** During development, DATABASE_URL in `.env` continues to point to PostgreSQL.
+SQLite activates only when the Electron app is packaged (DATABASE_URL set to the app-support path).
+**Reason:** The user has 13 months of Vetter Plumbing data in PostgreSQL that doesn't need to be
+migrated before the demo. Switching to SQLite for dev would require a data re-import and risks
+breaking the daily workflow before the demo gate is cleared. The code is DB-agnostic; switching
+is a one-line env var change.
+
+### [2026-04-28] JSONB → sqlalchemy.JSON across all models and migrations
+**Decision:** All five model files and eleven migration files that used `postgresql.JSONB` now use
+`sqlalchemy.JSON`. `server_default="{}"` corrected to `server_default="'{}'"` (SQLite requires
+quoted string literals in DEFAULT clauses). Migrations 014 and 015 replaced raw PostgreSQL SQL
+with DB-agnostic inspector-based column-exists checks.
+**Reason:** SQLAlchemy maps `JSON` to TEXT on SQLite and to JSONB/JSON on PostgreSQL automatically.
+This is the correct abstraction layer — dialect-specific types belong only when a dialect-specific
+feature (e.g., JSONB indexing) is actually being used.
+
+### [2026-04-28] render_as_batch=True added to Alembic env.py
+**Decision:** Alembic's `render_as_batch=True` option enabled for SQLite compatibility.
+**Reason:** SQLite has limited ALTER TABLE support (no DROP COLUMN, no MODIFY COLUMN in older
+versions). Batch mode rewrites these as table-recreate operations. Required for any future
+migration that modifies or drops a column on SQLite.
+
+### [2026-04-28] psycopg2-binary removed from requirements.txt
+**Decision:** `psycopg2-binary==2.9.10` removed. SQLite driver is Python stdlib — no install needed.
+**Reason:** Simplifies the dependency tree for Electron packaging; one fewer binary wheel to bundle.
+
+### [2026-04-28] Demo gate established before Phase 6b
+**Decision:** Phase 6b (Electron shell) does not start until the advisor completes a full
+end-to-end demo run-through using `DEMO-CHECKLIST.md`. Any bugs found during demo are fixed first.
+**Reason:** Packaging locks in the current behavior. Better to surface and fix issues in dev mode
+where iteration is fast, not after packaging where every fix requires a rebuild.
 
 ---
 

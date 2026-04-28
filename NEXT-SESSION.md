@@ -1,5 +1,5 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-04-24 | Phase 6a (SQLite migration code) done. Demo required before Phase 6b (Electron packaging).
+> Last updated: 2026-04-28 | Phase 6a done. Demo run-through required before Phase 6b (Electron shell).
 
 ---
 
