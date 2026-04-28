@@ -373,7 +373,7 @@ body {
 {
   "project": "ORDOBOOK",
   "description": "Financial advisory workflow app — QB ingestion → analytical engine → client deliverables",
-  "updated": "2026-04-24",
+  "updated": "2026-04-28",
   "columns": [
     {
       "name": "ORDOBook",
@@ -397,11 +397,84 @@ body {
         "Meeting Mode — app-menu toggle, action plan review + live editor",
         "Advisor Context Layer — private per-client notes field",
         "QuickBooks API integration — OAuth 2.0 direct pull (Phase 3+)",
-        "Overhead line items UI (engine support exists, no UI yet)",
-        "DONE: Phase 4a Nav Restructure (WorkspaceShell, ReportsShell, two-space routing, sidebar)",
-        "DONE: Phase 4b Scenario Sandbox (ScenarioSandbox.jsx, 3-col, client view, POST /scenario/calculate)",
-        "DONE: Phase 5 Deliverables — Action Plan (migration 021, CRUD API, ActionPlan.jsx), Reports Actuals, JSON export, PDF export (WeasyPrint)",
-        "DONE: Phase 6a SQLite migration — models/migrations/config DB-agnostic, dev stays on Postgres"
+        "Overhead line items UI (engine support exists, no UI yet)"
+      ],
+      "shipped": [
+        {
+          "date": "2026-04-23",
+          "what": "Phase 6a: Made all models and migrations DB-agnostic by replacing postgresql.JSONB with sqlalchemy.JSON, enabling SQLite as the production target while dev stays on PostgreSQL.",
+          "tags": ["python", "sqlite", "architecture", "database"],
+          "learned": "SQLite is Python stdlib — removing psycopg2 meaningfully simplifies the dependency tree for a desktop app bundle."
+        },
+        {
+          "date": "2026-04-23",
+          "what": "Phase 5: Shipped Action Plan editor (editable-in-place, auto-save, private notes), Reports Actuals view, and JSON + PDF export endpoints (WeasyPrint).",
+          "tags": ["python", "react", "pdf", "action-plan"],
+          "learned": "WeasyPrint requires C system libs (Cairo/Pango), so a lazy-import with a graceful 503 fallback is the right pattern for optional native dependencies."
+        },
+        {
+          "date": "2026-04-09",
+          "what": "Phase 4b: Built Scenario Sandbox — 3-column annual driver comparison with ephemeral state (no DB writes), quarterly breakdown toggle, and client view mode.",
+          "tags": ["react", "python", "scenarios", "ux"],
+          "learned": "Keeping scenarios fully ephemeral (React state only) was the right call — it keeps the core data model clean and removes any risk of overwriting committed forecasts."
+        },
+        {
+          "date": "2026-04-07",
+          "what": "Phase 4a: Restructured navigation into two spaces — Workspace (analyst density) and Reports (client-presentation clean) — with WorkspaceShell and ReportsShell tab wrappers.",
+          "tags": ["react", "ux", "navigation", "architecture"],
+          "learned": "Reading the source before planning revealed both shells were already built in a prior session, saving a full rebuild."
+        },
+        {
+          "date": "2026-04-02",
+          "what": "Phase 4: Shipped annual Targets page with driver-computed fields and Scoreboard with green/yellow/red grading, manual overrides, and a max-3-red advisory priority cap.",
+          "tags": ["react", "python", "scoring", "ux"],
+          "learned": "The max-3-red cap is the key product insight: clients can only meaningfully act on 3 things at once, so the tool enforces that constraint."
+        },
+        {
+          "date": "2026-03-30",
+          "what": "Phase 3d: Built Projected Balance Sheet — migration 018, engine computes projected cash/AR/inventory/AP/equity from DSO/DIO/DPO drivers month by month.",
+          "tags": ["python", "financials", "engine", "react"],
+          "learned": "Projected equity = Total Assets − Total Liabilities, not from QB's equity_before_net_profit line, which is unreliable mid-year."
+        },
+        {
+          "date": "2026-03-24",
+          "what": "Polished Forecast Drivers UX and 12-Month Forecast Report, and added a one-click start.sh launcher script (Postgres + uvicorn + Vite + Chrome).",
+          "tags": ["react", "ux", "devtools", "python"]
+        },
+        {
+          "date": "2026-03-18",
+          "what": "Built Actuals History list page — browses all imported periods for a client with summary stats and navigation to detail view.",
+          "tags": ["react", "financials", "ux"]
+        },
+        {
+          "date": "2026-03-14",
+          "what": "Phase 3c: Added cash flow drivers (DSO/DIO/DPO/owner draws) to the forecast engine and shipped audit trail Level 1 — hover popovers showing the top-level formula for any calculated value.",
+          "tags": ["python", "financials", "engine", "ux"],
+          "learned": "Overhead is a plug — total_expenses minus payroll, marketing, and depreciation — never a direct sum of accounts, matching the reference workbook definition."
+        },
+        {
+          "date": "2026-03-13",
+          "what": "Shipped the 12-Month Forecast Report page — combined actuals and forecast in a single scrollable table with color-coded source type indicators.",
+          "tags": ["react", "financials", "ux"]
+        },
+        {
+          "date": "2026-03-09",
+          "what": "Phase 3a: Built the analytical engine scaffold (revenue model, payroll, overhead) and the Forecast Drivers input page with per-month driver fields.",
+          "tags": ["python", "engine", "react", "financials"],
+          "learned": "Monthly driver dicts must use string keys ('1'–'12') not integer keys because JSON object keys are always strings — a subtle bug that surfaces only at serialization boundaries."
+        },
+        {
+          "date": "2026-03-05",
+          "what": "Phase 2: Built QB .xlsx ingestion pipeline — Balance Sheet and P&L parser, per-client account mapping with MappingReview confirm/override UI, actuals stored in PostgreSQL.",
+          "tags": ["python", "parsing", "react", "ux"],
+          "learned": "QuickBooks exports have ghost columns and inconsistent date headers across versions — parser hardening is an ongoing investment, not a one-time fix."
+        },
+        {
+          "date": "2026-03-04",
+          "what": "Phase 1: Bootstrapped the project — client profiles, SQLAlchemy schema, FastAPI backend, React/Vite frontend, Alembic migrations, and three HTML mockups establishing the visual language.",
+          "tags": ["founding", "architecture", "python", "react"],
+          "learned": "Designing in HTML mockups before touching React saved several layout mistakes — the visual language was locked before any component was written."
+        }
       ]
     }
   ]
