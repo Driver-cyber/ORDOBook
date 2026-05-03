@@ -1,5 +1,35 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-04-23 (session close) | Phase 5 complete, Phase 6 (Electron packaging) is next
+> Last updated: 2026-04-29 (session close) | Blank-screen blocker on /mapping-review diagnosed; fix staged but not implemented
+
+---
+
+## ⚠️ Open Blocker — start here
+
+**Blank screen on `/clients/:id/mapping-review`** (and any page that surfaces a 422 from the backend).
+
+**Root cause:** 4 frontend pages do `setError(err.response?.data?.detail || '...')` and then render `{error}` in JSX. When FastAPI returns a Pydantic v2 validation error, `detail` is an **array of `{type, loc, msg, input}` objects**, not a string. React tries to reconcile an array of objects as a child, throws `"Objects are not valid as a React child"`, and unmounts the entire tree — sidebar and all. User sees a fully blank cream page, no error message in the UI; the stack trace is only visible in DevTools console.
+
+**Fix plan (Part A — stop the crash, ~5 files):**
+1. New `frontend/src/api/errors.js` exporting `formatApiError(err, fallback)` — handles string detail, array detail (joins `msg` fields), and network errors
+2. Replace `setError(err.response?.data?.detail || ...)` in:
+   - `frontend/src/pages/MappingReview.jsx:173` (rendered at :212)
+   - `frontend/src/pages/UploadPage.jsx:43` (rendered at :77)
+   - `frontend/src/pages/ClientRoster.jsx:33`
+   - `frontend/src/pages/ClientProfile.jsx:67`
+3. Optional hardening: add a top-level React error boundary in `App.jsx` so a future render crash shows a fallback instead of unmounting the shell.
+
+**Fix plan (Part B — find the underlying 422):** once Part A reveals the actual error text, we'll know which field FastAPI rejected and can fix the schema mismatch in MappingReview's confirm flow.
+
+**Status:** Plan staged, NOT implemented this session. User said they'd test tomorrow.
+
+---
+
+## This Session's Work (2026-04-29)
+
+- Diagnosed Postgres-not-running issue. Started via `brew services start postgresql@17` (worked this time despite the "use pg_ctl, brew services has stale-pid issues" rule from earlier — the rule still stands as the canonical method, but brew services is a viable fallback when it works).
+- Verified existing `backend/.env` (`DATABASE_URL=postgresql://postgres:password@localhost:5432/ordobook`) authenticates fine — no `.env` changes needed despite an earlier session's suggestion to switch to passwordless auth.
+- Confirmed `GET /api/clients/3/actuals/mapping-review-data` returns valid data (63 rows, 63 suggestions, 3 periods); the API is fine. The blank screen is purely a frontend rendering bug.
+- Saved memory file `feedback_api_error_rendering.md` with the bug pattern and offending sites.
 
 ---
 
@@ -7,7 +37,8 @@
 
 Phases 1–5 are fully complete. Migrations 001–021 applied. 13 months of Vetter Plumbing
 actuals (Dec 2024–Dec 2025) imported. All deliverable generation (Action Plan, Reports Actuals,
-JSON export, PDF export) built and wired. Phase 6 (Electron packaging + SQLite migration) is next.
+JSON export, PDF export) built and wired. Phase 6 (Electron packaging + SQLite migration) is next —
+**after** the open blocker above is cleared.
 
 ### Completed (chronological)
 - Phase 1 ✅ Foundation — client profiles, DB, routing

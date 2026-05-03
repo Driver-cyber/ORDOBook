@@ -285,7 +285,7 @@ body {
     </div>
     <div class="header-desc">Financial advisory workflow app — QB ingestion → analytical engine → client deliverables</div>
     <div class="header-meta">
-      <span>Updated: 2026-04-23 (Phase 5 built)</span>
+      <span>Updated: 2026-04-29 (mapping-review blank-screen blocker diagnosed)</span>
       <span>Branch: claude/add-project-tracker-zGrFN</span>
       <span>Stack: React + Vite · FastAPI · SQLite · Electron</span>
     </div>
@@ -313,13 +313,21 @@ body {
       </div>
       <div class="col-body">
 
-        <div class="section-label">Phase 6 — Active Priorities</div>
+        <div class="section-label">Active Priorities</div>
         <div class="priority-list">
+
+          <div class="priority-item">
+            <div class="priority-num">0</div>
+            <div class="priority-content">
+              <div class="priority-title">🚨 Fix blank-screen render crash on 422 errors</div>
+              <div class="priority-note">4 pages (MappingReview, UploadPage, ClientRoster, ClientProfile) do <code>setError(err.response?.data?.detail)</code> and render <code>{error}</code> directly. Pydantic v2 returns detail as an array of <code>{type, loc, msg, input}</code> objects → React unmounts the whole tree → blank page (no sidebar, no error text). Add <code>frontend/src/api/errors.js → formatApiError()</code> helper, replace all 4 sites, optionally add a top-level error boundary. Blocks Phase 6 testing — user can't import data while this is broken.</div>
+            </div>
+          </div>
 
           <div class="priority-item">
             <div class="priority-num">1</div>
             <div class="priority-content">
-              <div class="priority-title">Electron Packaging</div>
+              <div class="priority-title">Phase 6 — Electron Packaging</div>
               <div class="priority-note">Wrap React + FastAPI in Electron shell using electron-builder. Migrate database from PostgreSQL to SQLite (SQLAlchemy makes this a contained swap — only alembic.ini + DATABASE_URL need changing). Bundle Python venv inside the app package.</div>
             </div>
           </div>
@@ -327,7 +335,7 @@ body {
           <div class="priority-item">
             <div class="priority-num">2</div>
             <div class="priority-content">
-              <div class="priority-title">Code Signing + Auto-Update</div>
+              <div class="priority-title">Phase 6 — Code Signing + Auto-Update</div>
               <div class="priority-note">macOS notarization (Apple Developer account required), electron-updater for automatic update delivery. Windows signing TBD. Required before distributing to any client machine.</div>
             </div>
           </div>
@@ -373,12 +381,16 @@ body {
 {
   "project": "ORDOBOOK",
   "description": "Financial advisory workflow app — QB ingestion → analytical engine → client deliverables",
-  "updated": "2026-04-23",
+  "updated": "2026-04-29",
   "columns": [
     {
       "name": "ORDOBook",
       "sub": "React · FastAPI · SQLite · Local-first desktop",
       "priorities": [
+        {
+          "title": "🚨 Fix blank-screen render crash on 422 errors",
+          "note": "4 pages render Pydantic detail array as JSX → whole React tree unmounts → blank page. Add formatApiError() helper, replace MappingReview/UploadPage/ClientRoster/ClientProfile, optionally add error boundary. Blocks Phase 6 testing."
+        },
         {
           "title": "Phase 6 — Electron Packaging",
           "note": "Wrap React + FastAPI in Electron shell. Migrate DB from PostgreSQL to SQLite. Bundle Python venv. electron-builder config."

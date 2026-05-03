@@ -26,7 +26,9 @@
       "Bash(python -c \"from app.routers.scenarios import router; print\\('Router OK'\\)\")",
       "Bash(python3 -c \"from app.routers.scenarios import router; print\\('Router OK'\\)\")",
       "Bash(\"/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook/backend/venv/bin/python3\" -c \"from app.routers.scenarios import router; print\\('Router OK'\\)\")",
-      "Bash(venv/bin/python3 -c \"from app.main import app; print\\('App OK — routes:', [r.path for r in app.routes if '/scenario' in r.path]\\)\")"
+      "Bash(venv/bin/python3 -c \"from app.main import app; print\\('App OK — routes:', [r.path for r in app.routes if '/scenario' in r.path]\\)\")",
+      "Bash(pg_isready)",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }
