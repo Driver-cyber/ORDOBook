@@ -1,0 +1,154 @@
+/* ============================================================
+   Shared design tokens for all four Scoreboard concepts.
+   Light theme only. Warm cream surfaces. Print-friendly.
+   ============================================================ */
+
+:root {
+  /* Surfaces — warm cream */
+  --bg:           #f5f3ef;
+  --paper:        #ffffff;
+  --surface:      #faf8f3;
+  --surface-2:    #f0ede8;
+  --surface-3:    #e8e4de;
+  --border:       #dedad4;
+  --border-soft:  #eae7e2;
+
+  /* Text */
+  --ink:          #1a1918;
+  --ink-2:        #5a5751;
+  --ink-3:        #9a9590;
+
+  /* Accents */
+  --gold:         #c8a96e;
+  --gold-dim:     #a07a3a;
+
+  /* Grade — pillar (mid-saturation, prints well) */
+  --green:        #4caf85;
+  --yellow:       #d4a44c;
+  --red:          #c05a5a;
+
+  /* Grade — block fills (saturated, "old spreadsheet" feel) */
+  --green-block:  #6fb88f;
+  --yellow-block: #e8c265;
+  --red-block:    #d27272;
+
+  /* Grade — soft (calm pill / row tint) */
+  --green-soft:   #e3efe2;
+  --yellow-soft:  #f6ecce;
+  --red-soft:     #f3dada;
+
+  /* Grade — ink on saturated blocks */
+  --green-ink:    #1f5a3a;
+  --yellow-ink:   #6a4c14;
+  --red-ink:      #6e2828;
+}
+
+/* ─── Page (8.5×11 portrait, 816×1056 @ 96dpi) ───────────────── */
+.page {
+  box-sizing: border-box;
+  width: 816px;
+  min-height: 1056px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  padding: 56px 60px;
+  position: relative;
+}
+
+.page-warm {
+  background: var(--surface);
+}
+
+/* Reset within pages */
+.page * { box-sizing: border-box; }
+.page h1, .page h2, .page h3, .page h4, .page p { margin: 0; }
+
+/* ─── Type ────────────────────────────────────────────────────── */
+.label {
+  font-family: "DM Mono", ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.label-ink {
+  font-family: "DM Mono", ui-monospace, monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.display {
+  font-family: "Syne", "DM Sans", sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.num {
+  font-family: "DM Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* ─── Page header (used by 1, 2, 4) ─────────────────────────── */
+.ph {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 28px;
+}
+.ph-left .ph-mark {
+  font-family: "Syne", sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: var(--gold);
+}
+.ph-left .ph-title {
+  font-family: "Syne", sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 4px;
+}
+.ph-left .ph-sub {
+  font-size: 11.5px;
+  color: var(--ink-2);
+  margin-top: 4px;
+}
+.ph-right { text-align: right; }
+.ph-right .label { display: block; }
+.ph-right .ph-meta {
+  font-family: "DM Mono", monospace;
+  font-size: 11px;
+  color: var(--ink-2);
+  margin-top: 3px;
+}
+
+/* ─── Footer ─────────────────────────────────────────────────── */
+.pf {
+  display: flex; justify-content: space-between;
+  margin-top: 28px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--ink-3);
+  font-family: "DM Mono", monospace;
+  letter-spacing: 0.06em;
+}
+
+/* ─── Universal pieces ──────────────────────────────────────── */
+.dot {
+  display: inline-block;
+  width: 8px; height: 8px; border-radius: 50%;
+  vertical-align: 1px;
+}
+.dot.g { background: var(--green); }
+.dot.y { background: var(--yellow); }
+.dot.r { background: var(--red); }
+
+.divider {
+  height: 1px; background: var(--border); margin: 18px 0;
+}

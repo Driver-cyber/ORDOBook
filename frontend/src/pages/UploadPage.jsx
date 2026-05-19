@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { uploadFiles } from '../api/ingestion'
+import { formatApiError } from '../api/errors'
 
 export default function UploadPage() {
   const { id } = useParams()
@@ -40,7 +41,7 @@ export default function UploadPage() {
       const preview = await uploadFiles(id, files)
       navigate(`/clients/${id}/mapping-review`, { state: { preview, sourceFiles: files.map(f => f.name) } })
     } catch (err) {
-      setError(err.response?.data?.detail || 'Upload failed. Check that these are QuickBooks Excel exports.')
+      setError(formatApiError(err, 'Upload failed. Check that these are QuickBooks Excel exports.'))
       setUploading(false)
     }
   }

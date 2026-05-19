@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ORDOBOOK Scoreboard — {{ data.client }}</title>
+</head>
+<body>
+<div class="page c5-page">
+
+  {# 1. Title band #}
+  <div class="c5-title">
+    <div class="c5-title-mark">ORDOBOOK · SCOREBOARD</div>
+    <div class="c5-title-row">
+      <h1 class="c5-h1">{{ data.client }}</h1>
+      <span class="c5-period">{{ data.period }}</span>
+    </div>
+    <p class="c5-desc">{{ data.overall.headline }}</p>
+  </div>
+
+  {# 2. Hero tiles #}
+  <div class="c5-heroes">
+    {% for h in data.heroes %}
+    <div class="c5-hero">
+      <div class="c5-hero-row">
+        <span class="c5-hero-abbr">{{ h.abbr }}</span>
+        <span class="c5-hero-name">{{ h.name }}</span>
+      </div>
+      <div class="c5-hero-value num">{{ h.value }}</div>
+      <div class="c5-hero-target">
+        <span class="c5-hero-target-label">Target</span>
+        <span class="c5-hero-target-val num">{{ h.target }}</span>
+        <span class="c5-hero-dot" style="background: {{ h.dot_color }};"></span>
+        <span class="c5-hero-var num" style="color: {{ h.dot_color }};">{{ h.var }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# 3. Priorities + Action Items #}
+  {% if data.priorities %}
+  <div class="c5-pri-block">
+    <div class="c5-pri-main">
+      <div class="c5-pri-head">Top Priorities</div>
+      <ol class="c5-pri-list">
+        {% for p in data.priorities %}
+        <li>
+          <span class="c5-pri-n num">{{ "%02d" | format(loop.index) }}</span>
+          <span class="c5-pri-label">{{ p.label }}</span>
+          <span class="c5-pri-reason">{{ p.reason }}</span>
+        </li>
+        {% endfor %}
+      </ol>
+    </div>
+    <div class="c5-actions">
+      <div class="c5-actions-head">Action Items</div>
+      <ul class="c5-actions-list">
+        {% for p in data.priorities %}
+        <li>
+          <span class="c5-check"></span>
+          <span>{{ p.action }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+
+  {# 4. More details #}
+  <div class="c5-details">
+    <div class="c5-details-head">More details</div>
+    {% for sec in data.sections %}
+    <div class="c5-cat">
+      <div class="c5-cat-name">{{ sec.name }}</div>
+      <div class="c5-cat-row">
+        {% for m in sec.metrics_sorted %}
+        <div class="c5-box c5-box-{{ m.grade_short }}{% if m.is_top_priority %} c5-box-pri{% endif %}">
+          <div class="c5-box-label">{{ m.label }}</div>
+          <div class="c5-box-value num">{{ m.value }}</div>
+          <div class="c5-box-var num">{{ m.var }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# 5. Overall strip #}
+  <div class="c5-overall">
+    <div class="c5-overall-head">
+      <span>Overall Score</span>
+      <span class="c5-overall-legend">
+        ordered:&nbsp;<span style="color: var(--green);">green</span>
+        &nbsp;·&nbsp;<span style="color: var(--yellow);">yellow</span>
+        &nbsp;·&nbsp;<span style="color: var(--red);">red</span>
+      </span>
+    </div>
+    <div class="c5-strip" style="grid-template-columns: repeat({{ data.strip|length }}, 1fr);">
+      {% for s in data.strip %}
+      <div class="c5-strip-cell c5-strip-{{ s.grade_short }}" title="{{ s.label }}">
+        <span class="c5-strip-i num">{{ loop.index }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="c5-strip-legend">
+      <span><span class="num">{{ data.overall.counts.green }}</span> green</span>
+      <span><span class="num">{{ data.overall.counts.yellow }}</span> yellow</span>
+      <span><span class="num">{{ data.overall.counts.red }}</span> red</span>
+      <span class="c5-strip-total">/ {{ data.strip|length }}</span>
+    </div>
+  </div>
+
+  <div class="pf">
+    <span>{{ data.prepared_by }}</span>
+    <span>{{ data.prepared_date }}</span>
+  </div>
+
+</div>
+</body>
+</html>

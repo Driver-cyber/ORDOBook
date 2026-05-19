@@ -1,288 +1,292 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getClient } from '../api/clients'
-import { getScoreboard, setGradeOverride, recalculateGrades } from '../api/targets'
-import { downloadPdf, downloadJson } from '../api/exports'
+import { getScoreboard, recalculateGrades } from '../api/targets'
+import { downloadPdf } from '../api/exports'
 
-// ─── Formatting helpers ────────────────────────────────────────────────────
+// ─── Formatters (mirror design's data.jsx) ─────────────────────────────────
 
-function fmt(value, type) {
+function fmtMoney(value) {
   if (value === null || value === undefined) return '—'
-  if (type === 'cents') {
-    const dollars = value / 100
-    const abs = Math.abs(dollars)
-    const sign = dollars < 0 ? '-' : ''
-    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`
-    if (abs >= 1_000)     return `${sign}$${Math.round(abs).toLocaleString()}`
-    return `${sign}$${Math.round(abs)}`
-  }
-  if (type === 'days') return `${Math.round(value)}d`
+  const abs = Math.abs(value)
+  const sign = value < 0 ? '−' : ''
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`
+  if (abs >= 1_000)     return `${sign}$${Math.round(abs / 1_000)}K`
+  return `${sign}$${Math.round(abs)}`
+}
+function fmtVal(value, type) {
+  if (value === null || value === undefined) return '—'
+  if (type === 'money') return fmtMoney(value)
+  if (type === 'days')  return `${Math.round(value)}d`
   return Math.round(value).toLocaleString()
 }
-
-function fmtVariance(pct) {
+function fmtVar(pct) {
   if (pct === null || pct === undefined) return '—'
   const sign = pct >= 0 ? '+' : ''
   return `${sign}${pct.toFixed(1)}%`
 }
 
-// ─── Grade components ──────────────────────────────────────────────────────
+// ─── Auto-generated text (placeholders until DB-backed advisor fields land) ─
 
-const GRADE_STYLES = {
-  green:  { pill: 'bg-[#d1edda] text-[#1a6632] border-[#a8d9b8]', dot: 'bg-[#2d9e52]', label: 'On Target' },
-  yellow: { pill: 'bg-[#fff3cd] text-[#856404] border-[#ffe08a]', dot: 'bg-[#d4a017]', label: 'Monitor' },
-  red:    { pill: 'bg-[#fde8e8] text-[#922b2b] border-[#f5b8b8]', dot: 'bg-[#d43f3f]', label: 'Needs Attention' },
+const ACTIONS_BY_KEY = {
+  dso_days: 'Call top 5 AR accounts',
+  dio_days: 'Review inventory turn',
+  dpo_days: 'Review supplier payment terms',
+  payroll_expenses: 'Review hiring pace',
+  marketing_expenses: 'Audit marketing ROI',
+  overhead_expenses: 'Audit overhead line items',
+  cost_of_sales: 'Review COS drivers + margin',
+  owner_total_draws: 'Set draw cap for remaining quarters',
+  cf_assets_change: 'Working capital review',
+  cf_liabilities_change: 'AP terms review',
+  net_cash_flow: 'Cash conversion deep-dive',
+  net_profit: 'P&L review vs plan',
+  net_operating_profit: 'Operating margin review',
+  gross_profit: 'Pricing + COS review',
+  revenue: 'Revenue funnel review',
+  total_jobs: 'Job pipeline review',
+  blended_avg_job_value: 'Pricing review',
 }
 
-function GradePill({ grade, isOverride, onClick }) {
-  if (!grade) return (
-    <span className="text-text-muted text-[11px] font-mono">—</span>
-  )
-  const s = GRADE_STYLES[grade]
-  return (
-    <button
-      onClick={onClick}
-      title={isOverride ? 'Manual override — click to edit' : 'Auto-graded — click to override'}
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[11px] font-semibold uppercase tracking-wide transition-opacity hover:opacity-80 ${s.pill}`}
-    >
-      <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-      {grade}
-      {isOverride && <span className="opacity-60 text-[9px]">★</span>}
-    </button>
-  )
+const HERO_KEYS  = ['revenue', 'net_profit', 'net_cash_flow']
+const HERO_ABBR  = { revenue: 'R',  net_profit: 'NP',         net_cash_flow: 'NCF' }
+const HERO_LABEL = { revenue: 'Revenue', net_profit: 'Net Profit', net_cash_flow: 'Net Cash Flow' }
+
+const MONTH_NAMES = ['January','February','March','April','May','June',
+  'July','August','September','October','November','December']
+
+function autoHeadline({ red, yellow, green }) {
+  if (red >= 3) return 'Multiple priorities need attention this period.'
+  if (red >= 1) return `${red} item${red > 1 ? 's' : ''} in the red — let's talk through the path forward.`
+  if (yellow > green) return 'Mixed signals — several items to monitor.'
+  if (green > 0) return 'Performance on track — stay the course.'
+  return 'Set targets and import actuals to begin grading.'
 }
 
-// ─── Grade override modal ──────────────────────────────────────────────────
-
-function GradeModal({ metric, onSave, onClose }) {
-  const [grade, setGrade] = useState(metric.grade || '')
-  const [isPriority, setIsPriority] = useState(metric.is_top_priority)
-  const [notes, setNotes] = useState(metric.notes || '')
-  const [isOverride, setIsOverride] = useState(metric.grade_is_override)
-
-  return (
-    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-      <div className="bg-bg border border-border rounded-2xl p-6 w-96 shadow-xl">
-        <h3 className="font-display font-bold text-text-primary mb-1">{metric.label}</h3>
-        <p className="text-text-muted text-[12px] mb-5">Grade & priority settings</p>
-
-        <div className="space-y-4">
-          {/* Auto vs Override toggle */}
-          <div>
-            <label className="font-mono text-[10px] uppercase tracking-widest text-text-muted block mb-2">
-              Grade Mode
-            </label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setIsOverride(false)}
-                className={`flex-1 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
-                  !isOverride ? 'bg-accent text-bg border-accent' : 'border-border text-text-secondary hover:border-accent/40'
-                }`}
-              >
-                Auto
-              </button>
-              <button
-                onClick={() => setIsOverride(true)}
-                className={`flex-1 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
-                  isOverride ? 'bg-accent text-bg border-accent' : 'border-border text-text-secondary hover:border-accent/40'
-                }`}
-              >
-                Override
-              </button>
-            </div>
-          </div>
-
-          {/* Grade picker (only when override) */}
-          {isOverride && (
-            <div>
-              <label className="font-mono text-[10px] uppercase tracking-widest text-text-muted block mb-2">
-                Grade
-              </label>
-              <div className="flex gap-2">
-                {['green', 'yellow', 'red'].map(g => {
-                  const s = GRADE_STYLES[g]
-                  return (
-                    <button
-                      key={g}
-                      onClick={() => setGrade(g)}
-                      className={`flex-1 py-1.5 rounded-lg border text-sm font-semibold uppercase tracking-wide transition-colors ${
-                        grade === g
-                          ? `${s.pill} border-current`
-                          : 'border-border text-text-secondary hover:border-accent/40'
-                      }`}
-                    >
-                      {g}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Top priority toggle (only for red) */}
-          {(grade === 'red' || metric.grade === 'red') && (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-text-primary font-medium">Top Priority</p>
-                <p className="text-[11px] text-text-muted">Max 3 per scoreboard period</p>
-              </div>
-              <button
-                onClick={() => setIsPriority(p => !p)}
-                className={`w-10 h-5 rounded-full transition-colors ${isPriority ? 'bg-[#d43f3f]' : 'bg-border'}`}
-              >
-                <span className={`block w-4 h-4 rounded-full bg-white shadow transition-transform mx-0.5 ${isPriority ? 'translate-x-5' : 'translate-x-0'}`} />
-              </button>
-            </div>
-          )}
-
-          {/* Notes */}
-          <div>
-            <label className="font-mono text-[10px] uppercase tracking-widest text-text-muted block mb-2">
-              Advisor Notes (private)
-            </label>
-            <textarea
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              rows={2}
-              placeholder="Context for next meeting…"
-              className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none resize-none"
-            />
-          </div>
-        </div>
-
-        <div className="flex gap-2 mt-5">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2 rounded-lg border border-border text-text-secondary text-sm font-medium hover:border-accent/40 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => onSave({
-              metric_key: metric.key,
-              grade: isOverride ? (grade || metric.grade) : null,
-              is_top_priority: isPriority,
-              notes: notes || null,
-            })}
-            className="flex-1 py-2 rounded-lg bg-accent text-bg text-sm font-medium hover:bg-[#d4b87a] transition-colors"
-          >
-            Save
-          </button>
-        </div>
-      </div>
-    </div>
-  )
+function autoReason(metric) {
+  if (metric.notes) return metric.notes
+  if (metric.var === null || metric.var === undefined) {
+    return `Currently ${fmtVal(metric.ytd, metric.type)} — no target set`
+  }
+  const direction = metric.var >= 0 ? 'ahead of' : 'behind'
+  const targetStr = fmtVal(metric.target, metric.type)
+  const ytdStr = fmtVal(metric.ytd, metric.type)
+  return `${ytdStr} vs ${targetStr} target — ${fmtVar(metric.var)} ${direction} plan`
 }
 
-// ─── Summary banner ────────────────────────────────────────────────────────
+// ─── Adapter: backend response → Concept 5 SCOREBOARD_DATA shape ───────────
 
-function SummaryBanner({ data }) {
-  const { overall_grade, red_count, yellow_count, green_count, months_elapsed } = data
-  const s = overall_grade ? GRADE_STYLES[overall_grade] : null
+function formatScoreboardData(raw, clientName, year) {
+  if (!raw || !raw.sections) return null
 
-  // Top priorities and yellow items for the focus list
+  const monthIdx = Math.max(0, Math.min(11, (raw.months_elapsed ?? 1) - 1))
+  const monthName = MONTH_NAMES[monthIdx]
+
+  const remap = (m) => {
+    const isCents = m.type === 'cents'
+    const conv = (v) => v === null || v === undefined ? null : (isCents ? v / 100 : v)
+    return {
+      key: m.key,
+      label: m.label,
+      grade: m.grade || 'yellow',
+      ytd: conv(m.ytd_actual),
+      target: conv(m.annual_target),
+      prior: conv(m.prior_year_total),
+      var: m.variance_pct,
+      type: isCents ? 'money' : m.type,
+      note: m.notes || null,
+      is_top_priority: m.is_top_priority,
+    }
+  }
+
+  const sections = raw.sections.map(s => ({
+    name: s.name,
+    metrics: s.metrics.map(remap),
+  }))
+
+  const allMetrics = sections.flatMap(s => s.metrics)
+  const counts = {
+    green:  raw.green_count ?? 0,
+    yellow: raw.yellow_count ?? 0,
+    red:    raw.red_count ?? 0,
+  }
+
+  const priorities = allMetrics
+    .filter(m => m.is_top_priority)
+    .slice(0, 3)
+    .map(m => ({ key: m.key, label: m.label, reason: autoReason(m) }))
+
+  const today = new Date()
+  const preparedDate = `${MONTH_NAMES[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`
+
+  return {
+    client: clientName || 'Client',
+    period: `YTD through ${monthName} ${year}`,
+    months_elapsed: raw.months_elapsed,
+    prepared_by: 'ORDOBOOK · Reviewed by advisor',
+    prepared_date: preparedDate,
+    overall: {
+      grade: raw.overall_grade,
+      headline: autoHeadline(counts),
+      counts,
+    },
+    priorities,
+    sections,
+  }
+}
+
+// ─── Concept 5 layout — pure presentational ────────────────────────────────
+
+function dotColor(grade) {
+  return ({ green: 'var(--green)', yellow: 'var(--yellow)', red: 'var(--red)' })[grade] || 'var(--ink-3)'
+}
+function gradeShort(grade) {
+  return (grade && grade[0]) || 'y'
+}
+
+function ScoreboardPage({ data }) {
   const allMetrics = data.sections.flatMap(s => s.metrics)
-  const topPriorities = allMetrics.filter(m => m.is_top_priority)
-  const otherRed = allMetrics.filter(m => m.grade === 'red' && !m.is_top_priority)
-  const yellowItems = allMetrics.filter(m => m.grade === 'yellow')
+  const heroes = HERO_KEYS.map(k => allMetrics.find(m => m.key === k)).filter(Boolean)
+  const priorityKeys = new Set(data.priorities.map(p => p.key))
+
+  // Strip ordering: green → yellow → red
+  const ordered = [
+    ...allMetrics.filter(m => m.grade === 'green'),
+    ...allMetrics.filter(m => m.grade === 'yellow'),
+    ...allMetrics.filter(m => m.grade === 'red'),
+  ]
+  const total = ordered.length
+
+  const sortByGrade = (metrics) => {
+    const rank = { green: 0, yellow: 1, red: 2 }
+    return [...metrics].sort((a, b) => rank[a.grade] - rank[b.grade])
+  }
 
   return (
-    <div className="bg-surface border border-border rounded-xl p-5 mb-6">
-      <div className="flex items-start gap-6">
-        {/* Overall grade */}
-        <div className="flex-shrink-0 text-center">
-          <p className="font-mono text-[9px] uppercase tracking-widest text-text-muted mb-1.5">Overall</p>
-          {s ? (
-            <div className={`w-16 h-16 rounded-xl border-2 flex items-center justify-center ${s.pill}`}>
-              <span className="font-display font-bold text-lg uppercase">{overall_grade?.charAt(0)}</span>
-            </div>
-          ) : (
-            <div className="w-16 h-16 rounded-xl border border-border flex items-center justify-center text-text-muted text-lg">—</div>
-          )}
+    <div className="page c5-page">
+      {/* 1. Title + description */}
+      <div className="c5-title">
+        <div className="c5-title-mark">ORDOBOOK · SCOREBOARD</div>
+        <div className="c5-title-row">
+          <h1 className="c5-h1">{data.client}</h1>
+          <span className="c5-period">{data.period}</span>
         </div>
+        <p className="c5-desc">{data.overall.headline}</p>
+      </div>
 
-        {/* Counts */}
-        <div className="flex-shrink-0 space-y-1 pt-1">
-          <p className="font-mono text-[9px] uppercase tracking-widest text-text-muted mb-2">YTD Status ({months_elapsed}mo)</p>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="w-2 h-2 rounded-full bg-[#2d9e52]" />
-            <span className="text-text-primary font-medium">{green_count}</span>
-            <span className="text-text-muted">on target</span>
+      {/* 2. Hero tiles */}
+      <div className="c5-heroes">
+        {heroes.map(m => (
+          <div key={m.key} className="c5-hero">
+            <div className="c5-hero-row">
+              <span className="c5-hero-abbr">{HERO_ABBR[m.key]}</span>
+              <span className="c5-hero-name">{HERO_LABEL[m.key]}</span>
+            </div>
+            <div className="c5-hero-value num">{fmtMoney(m.ytd)}</div>
+            <div className="c5-hero-target">
+              <span className="c5-hero-target-label">Target</span>
+              <span className="c5-hero-target-val num">{fmtMoney(m.target)}</span>
+              <span className="c5-hero-dot" style={{ background: dotColor(m.grade) }} />
+              <span className="c5-hero-var num" style={{ color: dotColor(m.grade) }}>
+                {fmtVar(m.var)}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="w-2 h-2 rounded-full bg-[#d4a017]" />
-            <span className="text-text-primary font-medium">{yellow_count}</span>
-            <span className="text-text-muted">monitor</span>
+        ))}
+      </div>
+
+      {/* 3. Priorities + Action Items */}
+      {data.priorities.length > 0 && (
+        <div className="c5-pri-block">
+          <div className="c5-pri-main">
+            <div className="c5-pri-head">Top Priorities</div>
+            <ol className="c5-pri-list">
+              {data.priorities.map((p, i) => (
+                <li key={p.key}>
+                  <span className="c5-pri-n num">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="c5-pri-label">{p.label}</span>
+                  <span className="c5-pri-reason">{p.reason}</span>
+                </li>
+              ))}
+            </ol>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="w-2 h-2 rounded-full bg-[#d43f3f]" />
-            <span className="text-text-primary font-medium">{red_count}</span>
-            <span className="text-text-muted">need attention</span>
+          <div className="c5-actions">
+            <div className="c5-actions-head">Action Items</div>
+            <ul className="c5-actions-list">
+              {data.priorities.map(p => (
+                <li key={p.key}>
+                  <span className="c5-check" />
+                  <span>{ACTIONS_BY_KEY[p.key] || p.label}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
+      )}
 
-        {/* Divider */}
-        <div className="w-px self-stretch bg-border mx-2" />
-
-        {/* Focus list */}
-        <div className="flex-1 space-y-3">
-          {topPriorities.length > 0 && (
-            <div>
-              <p className="font-mono text-[9px] uppercase tracking-widest text-[#922b2b] mb-1.5">
-                Top Priorities This Period ({topPriorities.length}/3)
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {topPriorities.map(m => (
-                  <span key={m.key} className="px-2.5 py-0.5 bg-[#fde8e8] border border-[#f5b8b8] rounded-full text-[11px] font-semibold text-[#922b2b]">
-                    {m.label}
-                  </span>
-                ))}
-              </div>
+      {/* 4. More details */}
+      <div className="c5-details">
+        <div className="c5-details-head">More details</div>
+        {data.sections.map(sec => (
+          <div key={sec.name} className="c5-cat">
+            <div className="c5-cat-name">{sec.name}</div>
+            <div className="c5-cat-row">
+              {sortByGrade(sec.metrics).map(m => {
+                const isPri = priorityKeys.has(m.key)
+                return (
+                  <div
+                    key={m.key}
+                    className={`c5-box c5-box-${gradeShort(m.grade)}${isPri ? ' c5-box-pri' : ''}`}
+                  >
+                    <div className="c5-box-label">{m.label}</div>
+                    <div className="c5-box-value num">{fmtVal(m.ytd, m.type)}</div>
+                    <div className="c5-box-var num">{fmtVar(m.var)}</div>
+                  </div>
+                )
+              })}
             </div>
-          )}
+          </div>
+        ))}
+      </div>
 
-          {otherRed.length > 0 && (
-            <div>
-              <p className="font-mono text-[9px] uppercase tracking-widest text-text-muted mb-1.5">
-                Also Needs Attention
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {otherRed.map(m => (
-                  <span key={m.key} className="px-2.5 py-0.5 bg-surface2 border border-border rounded-full text-[11px] text-text-secondary">
-                    {m.label}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {yellowItems.length > 0 && (
-            <div>
-              <p className="font-mono text-[9px] uppercase tracking-widest text-text-muted mb-1.5">
-                Monitor / Discuss
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {yellowItems.map(m => (
-                  <span key={m.key} className="px-2.5 py-0.5 bg-[#fff3cd] border border-[#ffe08a] rounded-full text-[11px] text-[#856404]">
-                    {m.label}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {topPriorities.length === 0 && otherRed.length === 0 && yellowItems.length === 0 && (
-            <p className="text-text-muted text-sm pt-2">
-              {green_count > 0 ? 'All graded metrics on target.' : 'Set targets to begin grading.'}
-            </p>
-          )}
+      {/* 5. Overall Score strip */}
+      <div className="c5-overall">
+        <div className="c5-overall-head">
+          <span>Overall Score</span>
+          <span className="c5-overall-legend">
+            ordered:&nbsp;<span style={{ color: 'var(--green)' }}>green</span>
+            &nbsp;·&nbsp;<span style={{ color: 'var(--yellow)' }}>yellow</span>
+            &nbsp;·&nbsp;<span style={{ color: 'var(--red)' }}>red</span>
+          </span>
         </div>
+        <div className="c5-strip" style={{ gridTemplateColumns: `repeat(${total}, 1fr)` }}>
+          {ordered.map((m, i) => (
+            <div
+              key={m.key}
+              className={`c5-strip-cell c5-strip-${gradeShort(m.grade)}`}
+              title={`${m.label} · ${m.grade}`}
+            >
+              <span className="c5-strip-i num">{i + 1}</span>
+            </div>
+          ))}
+        </div>
+        <div className="c5-strip-legend">
+          <span><span className="num">{data.overall.counts.green}</span> green</span>
+          <span><span className="num">{data.overall.counts.yellow}</span> yellow</span>
+          <span><span className="num">{data.overall.counts.red}</span> red</span>
+          <span className="c5-strip-total">/ {total}</span>
+        </div>
+      </div>
+
+      <div className="pf">
+        <span>{data.prepared_by}</span>
+        <span>{data.prepared_date}</span>
       </div>
     </div>
   )
 }
 
-// ─── Main component ────────────────────────────────────────────────────────
+// ─── Page wrapper with chrome (top bar, scroll area) ───────────────────────
 
 export default function Scoreboard() {
   const { id, year: yearParam } = useParams()
@@ -294,22 +298,7 @@ export default function Scoreboard() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [recalculating, setRecalculating] = useState(false)
-  const [editingMetric, setEditingMetric] = useState(null)
-  const [exporting, setExporting] = useState(null)
-
-  const handleExportPdf = async () => {
-    setExporting('pdf')
-    try { await downloadPdf(id, 'scoreboard', year) }
-    catch (e) { alert(e.message) }
-    finally { setExporting(null) }
-  }
-
-  const handleExportJson = async () => {
-    setExporting('json')
-    try { await downloadJson(id, year) }
-    catch (e) { alert(e.message) }
-    finally { setExporting(null) }
-  }
+  const [exporting, setExporting] = useState(false)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -326,31 +315,21 @@ export default function Scoreboard() {
 
   useEffect(() => { loadData() }, [loadData])
 
-  async function handleRecalculate() {
+  const handleRecalculate = async () => {
     setRecalculating(true)
-    try {
-      await recalculateGrades(id, year)
-      await loadData()
-    } finally {
-      setRecalculating(false)
-    }
+    try { await recalculateGrades(id, year); await loadData() }
+    finally { setRecalculating(false) }
   }
 
-  async function handleSaveGrade(payload) {
-    setEditingMetric(null)
-    try {
-      await setGradeOverride(id, year, payload)
-      await loadData()
-    } catch {
-      alert('Failed to save grade. Please try again.')
-    }
+  const handleExportPdf = async () => {
+    setExporting(true)
+    try { await downloadPdf(id, 'scoreboard', year) }
+    catch (e) { alert(e.message) }
+    finally { setExporting(false) }
   }
 
   const yearOptions = [currentYear - 1, currentYear, currentYear + 1]
-
-  if (loading) return (
-    <div className="flex-1 flex items-center justify-center text-text-muted text-sm">Loading…</div>
-  )
+  const formatted = data ? formatScoreboardData(data, client?.name, year) : null
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -367,19 +346,16 @@ export default function Scoreboard() {
             <span className="text-text-muted text-sm">/</span>
             <h1 className="font-display font-bold text-xl text-text-primary">Scoreboard</h1>
           </div>
-          <p className="text-text-muted text-[12px] mt-0.5">YTD performance vs targets and prior year</p>
+          <p className="text-text-muted text-[12px] mt-0.5">At-a-glance — color blocks for the headline conversation</p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Year selector */}
           <div className="flex items-center gap-1 bg-surface border border-border rounded-lg p-1">
             {yearOptions.map(y => (
               <button
                 key={y}
                 onClick={() => setYear(y)}
                 className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                  y === year
-                    ? 'bg-accent text-bg'
-                    : 'text-text-secondary hover:text-text-primary'
+                  y === year ? 'bg-accent text-bg' : 'text-text-secondary hover:text-text-primary'
                 }`}
               >
                 {y}
@@ -400,122 +376,31 @@ export default function Scoreboard() {
             {recalculating ? 'Recalculating…' : '↻ Recalculate'}
           </button>
           <button
-            onClick={handleExportJson}
-            disabled={exporting !== null}
-            className="px-4 py-2 rounded-lg border border-border text-text-secondary text-sm font-medium hover:border-accent/40 hover:text-text-primary transition-colors disabled:opacity-40"
-          >
-            {exporting === 'json' ? 'Exporting…' : 'Export JSON'}
-          </button>
-          <button
             onClick={handleExportPdf}
-            disabled={exporting !== null}
+            disabled={exporting}
             className="px-4 py-2 rounded-lg border border-border text-text-secondary text-sm font-medium hover:border-accent/40 hover:text-text-primary transition-colors disabled:opacity-40"
           >
-            {exporting === 'pdf' ? 'Generating…' : 'Export PDF'}
+            {exporting ? 'Generating…' : 'Export PDF'}
           </button>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
-        {!data ? (
-          <div className="max-w-3xl bg-surface border border-border rounded-xl px-6 py-10 flex flex-col items-center text-center">
+      {/* Page content — center the 816×1056 sheet on a soft cream backdrop */}
+      <div
+        className="flex-1 overflow-y-auto flex flex-col items-center py-8"
+        style={{ background: '#d4d0ca' }}
+      >
+        {loading ? (
+          <p className="text-text-muted text-sm mt-12">Loading…</p>
+        ) : !formatted ? (
+          <div className="max-w-md mt-12 bg-surface border border-border rounded-xl px-6 py-8 text-center">
             <p className="font-display font-semibold text-text-primary mb-1">No data yet</p>
             <p className="text-text-muted text-[12px]">Import actuals and set targets to generate the Scoreboard.</p>
           </div>
         ) : (
-          <div className="max-w-5xl">
-            <SummaryBanner data={data} />
-
-            {data.sections.map(section => (
-              <div key={section.name} className="mb-6">
-                <h2 className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-3">
-                  {section.name}
-                </h2>
-                <div className="bg-surface border border-border rounded-xl overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left px-5 py-3 font-mono text-[9px] uppercase tracking-widest text-text-muted w-44">Metric</th>
-                        <th className="text-right px-4 py-3 font-mono text-[9px] uppercase tracking-widest text-text-muted">Prior Year</th>
-                        <th className="text-right px-4 py-3 font-mono text-[9px] uppercase tracking-widest text-text-muted">YTD Actual</th>
-                        <th className="text-right px-4 py-3 font-mono text-[9px] uppercase tracking-widest text-text-muted">Full Yr Forecast</th>
-                        <th className="text-right px-4 py-3 font-mono text-[9px] uppercase tracking-widest text-text-muted">Annual Target</th>
-                        <th className="text-right px-4 py-3 font-mono text-[9px] uppercase tracking-widest text-text-muted">vs Target</th>
-                        <th className="text-center px-4 py-3 font-mono text-[9px] uppercase tracking-widest text-text-muted w-28">Grade</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {section.metrics.map((metric, i) => {
-                        const isLast = i === section.metrics.length - 1
-                        const varColor = metric.variance_pct === null
-                          ? 'text-text-muted'
-                          : metric.variance_pct >= 0
-                            ? 'text-[#1a6632]'
-                            : 'text-[#922b2b]'
-
-                        // Prior year label: avg for days/count-avg, total for everything else
-                        const priorLabel = metric.prior_year_total !== null
-                          ? fmt(metric.prior_year_total, metric.type)
-                          : '—'
-
-                        return (
-                          <tr
-                            key={metric.key}
-                            className={`${!isLast ? 'border-b border-border' : ''} hover:bg-surface2 transition-colors`}
-                          >
-                            <td className="px-5 py-3 font-medium text-text-primary">
-                              {metric.label}
-                              {metric.is_top_priority && (
-                                <span className="ml-2 font-mono text-[9px] uppercase tracking-widest text-[#d43f3f]">★ Priority</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-right font-mono text-[12px] text-text-secondary">
-                              {priorLabel}
-                            </td>
-                            <td className="px-4 py-3 text-right font-mono text-[12px] text-text-primary font-semibold">
-                              {fmt(metric.ytd_actual, metric.type)}
-                            </td>
-                            <td className="px-4 py-3 text-right font-mono text-[12px] text-text-secondary">
-                              {fmt(metric.full_year_forecast, metric.type)}
-                            </td>
-                            <td className="px-4 py-3 text-right font-mono text-[12px] text-text-secondary">
-                              {metric.has_target ? fmt(metric.annual_target, metric.type) : <span className="text-text-muted">—</span>}
-                            </td>
-                            <td className={`px-4 py-3 text-right font-mono text-[12px] ${varColor}`}>
-                              {metric.has_target ? fmtVariance(metric.variance_pct) : <span className="text-text-muted">—</span>}
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <GradePill
-                                grade={metric.grade}
-                                isOverride={metric.grade_is_override}
-                                onClick={() => setEditingMetric(metric)}
-                              />
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ))}
-
-            <p className="text-text-muted text-[11px] mt-2">
-              ★ = manual grade override &nbsp;·&nbsp; Click any grade pill to override or set priority &nbsp;·&nbsp; Targets prorated by months elapsed ({data.months_elapsed} of 12)
-            </p>
-          </div>
+          <ScoreboardPage data={formatted} />
         )}
       </div>
-
-      {/* Grade override modal */}
-      {editingMetric && (
-        <GradeModal
-          metric={editingMetric}
-          onSave={handleSaveGrade}
-          onClose={() => setEditingMetric(null)}
-        />
-      )}
     </div>
   )
 }

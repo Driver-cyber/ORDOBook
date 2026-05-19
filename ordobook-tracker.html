@@ -285,7 +285,7 @@ body {
     </div>
     <div class="header-desc">Financial advisory workflow app — QB ingestion → analytical engine → client deliverables</div>
     <div class="header-meta">
-      <span>Updated: 2026-04-29 (mapping-review blank-screen blocker diagnosed)</span>
+      <span>Updated: 2026-05-19 (session close — Scoreboard redesign + blank-screen fix shipped)</span>
       <span>Branch: claude/add-project-tracker-zGrFN</span>
       <span>Stack: React + Vite · FastAPI · SQLite · Electron</span>
     </div>
@@ -319,13 +319,21 @@ body {
           <div class="priority-item">
             <div class="priority-num">0</div>
             <div class="priority-content">
-              <div class="priority-title">🚨 Fix blank-screen render crash on 422 errors</div>
-              <div class="priority-note">4 pages (MappingReview, UploadPage, ClientRoster, ClientProfile) do <code>setError(err.response?.data?.detail)</code> and render <code>{error}</code> directly. Pydantic v2 returns detail as an array of <code>{type, loc, msg, input}</code> objects → React unmounts the whole tree → blank page (no sidebar, no error text). Add <code>frontend/src/api/errors.js → formatApiError()</code> helper, replace all 4 sites, optionally add a top-level error boundary. Blocks Phase 6 testing — user can't import data while this is broken.</div>
+              <div class="priority-title">Validate blank-screen-on-422 fix end-to-end</div>
+              <div class="priority-note">Code shipped 2026-05-15 but the original failure mode (Confirm on <code>/mapping-review</code> triggers 422 → blank page) was not re-tested. First task next session: run a real Vetter Plumbing import and click Confirm. Page should now show readable error text in the existing error banner instead of unmounting the React tree. If still blank, debug.</div>
             </div>
           </div>
 
           <div class="priority-item">
             <div class="priority-num">1</div>
+            <div class="priority-content">
+              <div class="priority-title">Advisor-editable Scoreboard text fields</div>
+              <div class="priority-note">The new visual Scoreboard auto-generates headline, per-priority reason, and action items as placeholders. User flagged this as top functional backlog item. Add DB-backed fields (likely a <code>ScoreboardSummary</code> row keyed on (client, year) for headline + extend <code>ScoreboardEntry</code> with <code>priority_reason</code> and <code>action_item</code>). Surface inline-edit UI on <code>Scoreboard.jsx</code>; mirror changes in <code>_build_scoreboard_template_data</code> so the PDF reflects edits.</div>
+            </div>
+          </div>
+
+          <div class="priority-item">
+            <div class="priority-num">2</div>
             <div class="priority-content">
               <div class="priority-title">Phase 6 — Electron Packaging</div>
               <div class="priority-note">Wrap React + FastAPI in Electron shell using electron-builder. Migrate database from PostgreSQL to SQLite (SQLAlchemy makes this a contained swap — only alembic.ini + DATABASE_URL need changing). Bundle Python venv inside the app package.</div>
@@ -333,7 +341,7 @@ body {
           </div>
 
           <div class="priority-item">
-            <div class="priority-num">2</div>
+            <div class="priority-num">3</div>
             <div class="priority-content">
               <div class="priority-title">Phase 6 — Code Signing + Auto-Update</div>
               <div class="priority-note">macOS notarization (Apple Developer account required), electron-updater for automatic update delivery. Windows signing TBD. Required before distributing to any client machine.</div>
@@ -341,7 +349,7 @@ body {
           </div>
 
           <div class="priority-item">
-            <div class="priority-num">3</div>
+            <div class="priority-num">4</div>
             <div class="priority-content">
               <div class="priority-title">Engine Verification vs. Vetter Plumbing Jan 2026</div>
               <div class="priority-note">Run the analytical engine against the Jan 2026 Vetter Plumbing workbook and verify all outputs match. Module 3 hard requirement — no module considered complete until verified. Overhead plug formula confirmed; net_profit_for_year handling confirmed. Systematic diff needed.</div>
@@ -363,6 +371,8 @@ body {
           <div class="backlog-item"><div class="backlog-bullet"></div><span>DONE: Phase 4a Nav Restructure (WorkspaceShell, ReportsShell, two-space routing, sidebar)</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>DONE: Phase 4b Scenario Sandbox (ScenarioSandbox.jsx, 3-col, client view, POST /scenario/calculate)</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>DONE: Phase 5 Deliverables — Action Plan editor (migration 021, CRUD API, ActionPlan.jsx), Reports Actuals (ReportsActuals.jsx), JSON export, PDF export via WeasyPrint</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>DONE: Scoreboard redesign (2026-05-15) — Concept 5 visual layout, Scoreboard ↔ Report Card split, bundled Fontsource fonts, Jinja2 PDF template at backend/app/templates/</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>CODE SHIPPED (validation pending): Blank-screen-on-422 fix (2026-05-15) — formatApiError() helper, all 4 setError sites converted, top-level ErrorBoundary wraps routes. Original failure scenario not yet retriggered; first task next session is to run import + Confirm to verify the page stays mounted.</span></div>
         </div>
 
       </div>
@@ -381,15 +391,19 @@ body {
 {
   "project": "ORDOBOOK",
   "description": "Financial advisory workflow app — QB ingestion → analytical engine → client deliverables",
-  "updated": "2026-04-29",
+  "updated": "2026-05-19",
   "columns": [
     {
       "name": "ORDOBook",
       "sub": "React · FastAPI · SQLite · Local-first desktop",
       "priorities": [
         {
-          "title": "🚨 Fix blank-screen render crash on 422 errors",
-          "note": "4 pages render Pydantic detail array as JSX → whole React tree unmounts → blank page. Add formatApiError() helper, replace MappingReview/UploadPage/ClientRoster/ClientProfile, optionally add error boundary. Blocks Phase 6 testing."
+          "title": "Validate blank-screen-on-422 fix end-to-end",
+          "note": "Code shipped 2026-05-15 but failure mode not retriggered. First task next session: real Vetter Plumbing import + Confirm on /mapping-review. Page should now show error text instead of going blank."
+        },
+        {
+          "title": "Advisor-editable Scoreboard text fields",
+          "note": "Visual Scoreboard auto-generates headline, per-priority reason, and action items. User flagged as top functional backlog item. Add DB-backed fields (ScoreboardSummary row for headline; extend ScoreboardEntry with priority_reason + action_item). Surface inline-edit UI on Scoreboard.jsx; mirror in _build_scoreboard_template_data for PDF."
         },
         {
           "title": "Phase 6 — Electron Packaging",

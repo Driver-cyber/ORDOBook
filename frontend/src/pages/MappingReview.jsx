@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { confirmImport } from '../api/ingestion'
+import { formatApiError } from '../api/errors'
 
 const CATEGORIES = [
   { value: 'revenue', label: 'Revenue' },
@@ -170,7 +171,7 @@ export default function MappingReview() {
 
       navigate(`/clients/${id}`)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Save failed')
+      setError(formatApiError(err, 'Save failed'))
       setSaving(false)
     }
   }

@@ -1,35 +1,80 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-04-29 (session close) | Blank-screen blocker on /mapping-review diagnosed; fix staged but not implemented
+> Last updated: 2026-05-19 (session close) | Scoreboard redesign (Concept 5) + Report Card split shipped. Blank-screen-on-422 fix landed in code but NOT yet validated against the original failure mode — see "Validation pending" below.
 
 ---
 
-## ⚠️ Open Blocker — start here
+## Top priorities
 
-**Blank screen on `/clients/:id/mapping-review`** (and any page that surfaces a 422 from the backend).
-
-**Root cause:** 4 frontend pages do `setError(err.response?.data?.detail || '...')` and then render `{error}` in JSX. When FastAPI returns a Pydantic v2 validation error, `detail` is an **array of `{type, loc, msg, input}` objects**, not a string. React tries to reconcile an array of objects as a child, throws `"Objects are not valid as a React child"`, and unmounts the entire tree — sidebar and all. User sees a fully blank cream page, no error message in the UI; the stack trace is only visible in DevTools console.
-
-**Fix plan (Part A — stop the crash, ~5 files):**
-1. New `frontend/src/api/errors.js` exporting `formatApiError(err, fallback)` — handles string detail, array detail (joins `msg` fields), and network errors
-2. Replace `setError(err.response?.data?.detail || ...)` in:
-   - `frontend/src/pages/MappingReview.jsx:173` (rendered at :212)
-   - `frontend/src/pages/UploadPage.jsx:43` (rendered at :77)
-   - `frontend/src/pages/ClientRoster.jsx:33`
-   - `frontend/src/pages/ClientProfile.jsx:67`
-3. Optional hardening: add a top-level React error boundary in `App.jsx` so a future render crash shows a fallback instead of unmounting the shell.
-
-**Fix plan (Part B — find the underlying 422):** once Part A reveals the actual error text, we'll know which field FastAPI rejected and can fix the schema mismatch in MappingReview's confirm flow.
-
-**Status:** Plan staged, NOT implemented this session. User said they'd test tomorrow.
+1. **Validate the blank-screen fix end-to-end.** The code changes shipped (see "Blank-screen
+   fix" section below), build is clean, but the original failure mode — click Confirm on
+   `/clients/:id/mapping-review` so the backend returns a 422 — has NOT been re-triggered
+   to confirm the page now shows the error text instead of going blank. First task next
+   session: do a real import flow on Vetter Plumbing and trip the confirm path. If it shows
+   readable error text, the fix is validated and we move on. If it still blanks, debug.
+2. **Advisor-editable headline / priority reason / action items.** The new Scoreboard
+   currently auto-generates these three text fields. The user explicitly flagged this as
+   the highest functional backlog item — they want DB-backed fields so the advisor can
+   write the actual narrative for each period. Touches `ScoreboardEntry` (add `priority_reason`,
+   `action_item`) plus a new `ScoreboardSummary` row keyed on (client, year) for headline.
+   Surface inline-edit UI on the Scoreboard page; mirror the change in
+   `_build_scoreboard_template_data` (backend PDF).
+3. **Phase 6** — Electron packaging + SQLite migration.
 
 ---
 
-## This Session's Work (2026-04-29)
+## This Session's Work (2026-05-15 → 2026-05-19, single rolling session)
 
-- Diagnosed Postgres-not-running issue. Started via `brew services start postgresql@17` (worked this time despite the "use pg_ctl, brew services has stale-pid issues" rule from earlier — the rule still stands as the canonical method, but brew services is a viable fallback when it works).
-- Verified existing `backend/.env` (`DATABASE_URL=postgresql://postgres:password@localhost:5432/ordobook`) authenticates fine — no `.env` changes needed despite an earlier session's suggestion to switch to passwordless auth.
-- Confirmed `GET /api/clients/3/actuals/mapping-review-data` returns valid data (63 rows, 63 suggestions, 3 periods); the API is fine. The blank screen is purely a frontend rendering bug.
-- Saved memory file `feedback_api_error_rendering.md` with the bug pattern and offending sites.
+### Scoreboard redesign — Concept 5 ("The Sketch")
+
+Followed the design handoff the user brought back from a separate Claude chat
+(`SCOREBOARD-REDESIGN-BRIEF.md` was the outgoing brief; design's `HANDOFF.md` came back).
+Single-page 8.5×11 portrait, color-block hybrid: hero tiles → top priorities + action
+items → metric-box grid sorted green→yellow→red → 17-cell stoplight strip → footer.
+
+- Renamed data-rich `Scoreboard.jsx` → `ReportCard.jsx`; new route `/reports/report-card/:year`.
+- New visual `Scoreboard.jsx` ports Concept 5 — uses existing `GET /scoreboard/:year`,
+  cents→dollars adapter, auto-derived headline/reason/actions as placeholders (the DB-backed
+  versions are now top backlog).
+- Reports tab order: `Actuals | Forecast | Scoreboard | Report Card | Action Plan`.
+- Fonts bundled via Fontsource (`@fontsource/syne`, `@fontsource/dm-sans`, `@fontsource/dm-mono`) —
+  works offline (Electron-safe). Same woff2s mirrored into `backend/app/templates/fonts/` for
+  WeasyPrint PDF rendering.
+- Styles live at `frontend/src/styles/scoreboard-{tokens,print}.css` (frontend) and
+  `backend/app/templates/scoreboard.css` (backend, concatenated with `@font-face`). Yes, the
+  duplication is intentional — frontend Vite needs its copy, WeasyPrint needs its own. Keep
+  in sync if the design changes.
+- Backend PDF rewritten: Jinja2 template at `backend/app/templates/scoreboard.html.j2`,
+  rendered by `_render_scoreboard_html()` in `exports.py`. Reuses `get_scoreboard()` then
+  runs `_build_scoreboard_template_data()` adapter. Auto-text helpers (`_auto_headline`,
+  `_auto_reason`, `ACTIONS_BY_KEY`) mirror the frontend so PDF and on-screen match.
+- Installed `jinja2` + `weasyprint` into the backend venv (they were in `requirements.txt`
+  but never actually installed; smoke test caught this).
+- Smoke test passed: `GET /api/clients/3/export/pdf/scoreboard/2026 → 200, 27KB PDF`.
+  Preview saved at `SCOREBOARD-PREVIEW.pdf` at project root.
+
+### Blank-screen-on-422 fix (code landed, validation pending)
+
+- New `frontend/src/api/errors.js` exports `formatApiError(err, fallback)` — handles array
+  detail (joins `loc: msg`), string detail, network errors.
+- All four offending `setError(err.response?.data?.detail)` sites now route through it:
+  `MappingReview.jsx`, `UploadPage.jsx`, `ClientRoster.jsx`, `ClientProfile.jsx`.
+- New `frontend/src/components/ErrorBoundary.jsx` wraps both the `/` route and the
+  `ClientLayout` children. Future render crashes show an in-pane fallback (with a "Try again"
+  button) instead of unmounting the whole shell.
+- **Not yet validated against the original failure path.** The user didn't have time to
+  run an import + click Confirm to trigger the 422 and confirm the page now stays mounted
+  with readable error text. See top-priorities item #1 above.
+
+### Founding docs
+
+- `ordobook-tracker.html` — header date bumped, priorities renumbered, two new DONE entries
+  in the backlog, JSON block updated.
+- `MEMORY.md` — Current Status bumped to 2026-05-19; new index entry for the scoreboard split.
+- New memory file `project_scoreboard_split.md` captures the non-obvious split (Scoreboard.jsx
+  is now the visual one, ReportCard.jsx is the renamed data-rich one) and the font-bundling
+  pattern.
+- `feedback_api_error_rendering.md` — updated to "FIXED 2026-05-15" but the rule for new code
+  is preserved.
 
 ---
 
@@ -37,8 +82,9 @@
 
 Phases 1–5 are fully complete. Migrations 001–021 applied. 13 months of Vetter Plumbing
 actuals (Dec 2024–Dec 2025) imported. All deliverable generation (Action Plan, Reports Actuals,
-JSON export, PDF export) built and wired. Phase 6 (Electron packaging + SQLite migration) is next —
-**after** the open blocker above is cleared.
+JSON export, PDF export) built and wired. Scoreboard / Report Card split delivered 2026-05-15.
+Blank-screen-on-422 blocker fixed 2026-05-15. Next: advisor-editable Scoreboard text fields,
+then Phase 6 (Electron + SQLite).
 
 ### Completed (chronological)
 - Phase 1 ✅ Foundation — client profiles, DB, routing
@@ -63,6 +109,11 @@ JSON export, PDF export) built and wired. Phase 6 (Electron packaging + SQLite m
   - weasyprint + jinja2 added to requirements.txt
   - PDF install: `brew install cairo pango && pip install weasyprint` on Mac
 - Build tracker ✅ `ordobook-tracker.html` added 2026-04-22 as cross-project dashboard doc
+- Scoreboard redesign ✅ (2026-05-15): Concept 5 visual `Scoreboard.jsx`, data-rich page
+  renamed `ReportCard.jsx`, Reports tab order updated, Fontsource fonts bundled, Jinja2
+  PDF template at `backend/app/templates/`
+- Blank-screen-on-422 fix ✅ (2026-05-15): `frontend/src/api/errors.js` `formatApiError`
+  helper, all 4 `setError` sites converted, top-level `ErrorBoundary` wraps routes
 
 ---
 
