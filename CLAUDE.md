@@ -476,6 +476,43 @@ because the user works in bursts, not continuous sessions.
 
 ---
 
+## ⚙️ Session-End Protocol
+
+**Canonical body lives in chad-wiki:**
+[`session-end-protocol.md`](https://chadwiki.chadstewartcpa.com/?doc=session-end-protocol.md).
+This `CLAUDE.md` declares only the per-project hooks; the protocol substance
+itself is single-source on the wiki.
+
+**Trigger phrases — Chad can say any of these:**
+- *"shipped X, next Y"*, *"session-end"*, *"wrap up"*, *"close out"*
+- *"add to backlog: Z"*
+
+**When Chad uses a trigger phrase:** invoke the user-level Claude Code skill
+**`/session-end-protocol`**. It reads the per-project hooks below, runs the
+canonical body, and applies it interactively per
+[detect → propose → confirm](https://chadwiki.chadstewartcpa.com/?doc=collaboration-patterns.md).
+
+If the skill isn't available in the current Claude surface (e.g. claude.ai
+chat instead of Claude Code), fetch the canonical body from the URL above
+and follow it by hand against the hooks below.
+
+### Per-project hooks
+
+| Hook | Value |
+|---|---|
+| Tracker filename | `ordobook-tracker.html` |
+| Learned-log path | `learned-log.json` (repo root) |
+| Inbox source | (none — this project does not currently consume the shared Inbox feed) |
+| Commit-message tag | `[ordobook]` |
+| Deploy target | Local-only — desktop Electron app, no remote deploy. Client data never leaves the advisor's machine. |
+
+The tracker's `#tracker-data` JSON block conforms to the canonical schema in
+[`project-checklist.md`](https://chadwiki.chadstewartcpa.com/?doc=project-checklist.md)
+(nested `columns: [...]`). Edit the JSON block only — the visual page hydrates
+from JSON on load.
+
+---
+
 ## 🔗 Product 2 Context (Separate Project, Post-v1)
 
 **Product 2 (future, separate SaaS):** A cloud platform that ingests ORDOBOOK's
