@@ -20,6 +20,8 @@ Exits non-zero if either build fails or the schemas drift.
 """
 import os
 import sys
+import atexit
+import shutil
 import subprocess
 import tempfile
 from sqlalchemy import create_engine, inspect
@@ -28,6 +30,7 @@ BACKEND = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BACKEND)
 
 _tmp = tempfile.mkdtemp(prefix="ordobook_audit_")
+atexit.register(lambda: shutil.rmtree(_tmp, ignore_errors=True))
 DB_MIGRATIONS = os.path.join(_tmp, "migrations.db")
 DB_MODELS = os.path.join(_tmp, "models.db")
 PYTHON = sys.executable

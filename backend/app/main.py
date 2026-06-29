@@ -42,32 +42,40 @@ def health():
     return {"status": "ok"}
 
 
-# ── Serve the built frontend (production / Electron) ────────────────────────
-# In dev this is a NO-OP: the frontend runs on the Vite server (port 5173) and
-# the build output doesn't exist, so this block is skipped. When packaged,
-# FastAPI serves the built SPA so everything is same-origin on port 8000 and the
-# relative /api paths resolve without a proxy. SPA deep links fall back to
-# index.html (the app uses BrowserRouter).
-_FRONTEND_DIST = os.getenv(
-    "ORDOBOOK_FRONTEND_DIST",
-    os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist"),
-)
-if os.path.isdir(_FRONTEND_DIST):
+def register_spa(app: FastAPI) -> None:
+    """Serve the built React SPA when a frontend build exists (production/Electron).
+
+    No-op in dev: the frontend runs on the Vite server (port 5173) and the build
+    output doesn't exist, so this returns early. When packaged, FastAPI serves the
+    built SPA so everything is same-origin on port 8000 and the relative /api paths
+    resolve without a proxy. SPA deep links fall back to index.html (the app uses
+    BrowserRouter).
+    """
+    frontend_dist = os.getenv(
+        "ORDOBOOK_FRONTEND_DIST",
+        os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist"),
+    )
+    if not os.path.isdir(frontend_dist):
+        return
+
     from fastapi.staticfiles import StaticFiles
     from fastapi.responses import FileResponse, JSONResponse
 
-    _assets_dir = os.path.join(_FRONTEND_DIST, "assets")
-    if os.path.isdir(_assets_dir):
-        app.mount("/assets", StaticFiles(directory=_assets_dir), name="assets")
+    assets_dir = os.path.join(frontend_dist, "assets")
+    if os.path.isdir(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
-    _index_html = os.path.join(_FRONTEND_DIST, "index.html")
+    index_html = os.path.join(frontend_dist, "index.html")
 
     @app.get("/{full_path:path}")
     def serve_spa(full_path: str):
         # Unknown /api/* paths stay JSON 404s, not the SPA shell
         if full_path.startswith("api/"):
             return JSONResponse({"detail": "Not Found"}, status_code=404)
-        candidate = os.path.join(_FRONTEND_DIST, full_path)
+        candidate = os.path.join(frontend_dist, full_path)
         if full_path and os.path.isfile(candidate):
             return FileResponse(candidate)
-        return FileResponse(_index_html)
+        return FileResponse(index_html)
+
+
+register_spa(app)

@@ -20,11 +20,11 @@ def upgrade() -> None:
     # error here (matches the inspector pattern used in migrations 014/015).
     conn = op.get_bind()
     inspector = sa.inspect(conn)
-    cols = [c["name"] for c in inspector.get_columns("forecast_configs")]
-    if "notes" not in cols:
+    cols = [c['name'] for c in inspector.get_columns('forecast_configs')]
+    if 'notes' not in cols:
         op.add_column(
-            "forecast_configs",
-            sa.Column("notes", sa.Text(), nullable=True),
+            'forecast_configs',
+            sa.Column('notes', sa.Text(), nullable=True),
         )
 
 

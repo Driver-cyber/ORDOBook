@@ -18,26 +18,27 @@ def upgrade() -> None:
     # DB-agnostic + idempotent: `ADD COLUMN IF NOT EXISTS` is PostgreSQL-only
     # (invalid in SQLite), so inspect existing columns and add only what's missing
     # via op.add_column (matches the pattern in migrations 014/015).
-    bigint_cols = [
-        "projected_ar", "projected_inventory", "projected_ap",
-        "owner_distributions", "owner_tax_savings", "net_cash_flow",
+    new_columns = [
+        ('projected_ar', sa.BigInteger()),
+        ('projected_inventory', sa.BigInteger()),
+        ('projected_ap', sa.BigInteger()),
+        ('owner_distributions', sa.BigInteger()),
+        ('owner_tax_savings', sa.BigInteger()),
+        ('net_cash_flow', sa.BigInteger()),
+        ('dso_days', sa.Integer()),
+        ('dio_days', sa.Integer()),
+        ('dpo_days', sa.Integer()),
     ]
-    integer_cols = ["dso_days", "dio_days", "dpo_days"]
 
     conn = op.get_bind()
-    existing = {c["name"] for c in sa.inspect(conn).get_columns("forecast_periods")}
+    inspector = sa.inspect(conn)
+    existing = {c['name'] for c in inspector.get_columns('forecast_periods')}
 
-    for col in bigint_cols:
-        if col not in existing:
+    for name, coltype in new_columns:
+        if name not in existing:
             op.add_column(
-                "forecast_periods",
-                sa.Column(col, sa.BigInteger(), nullable=False, server_default="0"),
-            )
-    for col in integer_cols:
-        if col not in existing:
-            op.add_column(
-                "forecast_periods",
-                sa.Column(col, sa.Integer(), nullable=False, server_default="0"),
+                'forecast_periods',
+                sa.Column(name, coltype, nullable=False, server_default='0'),
             )
 
 

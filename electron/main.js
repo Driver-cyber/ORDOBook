@@ -70,25 +70,18 @@ function startBackend() {
   })
 }
 
-function waitForBackend(timeoutMs = 30000) {
-  const start = Date.now()
-  return new Promise((resolve, reject) => {
-    const ping = () => {
+async function waitForBackend(timeoutMs = 30000) {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    const ok = await new Promise((resolve) => {
       http
-        .get(`${BACKEND_URL}/api/health`, (res) => {
-          if (res.statusCode === 200) return resolve()
-          retry()
-        })
-        .on('error', retry)
-    }
-    const retry = () => {
-      if (Date.now() - start > timeoutMs) {
-        return reject(new Error('backend did not become healthy in time'))
-      }
-      setTimeout(ping, 400)
-    }
-    ping()
-  })
+        .get(`${BACKEND_URL}/api/health`, (res) => resolve(res.statusCode === 200))
+        .on('error', () => resolve(false))
+    })
+    if (ok) return
+    await new Promise((resolve) => setTimeout(resolve, 400))
+  }
+  throw new Error('backend did not become healthy in time')
 }
 
 function createWindow() {
