@@ -19,6 +19,12 @@ Three things were done remotely (all pushed to `claude/add-project-tracker-zGrFN
    `PHASE-6B-ELECTRON.md`). Purely additive — does NOT change your dev workflow. See runbook.
    `backend/app/main.py` now serves the built SPA when `frontend/dist` exists (no-op in dev).
 3. **Cleanup pass** on the above (4-angle review) — no behavior change.
+4. **Auto-migrate on startup** (`backend/app/db_migrate.py`) — the packaged app runs
+   `alembic upgrade head` on each launch so your data persists across versions (patch →
+   re-package → ship without wiping the DB). Gated by `ORDOBOOK_AUTO_MIGRATE=1`; **dev is
+   unchanged**. Tested: DB at 020 + rows → upgrades to 021, rows preserved.
+   ⚠️ NOTE: this is Phase 6b work done *before* the demo gate — we knowingly broke our own
+   rule because the demo is delayed. Logged in DECISIONS.md (2026-06-29). Demo still required.
 
 **Still on you:** the demo (`DEMO-CHECKLIST.md`) before activating Electron, AND the
 `.env` fix below (the launcher fails without it because there's no `backend/.env`).

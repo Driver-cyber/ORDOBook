@@ -93,6 +93,30 @@ Output lands in `dist-electron/`.
 
 ---
 
+## Your data persists across versions (patch → re-package → ship)
+
+The SQLite database lives in the OS app-data dir
+(`~/Library/Application Support/ORDOBOOK/ordobook.db`), **outside** the `.app`
+bundle. Re-installing a new `.dmg` replaces the program, not your data — clients,
+imports, targets, and action plans all carry over. You re-import from zero only
+once, on the very first packaged launch.
+
+Schema changes are handled automatically: the packaged app runs
+`alembic upgrade head` on every launch (`ORDOBOOK_AUTO_MIGRATE=1`, set by
+Electron; see `backend/app/db_migrate.py`). So a new version that adds a column
+applies that migration to your existing DB without losing rows. The patch loop is:
+
+1. Edit + test in dev mode (Postgres, hot reload) — unchanged workflow.
+2. Add an Alembic migration for any schema change (as you already do).
+3. `npm run dist:mac` to cut the new version.
+4. Install it — your data is intact, the new migration applies on first launch.
+
+> Tested: a DB at migration 020 with existing rows upgrades to 021 on launch with
+> all rows preserved and the new table added. Run `python scripts/audit_schema.py`
+> before packaging to confirm the migration chain is clean.
+
+---
+
 ## Known TODOs (deliberately deferred)
 
 - **Python path in `electron/main.js`** (`pythonBin`) assumes `backend/venv/bin/python`.

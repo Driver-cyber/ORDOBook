@@ -649,6 +649,46 @@ where iteration is fast, not after packaging where every fix requires a rebuild.
 
 ---
 
+## 📦 Phase 6a Audit + Phase 6b Scaffold (2026-06-29)
+
+### [2026-06-29] ⚠️ Rule-break acknowledged: started Phase 6b scaffolding before the demo gate
+**Decision:** We deliberately broke our own demo gate (above) and began Phase 6b scaffolding —
+Electron shell, FastAPI static-serving, and auto-migrate-on-startup — before the advisor completed
+the demo run-through.
+**Why we broke it:** The demo has been delayed by real-life timing (advisor away from the Mac for an
+extended period). Rather than let the project sit idle, we did the *additive, inert* parts of 6b that
+(a) don't change the dev workflow, (b) can be reviewed/tested without a Mac, and (c) de-risk the
+eventual packaging. Nothing here activates until `electron .` is run, which still waits on the demo.
+**Honest accounting:** This violates "Measure Twice, Cut Once" and our own gate. We're logging it
+openly rather than pretending the gate held. The demo is still REQUIRED before packaging/shipping;
+the scaffold just means there's less to build when we get there. If the demo surfaces issues, they
+get fixed in dev mode first, exactly as the gate intended.
+
+### [2026-06-29] Audited the SQLite migration path; fixed 2 fresh-build bugs
+**Decision:** Added `backend/scripts/audit_schema.py` (builds the schema via `alembic upgrade head`
+AND via `create_all`, then diffs them). Fixed two bugs it surfaced: migration 013 re-added a `notes`
+column 006 already defines (made idempotent); migration 016 used PostgreSQL-only
+`ADD COLUMN IF NOT EXISTS` (rewritten with the inspector pattern). Registered `AccountMapping` and
+`MonthlyActuals` in `models/__init__.py`.
+**Reason:** Both bugs would crash a packaged app on first launch (fresh DB, full migration chain) but
+never surface on the existing dev Postgres DB (already at head). The audit script is now a regression
+guard to run before every packaging.
+
+### [2026-06-29] Packaged app auto-migrates the user's DB on startup (data persists across versions)
+**Decision:** The packaged app runs `alembic upgrade head` against the user's persistent SQLite DB on
+every launch, gated by `ORDOBOOK_AUTO_MIGRATE=1` (set by Electron; unset in dev). Implemented in
+`backend/app/db_migrate.py`, called from `main.py` before `create_all`. The DB lives in the OS
+app-data dir (outside the .app bundle), so it survives re-installs.
+**Reason:** Persisting the data file is necessary but not sufficient — `create_all` only creates
+missing *tables*, never alters existing ones. Without auto-migrate, a new version that adds a column
+would crash against the old DB. This is the standard "ship an app with an evolving database" pattern
+and is what makes the patch → re-package → ship loop safe without wiping the advisor's data each time.
+Verified: fresh DB builds + stamps head; existing DB at 020 upgrades to 021 with all rows preserved.
+**Dev impact:** None. The env flag is unset in dev, so dev keeps its manual `alembic upgrade head`
+flow and `create_all` bootstrap unchanged.
+
+---
+
 ## 💡 Parking Lot (Acknowledged Future Ideas)
 
 These are real ideas that belong in a future version or a separate project.

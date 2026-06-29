@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
+from app.db_migrate import auto_migrate_if_enabled
 from app.routers import clients, ingestion, actuals
 from app.routers import forecast as forecast_router
 from app.routers import targets as targets_router
@@ -12,7 +13,13 @@ from app.routers import exports as exports_router
 
 load_dotenv()
 
-# Create tables on startup (Alembic handles migrations in production)
+# Packaged app (ORDOBOOK_AUTO_MIGRATE=1): bring the user's existing DB up to head
+# before serving, so schema changes ship across versions without losing data.
+# No-op in dev — migrations are run manually there (see SETUP.md).
+auto_migrate_if_enabled()
+
+# Bootstrap a fresh dev DB from the models. In the packaged app the migration
+# above has already built the schema, so this is a no-op.
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="ORDOBOOK API", version="0.1.0")

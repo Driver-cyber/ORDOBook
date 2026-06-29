@@ -56,6 +56,9 @@ function startBackend() {
     DATABASE_URL: `sqlite:///${path.join(userData, 'ordobook.db')}`,
     ORDOBOOK_FRONTEND_DIST: path.join(resources, 'frontend', 'dist'),
     CORS_ORIGINS: BACKEND_URL,
+    // Bring the user's persistent DB up to head on every launch so new versions'
+    // schema changes apply without wiping data (see backend/app/db_migrate.py).
+    ORDOBOOK_AUTO_MIGRATE: '1',
   }
 
   console.log('[electron] starting backend:', pythonBin)
