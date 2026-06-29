@@ -1,5 +1,35 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-04-28 | Phase 6a done. Demo run-through required before Phase 6b (Electron shell).
+> Last updated: 2026-06-29 | Phase 6a done + audited (2 fresh-build bugs fixed). Phase 6b
+> Electron shell SCAFFOLDED (inert until run). Demo run-through still required before activating 6b.
+
+---
+
+## ⚡ Read First — what changed 2026-06-29 (away-from-Mac session)
+
+Three things were done remotely (all pushed to `claude/add-project-tracker-zGrFN`):
+
+1. **Audited the Phase 6a SQLite migration — found & fixed 2 real bugs** that would have
+   crashed a packaged app on first launch (fresh DB, full migration chain):
+   - Migration 013 re-added `forecast_configs.notes` that 006 already defines → made idempotent.
+   - Migration 016 used PG-only `ADD COLUMN IF NOT EXISTS` (invalid in SQLite) → inspector pattern.
+   - Also registered `AccountMapping` + `MonthlyActuals` in `models/__init__.py` (create_all was
+     relying on router import order for those two tables).
+   - Added `backend/scripts/audit_schema.py` — run it before packaging; currently PASS, zero drift.
+2. **Scaffolded Phase 6b Electron shell** (`electron/`, root `package.json`, `electron-builder.yml`,
+   `PHASE-6B-ELECTRON.md`). Purely additive — does NOT change your dev workflow. See runbook.
+   `backend/app/main.py` now serves the built SPA when `frontend/dist` exists (no-op in dev).
+3. **Cleanup pass** on the above (4-angle review) — no behavior change.
+
+**Still on you:** the demo (`DEMO-CHECKLIST.md`) before activating Electron, AND the
+`.env` fix below (the launcher fails without it because there's no `backend/.env`).
+
+### ⚠️ Launcher fix needed (app wasn't starting on Mac)
+There is no `backend/.env`, so the app fell through to SQLite (empty) instead of dev Postgres.
+Create `backend/.env` with:
+```
+DATABASE_URL=postgresql://postgres@localhost:5432/ordobook
+CORS_ORIGINS=http://localhost:5173
+```
 
 ---
 
@@ -112,8 +142,9 @@ Fix any bugs found during demo, then proceed to Phase 6b.
 5. ✅ Phase 4b — Scenario Sandbox (confirmed 2026-04-23)
 6. ✅ Phase 5 — Action Plan + Reports Actuals + PDF/JSON exports (2026-04-23)
 7. ✅ Phase 6a — SQLite migration code (2026-04-24) — dev still on Postgres
-8. **Demo run-through** ← CURRENT GATE (see DEMO-CHECKLIST.md)
-9. Phase 6b — Electron shell (gated on demo)
+   - ✅ Audited 2026-06-29: fixed 2 fresh-build bugs (013, 016), added audit_schema.py regression test
+8. **Demo run-through** ← CURRENT GATE (see DEMO-CHECKLIST.md). Create `backend/.env` first (see top).
+9. Phase 6b — Electron shell — ✅ SCAFFOLDED 2026-06-29 (inert); activate after demo (see PHASE-6B-ELECTRON.md)
 10. Phase 6c — Code signing + .dmg distribution
 
 ---
