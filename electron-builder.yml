@@ -1,0 +1,50 @@
+# ORDOBOOK — electron-builder configuration
+# Phase 6b scaffold. Finalize on the Mac during packaging (paths/signing below).
+
+appId: com.ordobook.desktop
+productName: ORDOBOOK
+copyright: Copyright © 2026
+
+directories:
+  output: dist-electron
+  buildResources: build
+
+# What goes inside the app bundle itself (the Electron + frontend layer).
+files:
+  - electron/**/*
+  - package.json
+
+# Heavy, language-specific payloads bundled alongside the app (not webpack'd).
+# The backend dir must include a venv built on the TARGET platform, OR be
+# replaced with a PyInstaller binary (decide during 6b execution).
+extraResources:
+  - from: backend
+    to: backend
+    filter:
+      - "**/*"
+      - "!**/__pycache__/**"
+      - "!**/*.pyc"
+      - "!ordobook.db"          # never ship a dev database
+      - "!.env"                 # never ship dev secrets/config
+  - from: frontend/dist
+    to: frontend/dist
+
+mac:
+  category: public.app-category.finance
+  target:
+    - dmg
+  # TODO(6c): code signing + notarization
+  # hardenedRuntime: true
+  # gatekeeperAssess: false
+  # entitlements: build/entitlements.mac.plist
+  # notarize: true   (requires APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID)
+
+win:
+  target:
+    - nsis
+
+# TODO(6c): auto-updates via electron-updater + a publish provider (GitHub Releases)
+# publish:
+#   provider: github
+#   owner: driver-cyber
+#   repo: ordobook

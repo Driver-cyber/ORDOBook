@@ -1,0 +1,19 @@
+{
+  "name": "ordobook-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ORDOBOOK desktop shell (Electron) — wraps the React frontend + embedded FastAPI backend",
+  "author": "ORDO",
+  "main": "electron/main.js",
+  "scripts": {
+    "build:frontend": "cd frontend && npm install && npm run build",
+    "electron": "electron .",
+    "electron:dev": "ELECTRON_DEV=1 electron .",
+    "dist": "npm run build:frontend && electron-builder --config electron-builder.yml",
+    "dist:mac": "npm run build:frontend && electron-builder --mac --config electron-builder.yml"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  }
+}
