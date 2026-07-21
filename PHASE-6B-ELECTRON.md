@@ -5,9 +5,23 @@
 > **Gate:** finish the demo (`DEMO-CHECKLIST.md`) before running this.
 
 This wraps ORDOBOOK into a double-clickable desktop app. In the packaged app the
-FastAPI backend serves the built React frontend on a single origin (port 8000),
-so the existing relative `/api/...` paths work with no proxy. SQLite (not your
-dev Postgres) is used automatically because the bundled app has no `.env`.
+FastAPI backend serves the built React frontend on a single origin (an auto-probed
+free port), so the existing relative `/api/...` paths work with no proxy. SQLite
+(not your dev Postgres) is used automatically because the bundled app has no `.env`.
+
+---
+
+## ⚠️ Two rules to package by (hard-won on a prior Tauri/Electron project)
+
+1. **"Green build ≠ works."** A successful CI/`electron-builder` run only proves the
+   config parsed and the code compiled. It does NOT prove the embedded Python
+   backend launches, binds its port, and answers `/api/health` on a real machine.
+   **Always install and actually exercise the app** — import a file, watch the DB
+   appear in the app-data dir — before calling a build good.
+2. **Test on a truly clean machine/VM**, not your dev box. Your Mac already has the
+   Python runtime, the venv, unblocked files, and no Gatekeeper friction. A user's
+   machine has none of that. The download-and-run experience is invisible from the
+   dev box — so test it explicitly (this is doubly true for signing, see 6c).
 
 ---
 
@@ -69,14 +83,16 @@ This is the configuration the packaged app will use.
    source venv/bin/activate
    python scripts/audit_schema.py     # should print PASS
    ```
-3. Launch Electron in production mode (loads `localhost:8000`, backend serves the
-   built SPA, SQLite DB lands in your app-data dir):
+3. Launch Electron in production mode (backend serves the built SPA on an
+   auto-probed free port, SQLite DB lands in your app-data dir):
    ```bash
    cd ..
    npm run electron
    ```
    On first run the SQLite DB is empty — you'll re-import the Vetter Plumbing
    QB `.xlsx` files (dev Postgres data does NOT carry over; that's expected).
+   > The backend port is **not hardcoded** — `electron/main.js` probes for a free
+   > one at launch, so a stray uvicorn or another app on 8000 can't block startup.
 
 ## Step 4 — Package the .app / .dmg
 
@@ -121,7 +137,11 @@ applies that migration to your existing DB without losing rows. The patch loop i
 
 - **Python path in `electron/main.js`** (`pythonBin`) assumes `backend/venv/bin/python`.
   Confirm against the real bundled layout on first `npm run dist`.
-- **Code signing + notarization** → Phase 6c (needs Apple Developer account).
+- **Code signing + notarization** → Phase 6c (needs Apple Developer account, ~$99/yr
+  for macOS notarization). ⚠️ Budget for this *before* distributing, not at it:
+  Electron + embedded-Python bundles are bigger and a **known antivirus / SmartScreen
+  false-positive magnet** (worse than a tiny signed native app). "It runs on my dev
+  box" hides all of it — the clean-VM test above is where you'll actually see it.
 - **Auto-updates** (`electron-updater`) → Phase 6c.
 - **WeasyPrint** needs system libs (`brew install cairo pango`) AND must be in the
   bundled venv, or PDF export returns 503 in the packaged app.

@@ -21,20 +21,45 @@ const { app, BrowserWindow } = require('electron')
 const { spawn } = require('child_process')
 const path = require('path')
 const http = require('http')
+const net = require('net')
 
-const BACKEND_PORT = 8000
-const BACKEND_URL = `http://localhost:${BACKEND_PORT}`
+// The backend port is resolved at launch (production probes for a free one, so a
+// stray process on the default can't block startup). Dev assumes the conventional
+// 8000 that the manually-started uvicorn uses.
+let backendPort = 8000
+const backendUrl = () => `http://localhost:${backendPort}`
 const VITE_URL = 'http://localhost:5173'
 const isDev = process.env.ELECTRON_DEV === '1' || !app.isPackaged
 
 let backendProcess = null
 let mainWindow = null
 
-function startBackend() {
-  // In dev we assume the backend is already running in a terminal.
+// Ask the OS for a free TCP port by binding to 0 and reading back the assignment.
+function findFreePort() {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer()
+    srv.on('error', reject)
+    srv.listen(0, '127.0.0.1', () => {
+      const { port } = srv.address()
+      srv.close(() => resolve(port))
+    })
+  })
+}
+
+async function startBackend() {
+  // In dev we assume the backend is already running in a terminal (on 8000).
   if (isDev) {
-    console.log('[electron] dev mode — assuming backend already running on', BACKEND_URL)
+    console.log('[electron] dev mode — assuming backend already running on', backendUrl())
     return
+  }
+
+  // Probe a free port so a leftover uvicorn / another app on 8000 can't block
+  // launch. The backend serves the frontend same-origin, so pointing the window
+  // at this port is all that's needed — the relative /api paths follow.
+  try {
+    backendPort = await findFreePort()
+  } catch (err) {
+    console.warn('[electron] port probe failed, falling back to 8000:', err.message)
   }
 
   // ── Production: spawn the bundled backend ────────────────────────────────
@@ -55,16 +80,16 @@ function startBackend() {
     ...process.env,
     DATABASE_URL: `sqlite:///${path.join(userData, 'ordobook.db')}`,
     ORDOBOOK_FRONTEND_DIST: path.join(resources, 'frontend', 'dist'),
-    CORS_ORIGINS: BACKEND_URL,
+    CORS_ORIGINS: backendUrl(),
     // Bring the user's persistent DB up to head on every launch so new versions'
     // schema changes apply without wiping data (see backend/app/db_migrate.py).
     ORDOBOOK_AUTO_MIGRATE: '1',
   }
 
-  console.log('[electron] starting backend:', pythonBin)
+  console.log(`[electron] starting backend on ${backendPort}:`, pythonBin)
   backendProcess = spawn(
     pythonBin,
-    ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(BACKEND_PORT)],
+    ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(backendPort)],
     { cwd: backendDir, env, stdio: 'inherit' }
   )
 
@@ -78,7 +103,7 @@ async function waitForBackend(timeoutMs = 30000) {
   while (Date.now() < deadline) {
     const ok = await new Promise((resolve) => {
       http
-        .get(`${BACKEND_URL}/api/health`, (res) => resolve(res.statusCode === 200))
+        .get(`${backendUrl()}/api/health`, (res) => resolve(res.statusCode === 200))
         .on('error', () => resolve(false))
     })
     if (ok) return
@@ -102,7 +127,7 @@ function createWindow() {
     },
   })
 
-  const targetUrl = isDev ? VITE_URL : BACKEND_URL
+  const targetUrl = isDev ? VITE_URL : backendUrl()
   mainWindow.loadURL(targetUrl)
 
   if (isDev) mainWindow.webContents.openDevTools({ mode: 'detach' })
@@ -113,7 +138,7 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  startBackend()
+  await startBackend() // resolves the free port before we health-check / load it
   try {
     await waitForBackend()
   } catch (err) {

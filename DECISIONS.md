@@ -687,6 +687,17 @@ Verified: fresh DB builds + stamps head; existing DB at 020 upgrades to 021 with
 **Dev impact:** None. The env flag is unset in dev, so dev keeps its manual `alembic upgrade head`
 flow and `create_all` bootstrap unchanged.
 
+### [2026-06-29] Packaged backend probes for a free port (no hardcoded 8000)
+**Decision:** `electron/main.js` asks the OS for a free TCP port at launch (bind to 0, read it
+back), spawns uvicorn on it, and points the window there. Dev is unchanged (still assumes 8000).
+**Reason:** A hardcoded port fails hard if anything else holds it (a leftover uvicorn, another app).
+Because the backend serves the frontend same-origin, pointing the window at the probed port is
+sufficient — the relative `/api` paths follow automatically, no frontend change needed.
+**Source:** Lesson borrowed from a prior Tauri/Electron desktop project's build retrospective
+(local server pitfalls: port collisions, don't hardcode). Same retrospective is why the Phase 6b
+runbook now leads with "green build ≠ works" and "test on a clean VM," and why the 6c signing note
+flags Electron+Python as an antivirus false-positive magnet.
+
 ---
 
 ## 💡 Parking Lot (Acknowledged Future Ideas)
