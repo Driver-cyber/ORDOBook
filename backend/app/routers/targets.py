@@ -199,14 +199,19 @@ def _compute_grade(actual: int, prorated_target: int, higher_is_better: bool) ->
     ratio 0.84 read as "missed". Cash-perspective metrics — owner draws, CF asset
     and liability changes, net cash flow — regularly carry negative targets.
 
-    Thresholds: green >= -5%, yellow >= -20%, red below.
+    Thresholds: green >= -5%, yellow >= -20%, red below — evaluated in integer
+    arithmetic (20·diff >= -|target| is exactly diff/|target| >= -5%), so there
+    is no float rounding at the boundary and, for a positive target, the result
+    is identical to the former ratio rule in every case. _variance_pct rounds
+    for display only and is not used for grading.
     """
-    variance = _variance_pct(actual, prorated_target, higher_is_better)
-    if variance is None:
+    if prorated_target == 0:
         return None
-    if variance >= -5.0:
+    diff = (actual - prorated_target) if higher_is_better else (prorated_target - actual)
+    limit = abs(prorated_target)
+    if 20 * diff >= -limit:
         return "green"
-    if variance >= -20.0:
+    if 5 * diff >= -limit:
         return "yellow"
     return "red"
 
