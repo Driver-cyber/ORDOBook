@@ -9,6 +9,7 @@ Supports both Profit & Loss and Balance Sheet exports.
 Multi-month exports (e.g. Jan–Dec columns) are handled naturally.
 """
 import io
+import re
 from decimal import Decimal, ROUND_HALF_UP
 import openpyxl
 
@@ -22,6 +23,9 @@ _MONTH_NAMES = frozenset([
 # How many leading rows to search for report title / company name. QuickBooks
 # varies the header order between report types, so we scan rather than assume.
 _HEADER_SCAN_ROWS = 6
+
+_MONTH_PREFIXES = frozenset(m[:3] for m in _MONTH_NAMES)
+_YEAR_RE = re.compile(r"\b(19|20)\d{2}\b")
 
 _MONTH_ABBR_TO_FULL = {
     m[:3].lower(): m for m in _MONTH_NAMES
@@ -309,8 +313,8 @@ def parse_file(file_bytes: bytes, filename: str) -> dict:
     if not all_rows:
         raise ValueError("File appears to be empty.")
 
-    report_type = _detect_report_type(all_rows[0][0] if all_rows[0] else None)
-    company_name = str(all_rows[1][0]).strip() if len(all_rows) > 1 and all_rows[1][0] else ""
+    report_type = _detect_report_type_from_rows(all_rows)
+    company_name = _extract_company_name(all_rows)
 
     header_idx = _find_header_row(all_rows)
     period_cols = _parse_period_columns(all_rows[header_idx])
@@ -374,14 +378,55 @@ def parse_file(file_bytes: bytes, filename: str) -> dict:
     }
 
 
-def _looks_like_date_range(text: str) -> bool:
-    """True for a QB header date-range line, e.g. 'January 1, 2025-September 10, 2026'."""
-    if "-" not in text:
+def _looks_like_date_line(text: str) -> bool:
+    """True for a QB header date line.
+
+    Covers both shapes QB emits: a range ('January, 2025-August, 2026') and an
+    as-of date ('As of Aug 31, 2026'). Requires a 4-digit year so company names
+    containing a hyphen aren't mistaken for dates.
+    """
+    t = text.strip()
+    if not _YEAR_RE.search(t):
         return False
-    words = text.split()
-    if not words:
-        return False
-    return words[0].rstrip(",") in _MONTH_NAMES
+    if t.lower().startswith("as of "):
+        return True
+    words = t.split()
+    return bool(words) and words[0].rstrip(",")[:3] in _MONTH_PREFIXES
+
+
+def _detect_report_type_from_rows(all_rows: list) -> str:
+    """Find the report type by scanning the opening rows.
+
+    QuickBooks varies the header order — some exports lead with the report title,
+    others lead with the company name and put the title on row 2. Reading only the
+    first cell misclassifies the latter as "unknown", which silently routes P&L
+    files through the Balance Sheet section parser and leaves every row unsectioned.
+    """
+    for row in all_rows[:_HEADER_SCAN_ROWS]:
+        if not row:
+            continue
+        detected = _detect_report_type(row[0])
+        if detected != "unknown":
+            return detected
+    return "unknown"
+
+
+def _extract_company_name(all_rows: list) -> str:
+    """Return the first header cell that is neither the report title nor a date line."""
+    for row in all_rows[:_HEADER_SCAN_ROWS]:
+        if not row or row[0] is None:
+            continue
+        candidate = str(row[0]).strip()
+        if not candidate:
+            continue
+        if _detect_report_type(candidate) != "unknown":
+            continue
+        if "Invoices by Month" in candidate:
+            continue
+        if _looks_like_date_line(candidate):
+            continue
+        return candidate
+    return ""
 
 
 def detect_report_type(file_bytes: bytes) -> str:
@@ -403,11 +448,7 @@ def detect_report_type(file_bytes: bytes) -> str:
         cell = str(row[0] or "")
         if "Invoices by Month" in cell:
             return "invoices_by_month"
-        if "Profit and Loss" in cell:
-            return "profit_and_loss"
-        if "Balance Sheet" in cell:
-            return "balance_sheet"
-    return "unknown"
+    return _detect_report_type_from_rows(rows)
 
 
 def parse_invoice_report(file_bytes: bytes, filename: str) -> dict:
@@ -428,20 +469,7 @@ def parse_invoice_report(file_bytes: bytes, filename: str) -> dict:
     if not all_rows:
         raise ValueError("File appears to be empty.")
 
-    # Header order varies (see detect_report_type). Take the first non-empty
-    # header cell that is neither the report title nor the date-range line,
-    # rather than assuming the company name sits on a fixed row.
-    company_name = ""
-    for row in all_rows[:_HEADER_SCAN_ROWS]:
-        if not row or row[0] is None:
-            continue
-        candidate = str(row[0]).strip()
-        if not candidate or "Invoices by Month" in candidate:
-            continue
-        if _looks_like_date_range(candidate):
-            continue
-        company_name = candidate
-        break
+    company_name = _extract_company_name(all_rows)
 
     from datetime import date as _date, datetime as _datetime
 

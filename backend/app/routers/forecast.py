@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.client import Client
@@ -252,7 +253,16 @@ def create_drivers(
 
     config = ForecastConfig(client_id=client_id, **data)
     db.add(config)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # The existence check above and this insert aren't atomic, so two
+        # concurrent creates (e.g. the Workspace mounting twice) can both get
+        # past it and the loser trips uq_forecast_config_client_year. That's the
+        # constraint doing its job — return the config the winner created rather
+        # than surfacing a 500.
+        db.rollback()
+        return _get_config_or_404(client_id, fiscal_year, db)
     db.refresh(config)
     return config
 
