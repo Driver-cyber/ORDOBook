@@ -12,14 +12,18 @@ const METRICS = [
   { key: 'blended_avg_job_value', label: 'Avg Job Value',          type: 'cents', section: 'Operations', computed: false },
   { key: 'revenue',               label: 'Revenue',                type: 'cents', section: 'Operations', computed: true },
   // P&L
+  // hasPercentToggle rows can be viewed (and, when editable, entered) as a % of
+  // Revenue. On computed rows the toggle is display-only. Toggling switches the
+  // target, prior-year and forecast columns together so they stay comparable —
+  // each column uses its OWN revenue as the denominator.
   { key: 'cost_of_sales',         label: 'Cost of Sales',          type: 'cents', section: 'P&L', computed: false, hasPercentToggle: true },
-  { key: 'gross_profit',          label: 'Gross Profit',           type: 'cents', section: 'P&L', computed: true },
-  { key: 'payroll_expenses',      label: 'Payroll Expenses',       type: 'cents', section: 'P&L', computed: false },
-  { key: 'marketing_expenses',    label: 'Marketing Expenses',     type: 'cents', section: 'P&L', computed: false },
-  { key: 'overhead_expenses',     label: 'Overhead Expenses',      type: 'cents', section: 'P&L', computed: false },
+  { key: 'gross_profit',          label: 'Gross Profit',           type: 'cents', section: 'P&L', computed: true,  hasPercentToggle: true },
+  { key: 'payroll_expenses',      label: 'Payroll Expenses',       type: 'cents', section: 'P&L', computed: false, hasPercentToggle: true },
+  { key: 'marketing_expenses',    label: 'Marketing Expenses',     type: 'cents', section: 'P&L', computed: false, hasPercentToggle: true },
+  { key: 'overhead_expenses',     label: 'Overhead Expenses',      type: 'cents', section: 'P&L', computed: false, hasPercentToggle: true },
   { key: 'net_operating_profit',  label: 'Net Operating Profit',   type: 'cents', section: 'P&L', computed: true },
   { key: 'other_income_expense',  label: 'Other Income / Expense', type: 'cents', section: 'P&L', computed: false },
-  { key: 'net_profit',            label: 'Net Profit',             type: 'cents', section: 'P&L', computed: true },
+  { key: 'net_profit',            label: 'Net Profit',             type: 'cents', section: 'P&L', computed: true,  hasPercentToggle: true },
   // Cash Flow — driver order mirrors the reference workbook: asset-side drivers,
   // then liability-side, then owner. Money drivers are SIGNED CASH AMOUNTS:
   // a purchase/repayment is entered negative because it reduces cash.
@@ -105,24 +109,29 @@ function fmtChange(cents) {
  *   cf_liabilities_change = ΔAP                   — positive = favorable (liabilities increased)
  *   Net Cash Flow        = Net Profit − Owner Draws + cf_assets_change + cf_liabilities_change
  */
-function computeDerived(inputs, cosMode, priorEnding) {
+function computeDerived(inputs, pctModes, priorEnding) {
   // P&L
   const totalJobs = parseCount(inputs.total_jobs ?? '') ?? 0
   const avgJobValue = parseToCents(inputs.blended_avg_job_value ?? '') ?? 0
   const revenue = totalJobs * avgJobValue
 
-  let cosCents
-  if (cosMode === 'pct') {
-    const pct = parseFloat(String(inputs.cost_of_sales ?? '').replace(/[%,\s]/g, ''))
-    cosCents = isNaN(pct) ? 0 : Math.round(revenue * pct / 100)
-  } else {
-    cosCents = parseToCents(inputs.cost_of_sales ?? '') ?? 0
+  // Resolve an entered value to cents regardless of whether the row is currently
+  // being entered as dollars or as a % of Revenue.
+  const asCents = (key) => {
+    const raw = inputs[key] ?? ''
+    if ((pctModes?.[key] ?? 'dollar') === 'pct') {
+      const pct = parseFloat(String(raw).replace(/[%,\s]/g, ''))
+      return isNaN(pct) ? 0 : Math.round(revenue * pct / 100)
+    }
+    return parseToCents(raw) ?? 0
   }
 
+  const cosCents = asCents('cost_of_sales')
+
   const grossProfit = revenue - cosCents
-  const payroll = parseToCents(inputs.payroll_expenses ?? '') ?? 0
-  const marketing = parseToCents(inputs.marketing_expenses ?? '') ?? 0
-  const overhead = parseToCents(inputs.overhead_expenses ?? '') ?? 0
+  const payroll = asCents('payroll_expenses')
+  const marketing = asCents('marketing_expenses')
+  const overhead = asCents('overhead_expenses')
   const netOpProfit = grossProfit - payroll - marketing - overhead
   const otherIE = parseToCents(inputs.other_income_expense ?? '') ?? 0
   const netProfit = netOpProfit + otherIE
@@ -251,8 +260,9 @@ export default function Targets() {
   const [client, setClient] = useState(null)
   // Driver inputs: key → display string (what user typed)
   const [inputs, setInputs] = useState({})
-  // COS mode: 'dollar' | 'pct'
-  const [cosMode, setCosMode] = useState('dollar')
+  // Per-metric display/entry mode: metric key → 'dollar' | 'pct'. Absent = 'dollar'.
+  const [pctModes, setPctModes] = useState({})
+  const modeOf = (key) => pctModes[key] ?? 'dollar'
   // Comparison data from API
   const [priorYearActuals, setPriorYearActuals] = useState({})
   const [forecastSummary, setForecastSummary] = useState({})
@@ -262,14 +272,14 @@ export default function Targets() {
   const [loading, setLoading] = useState(true)
 
   const derived = useMemo(
-    () => computeDerived(inputs, cosMode, priorEndingBalances),
-    [inputs, cosMode, priorEndingBalances]
+    () => computeDerived(inputs, pctModes, priorEndingBalances),
+    [inputs, pctModes, priorEndingBalances]
   )
 
   const loadData = useCallback(async () => {
     setLoading(true)
     setDirty(false)
-    setCosMode('dollar')
+    setPctModes({})
     try {
       const [c, t] = await Promise.all([getClient(id), getTargets(id, year)])
       setClient(c)
@@ -303,22 +313,41 @@ export default function Targets() {
     setDirty(true)
   }
 
-  // Switch COS mode and convert the displayed value in-place
-  function handleCOSModeToggle(newMode) {
-    if (newMode === cosMode) return
+  // Switch a metric between dollar and % of Revenue. For editable rows the typed
+  // value is converted in place so the underlying amount doesn't change; computed
+  // rows have nothing to convert (the toggle only affects how they're displayed).
+  function handleModeToggle(metricKey, newMode, isComputed) {
+    if (newMode === modeOf(metricKey)) return
     const rev = derived.revenue
-    if (newMode === 'pct' && rev > 0) {
-      const cents = parseToCents(inputs.cost_of_sales ?? '') ?? 0
-      setInputs(prev => ({ ...prev, cost_of_sales: (cents / rev * 100).toFixed(1) }))
-    } else if (newMode === 'dollar') {
-      const pct = parseFloat(String(inputs.cost_of_sales ?? '').replace(/[%,\s]/g, ''))
-      if (!isNaN(pct) && rev > 0) {
-        const cents = Math.round(rev * pct / 100)
-        setInputs(prev => ({ ...prev, cost_of_sales: Math.round(cents / 100).toLocaleString() }))
+
+    if (!isComputed && rev > 0) {
+      if (newMode === 'pct') {
+        // 2 decimals on the editable value: at 1 decimal a $ -> % -> $ round trip
+        // drifts ~$160 on a $525k revenue base, which looks like the app silently
+        // changed the target. Read-only columns still display 1 decimal.
+        const cents = parseToCents(inputs[metricKey] ?? '') ?? 0
+        setInputs(prev => ({ ...prev, [metricKey]: (cents / rev * 100).toFixed(2) }))
+      } else {
+        const pct = parseFloat(String(inputs[metricKey] ?? '').replace(/[%,\s]/g, ''))
+        if (!isNaN(pct)) {
+          const cents = Math.round(rev * pct / 100)
+          setInputs(prev => ({ ...prev, [metricKey]: Math.round(cents / 100).toLocaleString() }))
+        }
       }
+      setDirty(true)
     }
-    setCosMode(newMode)
-    setDirty(true)
+
+    setPctModes(prev => ({ ...prev, [metricKey]: newMode }))
+  }
+
+  // Render a comparison-column value, honouring the row's current mode. Each
+  // column divides by its OWN revenue so the three columns stay comparable.
+  function fmtColumn(value, metric, revenueBase) {
+    if (metric.hasPercentToggle && modeOf(metric.key) === 'pct') {
+      if (value === null || value === undefined || !revenueBase) return '—'
+      return `${(value / revenueBase * 100).toFixed(1)}%`
+    }
+    return fmtComparison(value, metric.type)
   }
 
   async function handleSave() {
@@ -341,8 +370,10 @@ export default function Targets() {
           const raw = inputs[metric.key] ?? ''
           if (raw.trim() === '') continue
 
-          if (metric.key === 'cost_of_sales' && cosMode === 'pct') {
-            val = derived.cost_of_sales
+          // Percent-entered rows are always stored as cents — derived already
+          // holds the resolved amount, so persist that rather than the typed %.
+          if (metric.hasPercentToggle && modeOf(metric.key) === 'pct') {
+            val = derived[metric.key]
             ttype = 'cents'
           } else if (metric.type === 'count' || metric.type === 'days') {
             val = parseCount(raw)
@@ -452,7 +483,8 @@ export default function Targets() {
                     <tbody>
                       {metrics.map((metric, i) => {
                         const isLast = i === metrics.length - 1
-                        const isCOS = metric.key === 'cost_of_sales'
+                        const canPct = !!metric.hasPercentToggle
+                        const isPct = canPct && modeOf(metric.key) === 'pct'
 
                         return (
                           <tr
@@ -477,23 +509,51 @@ export default function Targets() {
                             {/* Target — editable input or computed display */}
                             <td className="px-5 py-3 text-right">
                               {metric.computed ? (
-                                <span className="font-mono text-sm text-text-secondary">
-                                  {metric.type === 'cents' && (
-                                    <span className="text-text-muted text-xs mr-0.5">$</span>
-                                  )}
-                                  {centsToDisplay(derived[metric.key]) || '—'}
-                                </span>
-                              ) : (
                                 <div className="flex items-center justify-end gap-1.5">
-                                  {/* COS $ / % toggle */}
-                                  {isCOS && (
+                                  {/* Display-only $ / % toggle on computed rows */}
+                                  {canPct && (
                                     <div className="flex items-center rounded overflow-hidden border border-border">
                                       {['dollar', 'pct'].map(mode => (
                                         <button
                                           key={mode}
-                                          onClick={() => handleCOSModeToggle(mode)}
+                                          onClick={() => handleModeToggle(metric.key, mode, true)}
                                           className={`px-1.5 py-0.5 font-mono text-[10px] transition-colors ${
-                                            cosMode === mode
+                                            modeOf(metric.key) === mode
+                                              ? 'bg-accent text-bg'
+                                              : 'text-text-muted hover:text-text-secondary bg-transparent'
+                                          }`}
+                                        >
+                                          {mode === 'dollar' ? '$' : '%'}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                  <span className="font-mono text-sm text-text-secondary">
+                                    {isPct
+                                      ? (derived.revenue > 0
+                                          ? `${(derived[metric.key] / derived.revenue * 100).toFixed(1)}%`
+                                          : '—')
+                                      : (
+                                        <>
+                                          {metric.type === 'cents' && (
+                                            <span className="text-text-muted text-xs mr-0.5">$</span>
+                                          )}
+                                          {centsToDisplay(derived[metric.key]) || '—'}
+                                        </>
+                                      )}
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {/* COS $ / % toggle */}
+                                  {canPct && (
+                                    <div className="flex items-center rounded overflow-hidden border border-border">
+                                      {['dollar', 'pct'].map(mode => (
+                                        <button
+                                          key={mode}
+                                          onClick={() => handleModeToggle(metric.key, mode, metric.computed)}
+                                          className={`px-1.5 py-0.5 font-mono text-[10px] transition-colors ${
+                                            modeOf(metric.key) === mode
                                               ? 'bg-accent text-bg'
                                               : 'text-text-muted hover:text-text-secondary bg-transparent'
                                           }`}
@@ -504,10 +564,10 @@ export default function Targets() {
                                     </div>
                                   )}
                                   {/* Currency prefix */}
-                                  {metric.type === 'cents' && !(isCOS && cosMode === 'pct') && (
+                                  {metric.type === 'cents' && !isPct && (
                                     <span className="text-text-muted text-sm">$</span>
                                   )}
-                                  {isCOS && cosMode === 'pct' && (
+                                  {isPct && (
                                     <span className="text-text-muted text-sm">%</span>
                                   )}
                                   <input
@@ -523,14 +583,14 @@ export default function Targets() {
                               )}
                             </td>
 
-                            {/* Prior year actual */}
+                            {/* Prior year actual — as % of prior year's own revenue */}
                             <td className="px-5 py-3 text-right font-mono text-sm text-text-muted">
-                              {fmtComparison(priorYearActuals[metric.key], metric.type)}
+                              {fmtColumn(priorYearActuals[metric.key], metric, priorYearActuals.revenue)}
                             </td>
 
-                            {/* Current year forecast */}
+                            {/* Current year forecast — as % of forecast revenue */}
                             <td className="px-5 py-3 text-right font-mono text-sm text-text-muted">
-                              {fmtComparison(forecastSummary[metric.key], metric.type)}
+                              {fmtColumn(forecastSummary[metric.key], metric, forecastSummary.revenue)}
                             </td>
                           </tr>
                         )
