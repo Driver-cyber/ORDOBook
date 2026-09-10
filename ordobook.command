@@ -27,7 +27,22 @@ CHROME_PROFILE="$HOME/Library/Application Support/ORDOBOOK/chrome-profile"
 mkdir -p "$LOG_DIR" "$CHROME_PROFILE"
 
 say()  { printf "  %s\n" "$1"; }
-fail() { printf "\n❌ %s\n\n" "$1"; read -r -p "Press Return to close..." _; exit 1; }
+
+# Errors need to surface differently depending on how we were launched:
+# from Terminal there's a TTY to print to; from the Dock .app there isn't, so
+# fall back to a macOS alert dialog or the failure would be silent.
+fail() {
+  local msg="$1"
+  printf "\n❌ %s\n\n" "$msg"
+  if [ -t 0 ]; then
+    read -r -p "Press Return to close..." _
+  else
+    local safe="${msg//\"/\'}"
+    osascript -e "display alert \"ORDOBOOK couldn't start\" message \"${safe}\" as critical" \
+      >/dev/null 2>&1
+  fi
+  exit 1
+}
 
 backend_ok()  { curl -sf "http://localhost:${BACKEND_PORT}/api/health" >/dev/null 2>&1; }
 frontend_ok() { curl -sf -o /dev/null "$APP_URL" 2>/dev/null; }
