@@ -244,6 +244,20 @@ export default function MappingReview() {
             </div>
           )}
 
+          {/* Upload-shape warnings from the backend: a missing report, or two
+              exports of the same one. Shown before the tables so a P&L-less
+              import is obvious instead of just looking a bit sparse. */}
+          {(preview.warnings?.length ?? 0) > 0 && (
+            <div className="bg-[rgba(200,169,110,0.10)] border border-[rgba(200,169,110,0.35)] rounded-xl px-4 py-3 space-y-1.5">
+              {preview.warnings.map((w, i) => (
+                <div key={i} className="flex gap-2 text-[12px] text-[#8a6d2e]">
+                  <span aria-hidden="true">⚠</span>
+                  <span>{w}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Job counts per period */}
           <section className="bg-surface border border-border rounded-xl p-5">
             <h2 className="font-display font-semibold text-sm text-text-primary mb-4">

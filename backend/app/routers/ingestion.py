@@ -145,6 +145,7 @@ async def upload_files(
     company_name = ""
     source_files = []
     job_counts: dict[str, int] = {}
+    files_by_type: dict[str, list[str]] = {}
 
     for upload in files:
         if not upload.filename.endswith(".xlsx"):
@@ -165,6 +166,7 @@ async def upload_files(
             if not company_name:
                 company_name = invoice_data["company_name"]
             source_files.append(upload.filename)
+            files_by_type.setdefault("invoices_by_month", []).append(upload.filename)
             continue
 
         try:
@@ -179,6 +181,38 @@ async def upload_files(
         if not company_name:
             company_name = parsed["company_name"]
         source_files.append(upload.filename)
+        files_by_type.setdefault(parsed["report_type"], []).append(upload.filename)
+
+    # Upload-shape warnings. An import with no P&L renders a Balance-Sheet-only
+    # review screen that looks plausible but silently drops all revenue and
+    # expense data — the advisor has to notice the absence. Say it instead.
+    warnings: list[str] = []
+    labels = {
+        "profit_and_loss": "Profit & Loss",
+        "balance_sheet": "Balance Sheet",
+        "invoices_by_month": "Invoices by Month",
+    }
+    if "profit_and_loss" not in files_by_type:
+        warnings.append(
+            "No Profit & Loss file detected — Revenue, Cost of Sales and expense data "
+            "won't be imported. Add the P&L export unless this is intentional."
+        )
+    if "balance_sheet" not in files_by_type:
+        warnings.append(
+            "No Balance Sheet file detected — cash, receivables, payables and equity "
+            "won't be imported. Add the Balance Sheet export unless this is intentional."
+        )
+    if "invoices_by_month" not in files_by_type:
+        warnings.append(
+            "No Invoices by Month file — job counts weren't pre-filled. You can enter "
+            "them by hand below, or add the invoice export."
+        )
+    for rtype, names in files_by_type.items():
+        if len(names) > 1:
+            warnings.append(
+                f"{len(names)} {labels.get(rtype, rtype)} files uploaded "
+                f"({', '.join(names)}) — their periods were merged. Check that's what you meant."
+            )
 
     # Merge rows for the same account across files.
     #
@@ -236,6 +270,7 @@ async def upload_files(
         rows=all_rows,
         suggestions=suggestions,
         job_counts=job_counts,
+        warnings=warnings,
     )
 
 

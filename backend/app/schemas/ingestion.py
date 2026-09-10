@@ -27,6 +27,10 @@ class ParsePreviewResponse(BaseModel):
     rows: list[ParsedRow]
     suggestions: list[MappingSuggestion]
     job_counts: dict[str, int] = {}  # pre-populated from invoice report if uploaded
+    # Upload-shape problems worth surfacing before the advisor maps anything —
+    # a missing report, or two exports of the same report. Not errors: the
+    # import can proceed, but it shouldn't proceed silently.
+    warnings: list[str] = []
 
 
 class MappingDecision(BaseModel):
