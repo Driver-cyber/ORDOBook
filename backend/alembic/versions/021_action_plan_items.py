@@ -15,6 +15,15 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # Idempotent: main.py runs Base.metadata.create_all() at startup, which
+    # creates any table whose model exists — so a database can already have this
+    # table while alembic_version still points at 020. Re-creating it then fails
+    # with DuplicateTable. Skip if it's already there, matching the inspector
+    # pattern used in 013/014/015/016/022.
+    conn = op.get_bind()
+    if 'action_plan_items' in sa.inspect(conn).get_table_names():
+        return
+
     op.create_table(
         'action_plan_items',
         sa.Column('id', sa.Integer(), nullable=False),
