@@ -112,9 +112,11 @@ def _aggregate_actuals(actuals: list, opening_bs=None) -> dict:
         cf_assets_change = -(ar_change + inv_change)
         cf_liabilities_change = ap_change
         net_cash_flow = latest_bs["cash"] - (opening_bs.get("cash") or 0)
-        # Equity roll-forward: opening + net profit − draws = closing, so
-        # draws = opening + net profit − closing.
-        owner_draws = (opening_bs.get("equity") or 0) + total_net_profit - latest_bs["equity"]
+        # Equity roll-forward: opening + net profit + owner activity = closing, so
+        # owner activity = closing − opening − net profit. Returned SIGNED to match
+        # the "Investments or (Draws) by Owner" convention: draws negative,
+        # investments positive.
+        owner_draws = latest_bs["equity"] - (opening_bs.get("equity") or 0) - total_net_profit
 
     return {
         "revenue": total_revenue,

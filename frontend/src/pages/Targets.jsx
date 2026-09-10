@@ -38,7 +38,7 @@ const METRICS = [
   // Computed roll-ups. Asset/liability change rows absorb both the working-capital
   // effect of DSO/DIO/DPO and the explicit drivers above, so the documented
   // Net CF formula stays intact:
-  //   Net CF = Net Profit − Owner Draws + CF: Asset Changes + CF: Liability Changes
+  //   Net CF = Net Profit + Owner Investments/(Draws) + CF: Asset Changes + CF: Liability Changes
   { key: 'cf_assets_change',      label: 'CF: Asset Changes',      type: 'cents', section: 'Cash Flow', computed: true },
   { key: 'cf_liabilities_change', label: 'CF: Liability Changes',  type: 'cents', section: 'Cash Flow', computed: true },
   { key: 'net_cash_flow',         label: 'Net Cash Flow',          type: 'cents', section: 'Cash Flow', computed: true },
@@ -107,7 +107,7 @@ function fmtChange(cents) {
  *
  *   cf_assets_change     = -(ΔAR + ΔInventory)   — positive = favorable (assets decreased)
  *   cf_liabilities_change = ΔAP                   — positive = favorable (liabilities increased)
- *   Net Cash Flow        = Net Profit − Owner Draws + cf_assets_change + cf_liabilities_change
+ *   Net Cash Flow        = Net Profit + owner_total_draws (signed) + cf_assets_change + cf_liabilities_change
  */
 function computeDerived(inputs, pctModes, priorEnding) {
   // P&L
@@ -177,8 +177,12 @@ function computeDerived(inputs, pctModes, priorEnding) {
   // Liability side: AP working capital plus explicit debt movements.
   const cfLiabilitiesChange = apChange + cfCurDebt + cfLTDebt
 
-  // Net Cash Flow = Net Profit − Owner Draws + CF Asset Changes + CF Liability Changes
-  const netCashFlow = netProfit - ownerDraws + cfAssetsChange + cfLiabilitiesChange
+  // Owner activity is a SIGNED cash amount, matching its label ("Investments or
+  // (Draws) by Owner") and the other cash flow drivers: a draw is negative, an
+  // investment positive. So it is ADDED, not subtracted — subtracting a negative
+  // draw would credit cash instead of reducing it.
+  //   Net CF = Net Profit + Owner Investments/(Draws) + CF Assets + CF Liabilities
+  const netCashFlow = netProfit + ownerDraws + cfAssetsChange + cfLiabilitiesChange
 
   // ── Projected Balance Sheet ───────────────────────────────────────────────
   // Balance movements are the mirror of the cash movements above: a purchase is
@@ -190,7 +194,7 @@ function computeDerived(inputs, pctModes, priorEnding) {
   const projOtherLTA     = priorOtherLTA
   const projOtherCL      = priorOtherCL + cfCurDebt
   const projLTL          = priorLTL + cfLTDebt
-  const projectedEquity  = priorEquity + netProfit - ownerDraws
+  const projectedEquity  = priorEquity + netProfit + ownerDraws
 
   // Subtotals
   const totalCurrentAssets      = projectedCash + targetAR + targetInventory + projOtherCA
@@ -663,7 +667,7 @@ export default function Targets() {
                         prior: derived.prior_long_term_liabilities, projected: derived.proj_long_term_liabilities },
                       { label: 'Total Liabilities', kind: 'subtotal',
                         prior: derived.prior_total_liabilities, projected: derived.total_liabilities },
-                      { label: 'Equity', hint: 'Prior equity + Net Profit − Owner Draws',
+                      { label: 'Equity', hint: 'Prior equity + Net Profit + Investments/(Draws)',
                         prior: derived.prior_equity, projected: derived.projected_equity },
                       { label: 'Total Liabilities & Equity', kind: 'check',
                         hint: 'Should equal Total Assets',
