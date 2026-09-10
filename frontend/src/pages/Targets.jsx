@@ -47,6 +47,9 @@ const METRICS = [
 
 const SECTIONS = ['Operations', 'P&L', 'Cash Flow']
 
+// How many committed edits the Undo dropdown keeps (session memory only).
+const UNDO_LIMIT = 20
+
 /**
  * Per-metric advisor note: a two-line box that autosaves, with an expand button
  * for anything longer. The expanded panel is anchored over the Notes column only,
@@ -420,7 +423,13 @@ export default function Targets() {
   const [priorYearActuals, setPriorYearActuals] = useState({})
   const [forecastSummary, setForecastSummary] = useState({})
   const [priorEndingBalances, setPriorEndingBalances] = useState({})
-  const [dirty, setDirty] = useState(false)
+  // Autosave replaces the Save button. committedRef is the last-persisted
+  // display string per field; undoStack holds one entry per committed edit,
+  // newest first, capped at UNDO_LIMIT and cleared on reload / year switch.
+  const [undoStack, setUndoStack] = useState([])
+  const [undoOpen, setUndoOpen] = useState(false)
+  const [saveStatus, setSaveStatus] = useState('idle') // idle | saving | saved | error
+  const committedRef = useRef({})
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -431,7 +440,8 @@ export default function Targets() {
 
   const loadData = useCallback(async () => {
     setLoading(true)
-    setDirty(false)
+    setUndoStack([])
+    setUndoOpen(false)
     setPctModes({})
     try {
       const [c, t] = await Promise.all([getClient(id), getTargets(id, year)])
@@ -452,6 +462,7 @@ export default function Targets() {
         }
       }
       setInputs(inputMap)
+      committedRef.current = { ...inputMap }
 
       // Notes load for every metric, including computed ones — you can annotate
       // a derived row even though you can't type a target into it.
@@ -471,7 +482,6 @@ export default function Targets() {
 
   function handleChange(key, value) {
     setInputs(prev => ({ ...prev, [key]: value }))
-    setDirty(true)
   }
 
   // Switch a metric between dollar and % of Revenue. For editable rows the typed
@@ -482,20 +492,23 @@ export default function Targets() {
     const rev = derived.revenue
 
     if (!isComputed && rev > 0) {
+      let converted = null
       if (newMode === 'pct') {
         // 2 decimals on the editable value: at 1 decimal a $ -> % -> $ round trip
         // drifts ~$160 on a $525k revenue base, which looks like the app silently
         // changed the target. Read-only columns still display 1 decimal.
         const cents = parseToCents(inputs[metricKey] ?? '') ?? 0
-        setInputs(prev => ({ ...prev, [metricKey]: (cents / rev * 100).toFixed(2) }))
+        converted = (cents / rev * 100).toFixed(2)
       } else {
         const pct = parseFloat(String(inputs[metricKey] ?? '').replace(/[%,\s]/g, ''))
-        if (!isNaN(pct)) {
-          const cents = Math.round(rev * pct / 100)
-          setInputs(prev => ({ ...prev, [metricKey]: Math.round(cents / 100).toLocaleString() }))
-        }
+        if (!isNaN(pct)) converted = Math.round(Math.round(rev * pct / 100) / 100).toLocaleString()
       }
-      setDirty(true)
+      if (converted !== null) {
+        setInputs(prev => ({ ...prev, [metricKey]: converted }))
+        // Same amount, new representation — the committed baseline follows it
+        // so the toggle itself never shows up as an undoable edit.
+        committedRef.current[metricKey] = converted
+      }
     }
 
     setPctModes(prev => ({ ...prev, [metricKey]: newMode }))
@@ -518,51 +531,95 @@ export default function Targets() {
     return fmtComparison(value, metric.type)
   }
 
-  async function handleSave() {
-    setSaving(true)
-    try {
-      const targets = []
-      const anyDriverSet = METRICS
-        .filter(m => !m.computed)
-        .some(m => (inputs[m.key] ?? '').trim() !== '')
+  // ── Autosave + undo ──────────────────────────────────────────────────────
+  // Every target — drivers AND the computed rows the Scoreboard grades against —
+  // is persisted together on each commit, so a driver change always ripples
+  // into the stored Revenue / Gross Profit / Net Cash Flow. Built from explicit
+  // inputs + modes snapshots rather than the memoised `derived`, so undo can
+  // persist a restored state in the same tick it sets it.
+  function buildTargetPayload(inp, modes) {
+    const d = computeDerived(inp, modes, priorEndingBalances)
+    const targets = []
+    const anyDriverSet = METRICS
+      .filter(m => !m.computed)
+      .some(m => (inp[m.key] ?? '').trim() !== '')
 
-      for (const metric of METRICS) {
-        let val, ttype
-
-        if (metric.computed) {
-          if (!anyDriverSet) continue
-          val = derived[metric.key]
-          if (val === null || val === undefined) continue
+    for (const metric of METRICS) {
+      let val, ttype
+      if (metric.computed) {
+        if (!anyDriverSet) continue
+        val = d[metric.key]
+        if (val === null || val === undefined) continue
+        ttype = 'cents'
+      } else {
+        const raw = inp[metric.key] ?? ''
+        if (raw.trim() === '') continue
+        // Percent-entered rows are always stored as cents — derived already
+        // holds the resolved amount, so persist that rather than the typed %.
+        if (metric.hasPercentToggle && (modes[metric.key] ?? 'dollar') === 'pct') {
+          val = d[metric.key]
           ttype = 'cents'
+        } else if (metric.type === 'count' || metric.type === 'days') {
+          val = parseCount(raw)
+          ttype = metric.type
         } else {
-          const raw = inputs[metric.key] ?? ''
-          if (raw.trim() === '') continue
-
-          // Percent-entered rows are always stored as cents — derived already
-          // holds the resolved amount, so persist that rather than the typed %.
-          if (metric.hasPercentToggle && modeOf(metric.key) === 'pct') {
-            val = derived[metric.key]
-            ttype = 'cents'
-          } else if (metric.type === 'count' || metric.type === 'days') {
-            val = parseCount(raw)
-            ttype = metric.type
-          } else {
-            val = parseToCents(raw)
-            ttype = 'cents'
-          }
+          val = parseToCents(raw)
+          ttype = 'cents'
         }
-
-        if (val === null || val === undefined || isNaN(val)) continue
-        targets.push({ metric_key: metric.key, target_value: val, target_type: ttype })
       }
+      if (val === null || val === undefined || isNaN(val)) continue
+      targets.push({ metric_key: metric.key, target_value: val, target_type: ttype })
+    }
+    return targets
+  }
 
-      await saveTargets(id, year, targets)
-      await loadData()
+  async function persist(inp, modes) {
+    setSaving(true)
+    setSaveStatus('saving')
+    try {
+      await saveTargets(id, year, buildTargetPayload(inp, modes))
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus('idle'), 1200)
     } catch {
-      alert('Failed to save targets. Please try again.')
+      setSaveStatus('error')
     } finally {
       setSaving(false)
     }
+  }
+
+  // Commit one field — called on blur, Enter or Tab. One undo entry per commit,
+  // the Excel model: each cell edit is one step. Typing alone never saves.
+  function commitField(metric) {
+    const key = metric.key
+    const next = inputs[key] ?? ''
+    const prev = committedRef.current[key] ?? ''
+    if (next === prev) return
+    committedRef.current[key] = next
+    setUndoStack(stack =>
+      [{ key, label: metric.label, prev, next, mode: modeOf(key), at: Date.now() }, ...stack]
+        .slice(0, UNDO_LIMIT)
+    )
+    persist(inputs, pctModes)
+  }
+
+  // Undo the newest `count` entries. Picking an item in the dropdown undoes it
+  // and everything above it, like Excel. Each entry also restores the $/% mode
+  // it was entered under, so a value is never reinterpreted under another mode.
+  function undo(count = 1) {
+    const entries = undoStack.slice(0, count)
+    if (entries.length === 0) return
+    const nextInputs = { ...inputs }
+    const nextModes = { ...pctModes }
+    for (const e of entries) {
+      nextInputs[e.key] = e.prev
+      nextModes[e.key] = e.mode
+      committedRef.current[e.key] = e.prev
+    }
+    setInputs(nextInputs)
+    setPctModes(nextModes)
+    setUndoStack(stack => stack.slice(count))
+    setUndoOpen(false)
+    persist(nextInputs, nextModes)
   }
 
   const hasPriorEnding = Object.keys(priorEndingBalances).length > 0
@@ -603,25 +660,70 @@ export default function Targets() {
               </button>
             ))}
           </div>
-          <button
-            onClick={handleSave}
-            disabled={!dirty || saving}
-            className="px-4 py-2 rounded-lg bg-accent text-bg text-sm font-medium hover:bg-[#d4b87a] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {saving ? 'Saving…' : 'Save Targets'}
-          </button>
+          {/* Autosave status + Excel-style undo. Edits commit on blur/Enter/Tab;
+              the main button undoes the last one, the caret lists recent edits
+              and picking one undoes it plus everything above it. */}
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-[11px] text-text-muted min-w-[64px] text-right">
+              {saveStatus === 'saving' && 'saving…'}
+              {saveStatus === 'saved' && 'saved ✓'}
+              {saveStatus === 'error' && <span className="text-[#c05a5a]">save failed</span>}
+            </span>
+            <div className="relative flex items-center">
+              <button
+                type="button"
+                onClick={() => undo(1)}
+                disabled={undoStack.length === 0 || saving}
+                title={undoStack[0] ? `Undo: ${undoStack[0].label}` : 'Nothing to undo'}
+                className="px-3 py-2 rounded-l-lg border border-border bg-surface text-text-secondary text-sm font-medium hover:text-text-primary hover:border-text-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                ↶ Undo
+              </button>
+              <button
+                type="button"
+                onClick={() => setUndoOpen(o => !o)}
+                disabled={undoStack.length === 0}
+                aria-label="Show recent edits"
+                className="px-2 py-2 rounded-r-lg border border-l-0 border-border bg-surface text-text-muted text-xs hover:text-text-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                ▾
+              </button>
+
+              {undoOpen && undoStack.length > 0 && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setUndoOpen(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-40 w-80 bg-surface border border-border rounded-lg shadow-xl overflow-hidden">
+                    <div className="px-3 py-2 border-b border-border font-mono text-[10px] uppercase tracking-widest text-text-muted">
+                      Recent edits — click to undo through
+                    </div>
+                    <ul className="max-h-72 overflow-y-auto">
+                      {undoStack.map((e, i) => (
+                        <li key={e.at + e.key}>
+                          <button
+                            type="button"
+                            onClick={() => undo(i + 1)}
+                            title={i === 0 ? 'Undo this edit' : `Undo this and the ${i} newer edit${i > 1 ? 's' : ''}`}
+                            className="w-full text-left px-3 py-2 text-[12px] hover:bg-surface-subtle border-b border-border/40 last:border-b-0 transition-colors"
+                          >
+                            <div className="text-text-primary font-medium">{e.label}</div>
+                            <div className="font-mono text-[11px] text-text-muted">
+                              {e.prev || '—'}{e.mode === 'pct' ? '%' : ''} → {e.next || '—'}{e.mode === 'pct' ? '%' : ''}
+                            </div>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-8 py-6">
         <div className="max-w-4xl space-y-8">
-          {dirty && (
-            <div className="bg-[rgba(200,169,110,0.12)] border border-[rgba(200,169,110,0.3)] rounded-lg px-4 py-2.5 text-[#a07a3a] text-sm">
-              Unsaved changes — click Save Targets to apply.
-            </div>
-          )}
-
           {/* KPI sections */}
           {SECTIONS.map(section => {
             const metrics = METRICS.filter(m => m.section === section)
@@ -748,6 +850,8 @@ export default function Targets() {
                                     placeholder="0"
                                     onChange={e => handleChange(metric.key, e.target.value)}
                                     onFocus={e => e.target.select()}
+                                    onBlur={() => commitField(metric)}
+                                    onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
                                     className="w-28 text-right bg-transparent border-b border-transparent hover:border-border focus:border-accent focus:outline-none py-0.5 font-mono text-sm text-text-primary placeholder:text-text-muted transition-colors"
                                   />
                                 </div>
@@ -764,7 +868,7 @@ export default function Targets() {
                               {fmtColumn(forecastSummary[metric.key], metric, forecastSummary.revenue)}
                             </td>
 
-                            {/* Advisor note — autosaves independently of Save Targets */}
+                            {/* Advisor note — autosaves on its own endpoint, separate from targets */}
                             <td className="px-3 py-2 align-top">
                               <NoteCell
                                 value={notes[metric.key] ?? ''}
