@@ -1,28 +1,61 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-05-19 (session close) | Scoreboard redesign (Concept 5) + Report Card split shipped. Blank-screen-on-422 fix landed in code but NOT yet validated against the original failure mode — see "Validation pending" below.
+> Last updated: 2026-09-10 (session close) | Live test cycle on real 2024–2026 data → Batches 1–3 built and
+> tested → Red Team (6 items, all resolved). 28 commits. Next: Batch 4, then Batch 5 (data-model change).
 
 ---
+
+## Launch (dev, as a desktop app)
+
+Click **ORDOBOOK** in the Dock (or double-click `ORDOBOOK.app` in the project folder). It starts
+Postgres/uvicorn/Vite if they aren't running, waits for health, and opens a Chrome app-mode window.
+`ordobook-stop.command` shuts the servers down. Ports are fixed at 8000/5173 (Vite proxies `/api`).
+**The backend migrates itself to head on every launch** — no manual `alembic upgrade head`.
+Rebuild the Dock app after a logo change with `build-app.command`.
+
+Pulling code on the Mac (no merge; branch is `claude/add-project-tracker-zGrFN`):
+```
+git fetch origin claude/add-project-tracker-zGrFN
+git checkout origin/claude/add-project-tracker-zGrFN -- $(git diff --name-only <last-pulled-sha> origin/claude/add-project-tracker-zGrFN)
+./ordobook-stop.command    # then relaunch from the Dock
+```
 
 ## Top priorities
 
-1. **Validate the blank-screen fix end-to-end.** The code changes shipped (see "Blank-screen
-   fix" section below), build is clean, but the original failure mode — click Confirm on
-   `/clients/:id/mapping-review` so the backend returns a 422 — has NOT been re-triggered
-   to confirm the page now shows the error text instead of going blank. First task next
-   session: do a real import flow on Vetter Plumbing and trip the confirm path. If it shows
-   readable error text, the fix is validated and we move on. If it still blanks, debug.
-2. **Advisor-editable headline / priority reason / action items.** The new Scoreboard
-   currently auto-generates these three text fields. The user explicitly flagged this as
-   the highest functional backlog item — they want DB-backed fields so the advisor can
-   write the actual narrative for each period. Touches `ScoreboardEntry` (add `priority_reason`,
-   `action_item`) plus a new `ScoreboardSummary` row keyed on (client, year) for headline.
-   Surface inline-edit UI on the Scoreboard page; mirror the change in
-   `_build_scoreboard_template_data` (backend PDF).
-3. **Phase 6** — Electron packaging + SQLite migration.
+1. **Batch 4 — views & layout.** Workspace → Actuals defaults to the **Actuals History year grid**
+   (12 months per screen, year selector, "List View" button beside Review Mapping); **collapsible
+   sidebar**; **always-visible horizontal scrollbar** when content overflows; **clickable tooltips
+   on every cash-flow driver** (definition + sign convention — write them AFTER Red Team decisions
+   #3/#4, which changed what a couple should say); fold the Actuals job-count save/cancel into
+   autosave while that screen is rebuilt. (Notes 8/4, 9, 13, 12; Note 18 leftover.)
+2. **Batch 5 — Action Plan restructure** (Note 6). Objectives as parent rows (≤3), action items as
+   nested sub-rows (≤3 each) with their own owner(s) and due date, multi-owner chips, an owner
+   roster editor, wrapping/auto-sizing text, and the advisor-notes popover rendered in front.
+   **Data-model change** — plan first, migration, then UI.
+3. **Advisor-editable Scoreboard text fields** (carried from May). Headline / priority reason /
+   action items as DB-backed fields on the visual Scoreboard, mirrored into the PDF template.
+4. **Residual demo items** never exercised live: Reports → Actuals view, Scenario Sandbox, Client
+   Profile, PDF + JSON exports. Then Phase 6b (Electron) is unblocked; 6c signing after.
+5. **Engine verification vs. the Vetter Jan-2026 workbook** — a systematic diff remains a Module 3
+   hard requirement. `backend/scripts/verify_targets.py` now covers the Targets derivation; the
+   monthly forecast engine still needs its equivalent.
 
----
+## Where We Are (2026-09-10)
 
-## This Session's Work (2026-05-15 → 2026-05-19, single rolling session)
+- Real data: Vetter Plumbing Jan 2024 → Aug 2026 imported (BS, P&L, invoices), all mappings saved.
+- **Import:** P&L root cause fixed (QB header order), duplicate accounts merged across files,
+  missing/duplicate-report warnings, Cancel Import, grouped canonical-order dropdown.
+- **Targets:** full cash-flow drivers (signed, workbook labels), full projected BS with L&E tie-out,
+  summary P&L, $/% toggles switching all three columns, per-metric notes (migration 022), autosave +
+  undo, **all computed values derived server-side** (migration 024 removed stored copies).
+- **Forecast:** autosave + auto-recalculate + undo, $/% toggles on money rows, Total Jobs row,
+  Total Payroll display toggle, Tax Savings Reserve retired (migration 023), COS $ pinning (025).
+- **Scoreboard:** grades on favourable variance (integer-exact); owner draws graded as signed cash.
+  Hit **Recalculate** once to refresh stored grades.
+- **Infra:** auto-migrate on launch (dev too), migrations 021–025 idempotent, schema audit + targets
+  direction tests in `backend/scripts/`, Dock launcher `.app`, branch merged with main (0 behind).
+
+## Prior session — 2026-05-15 → 2026-05-19 (history)
+
 
 ### Scoreboard redesign — Concept 5 ("The Sketch")
 
@@ -117,76 +150,34 @@ then Phase 6 (Electron + SQLite).
 
 ---
 
-## Step 1 — Launch
+## Step 1 — Launch (historical — see Launch at top; the Dock app replaces the terminals)
 
-Click **ORDOBOOK** in the Dock. It will:
-- Start Postgres via pg_ctl
-- Open backend terminal (uvicorn)
-- Open frontend terminal (npm run dev)
-- Open Chrome to localhost:5173 after 3s
+## Phase 6 — Electron Packaging (status)
 
-Manual fallback if needed:
-```bash
-# Postgres (use pg_ctl directly — NOT brew services, stale pid issue)
-/opt/homebrew/opt/postgresql@17/bin/pg_ctl -D /opt/homebrew/var/postgresql@17 start
-
-# Backend
-cd "/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook/backend"
-source venv/bin/activate && uvicorn app.main:app --reload
-
-# Frontend
-cd "/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook/frontend"
-npm run dev
-```
-
----
-
-## Phase 6 — Electron Packaging (next up)
-
-**Phase 5 is complete** — all deliverables built and wired 2026-04-23.
-
-### Phase 6 build order:
-
-### 1. SQLite Migration
-- Change `DATABASE_URL` in `.env` from `postgresql://...` to `sqlite:///path/to/ordobook.db`
-- Update `alembic.ini` sqlalchemy.url
-- Install `aiosqlite` if needed for async driver
-- Run `alembic upgrade head` against SQLite — all migrations should apply cleanly via SQLAlchemy abstraction
-- Test data path: `~/Library/Application Support/ORDOBOOK/ordobook.db`
-
-### 2. Electron Shell
-- `npm install electron electron-builder --save-dev` in project root
-- `main.js` — starts FastAPI backend process on launch, opens browser window to localhost
-- `electron-builder.yml` — macOS + Windows targets, bundle Python venv
-- Dev mode: separate terminals for uvicorn + vite (unchanged)
-- Production: Electron spawns uvicorn with bundled Python
-
-### 3. Code Signing + Distribution
-- Apple Developer account required for macOS notarization
-- `electron-builder` handles signing if `CSC_LINK` + `APPLE_ID` env vars set
-- `electron-updater` for auto-updates via GitHub Releases
-- Windows: EV cert or self-signed (self-signed requires user to click through SmartScreen)
+- **6a SQLite migration code: done** and audited (`backend/scripts/audit_schema.py` — migrations and
+  models produce identical schemas). Dev still runs Postgres; SQLite activates via `DATABASE_URL`.
+- **6b Electron shell: scaffolded, inert** (`electron/`, root `package.json`, `electron-builder.yml`,
+  `PHASE-6B-ELECTRON.md` runbook). Auto-migrate on launch, free-port probing, backend serves the
+  built SPA. Unblocked once the residual demo items (priority 4) pass.
+- **6c signing + auto-update:** after 6b. Electron+Python bundles are an AV false-positive magnet —
+  budget for signing before distributing; test on a clean VM.
 
 ### Key Constraints Carry Forward
 - All API paths: relative `/api/...` — never hardcode localhost
-- SQLite: monetary values BIGINT cents (no change from Postgres)
+- Monetary values BIGINT cents; monthly driver dicts `dict[str, int]`, keys "1"–"12"
 - Pydantic v2: `model_config = {"from_attributes": True}` throughout
-- WeasyPrint PDF requires system libs on user machine: `brew install cairo pango`
-- **WeasyPrint installed on Mac** (Python 3.9 system Python, pip3 install, 2026-04-23). If PDF
-  export returns 503, the backend venv may need its own install:
-  `cd backend && source venv/bin/activate && pip install weasyprint`
+- WeasyPrint needs `brew install cairo pango` and must be in the bundled venv (else PDF 503)
 
 ---
 
 ## Roadmap Order
 
-1. ✅ Phase 3c — full cash flow (2026-03-23)
-2. ✅ Phase 3d — Projected Balance Sheet (2026-03-27)
-3. ✅ Phase 4 — Targets & Scoring / Scoreboard (2026-03-31)
-4. ✅ Phase 4a — Navigation restructure (confirmed 2026-04-23)
-5. ✅ Phase 4b — Scenario Sandbox (confirmed 2026-04-23)
-6. ✅ Phase 5 — Action Plan + Reports Actuals + PDF/JSON exports (2026-04-23)
-7. **Phase 6** — Electron packaging + SQLite migration ← **NEXT**
+1. ✅ Phases 3c, 3d, 4, 4a, 4b, 5 (Mar–Apr 2026)
+2. ✅ Phase 6a — SQLite migration code (2026-04-24), audited (2026-06-29)
+3. ✅ Live test cycle + Batches 1–3 + Red Team (2026-09-10)
+4. **Batch 4** — views & layout ← NEXT
+5. **Batch 5** — Action Plan restructure (data-model change; plan first)
+6. Residual demo items → Phase 6b Electron → 6c signing
 
 ---
 
@@ -196,12 +187,17 @@ npm run dev
 - **Overhead is a plug:** `overhead = total_expenses − payroll − marketing − depreciation` — never sum accounts directly
 - **`net_profit_for_year` in MonthlyActuals** is QB's cumulative YTD BS equity line — never sum across months
 - **`proj_fixed_assets`** must have `max(0, ...)` floor guard — depreciation can exceed prior balance
-- **Owner draws / tax savings** are balance sheet items — do NOT reduce Net Income
-- **Net Cash Flow** = Net Profit − Owner Draws + CF Asset Changes + CF Liability Changes (both CF metrics positive-favorable)
-- **Projected equity** = Total Assets − Total Liabilities (not from equity_before_net_profit)
+- **Owner activity is SIGNED cash** (draw negative, investment positive) and is a balance sheet item — it never reduces Net Income. Tax Savings Reserve is retired (folded into draws, migration 023).
+- **Net Cash Flow** = Net Profit **+** Owner Investments/(Draws) + CF Asset Changes + CF Liability Changes (owner activity signed; both CF metrics positive-favourable). `cf_*` drivers are signed cash too.
+- **Projected equity** = prior equity + Net Profit + owner activity; **Total Liabilities & Equity must equal Total Assets** (tie-out on Targets). The tie-out catches imbalance, NOT sign errors — run `backend/scripts/verify_targets.py` after engine changes.
 - **Pydantic v2** — use `model_config = {"from_attributes": True}`, never the v1 `class Config` pattern
 - **All API paths** use relative `/api/...` — never hardcode `http://localhost:8000` in frontend
 - **Monthly driver dicts** are `dict[str, int]` — string keys "1"–"12", int cents
+- **One formula, one place:** Targets' computed values come from `app/engine/targets.py`; the Scoreboard grades against the same derivation. Never store a derivable value.
+- **Canonical order** lives in `frontend/src/lib/categories.js` — import it; don't re-order locally. Reports → Actuals is the deliberate exception.
+- **COS:** % of revenue unless a month is pinned with a $ entry (`cos_fixed_monthly`); a % entry releases the pin.
+- **Grades:** favourable-variance thresholds in integer math (`_compute_grade`); never ratio.
+- **Commits:** gate on a script that exits non-zero, `set -e`; no backticks in `-m` strings.
 
 ## Tracker Reminder
 At session end: update `ordobook-tracker.html` — move completed items to backlog, pull next

@@ -117,9 +117,9 @@ bundle. Re-installing a new `.dmg` replaces the program, not your data — clien
 imports, targets, and action plans all carry over. You re-import from zero only
 once, on the very first packaged launch.
 
-Schema changes are handled automatically: the packaged app runs
-`alembic upgrade head` on every launch (`ORDOBOOK_AUTO_MIGRATE=1`, set by
-Electron; see `backend/app/db_migrate.py`). So a new version that adds a column
+Schema changes are handled automatically: the app runs `alembic upgrade head`
+on every launch — packaged AND dev — before `create_all` (on by default;
+`ORDOBOOK_AUTO_MIGRATE=0` opts out; see `backend/app/db_migrate.py`). So a new version that adds a column
 applies that migration to your existing DB without losing rows. The patch loop is:
 
 1. Edit + test in dev mode (Postgres, hot reload) — unchanged workflow.

@@ -13,10 +13,14 @@ Excel workbook process for a solo consulting practice. The immediate goal is to 
 monthly bookkeeping data ingestion from QuickBooks Online exports, run the analytical
 models, and produce the Scoreboard, 12-Month Forecast, and Action Plan deliverables.
 
-**Current Phase:** Phase 6a complete (2026-04-28). Phases 1–5 complete. Migrations 001–021 applied.
-SQLite migration code done — all models, migrations, and config are DB-agnostic. Dev stays on PostgreSQL
-(existing .env unchanged); SQLite activates at Electron packaging time via DATABASE_URL.
-**GATE:** Demo run-through (DEMO-CHECKLIST.md) required before Phase 6b (Electron shell).
+**Current Phase:** Live-use hardening (2026-09-10). Phases 1–6a complete; Phase 6b Electron shell
+scaffolded (inert). Migrations 001–025 applied; the app now migrates itself to head on every launch.
+Dev runs as a Dock app (`ORDOBOOK.app` → Chrome app-mode window over the Vite/uvicorn dev servers).
+The DEMO-CHECKLIST gate was substantially exercised by the 2026-09-10 live test cycle (import,
+Workspace Actuals/Forecast/Targets, Scoreboard); residual untested: Reports → Actuals view, Scenario
+Sandbox, Client Profile, PDF/JSON exports.
+**NEXT:** Batch 4 (Actuals year grid + List View, collapsible sidebar, persistent scrollbar, driver
+tooltips, Actuals job-count autosave) then Batch 5 (Action Plan restructure — data-model change).
 
 **Current Vibe:** Deliberate. Plan before building. Verify before shipping. One module at a time.
 
@@ -700,6 +704,136 @@ flags Electron+Python as an antivirus false-positive magnet.
 
 ---
 
+## 📦 Live Test Cycle → Batches 1–3 → Red Team (2026-09-10)
+
+A full day of using the app on real Vetter Plumbing data (Jan 2024 → Aug 2026), twenty test
+notes captured live, three build batches, and a Red Team checkpoint. 28 commits.
+
+### [2026-09-10] Dev branch reconciled with main before building
+**Decision:** Merged `origin/main` (May Scoreboard/Report Card work, ~2,500 lines) into the working
+branch before any feature work. Cherry-picking single files across the divergence had already
+nearly regressed the May `formatApiError` fix on `MappingReview.jsx`.
+**Reason:** Building on a stale branch and cherry-picking files silently drops the other side's
+work. Merge first, then build. The branch is now 0 behind main.
+
+### [2026-09-10] Root cause of "no P&L data": QB header order
+**Decision:** `parse_file` detected the report type from row 0 only; QB puts the company name
+there and the title on row 1, so P&L classified as `unknown`, fell into the Balance Sheet
+section parser, and every row lost its section. Detection now scans the opening rows
+(`_detect_report_type_from_rows`), company name is extracted the same way, and the invoice
+parser shares the helpers. Import now warns when a report type is missing or duplicated, merges
+the same account across files, and has a Cancel Import button.
+**Reason:** The Balance Sheet only ever worked by luck (the else-branch happened to be right for
+it). One header rule, applied everywhere, replaces three per-parser assumptions.
+
+### [2026-09-10] Canonical financial-statement order is a single source of truth
+**Decision:** `frontend/src/lib/categories.js` defines the order once — Assets (most→least
+current) → Liabilities → Equity → non-accounting (job counts) → Income → COGS → Expenses/Overhead →
+Other Income/Expense — with group labels. Mapping dropdown (grouped), Category Totals (was sorted
+by dollar magnitude), Workspace Actuals History/Detail all import it. Reports → Actuals is
+deliberately exempt (client-facing presentation).
+**Reason:** Every screen re-deciding the order drifts. The advisor's rule: ordered like the
+statements and the flow of data, everywhere, unless a report deliberately differs.
+
+### [2026-09-10] Signed cash conventions (workbook labels adopted)
+**Decision:** Cash-flow drivers use the reference workbook's labels and are SIGNED cash amounts:
+"Sale or (Purchase) of…", "Additions or (Repayments) to…", "Investments or (Draws) by Owner". A
+purchase, repayment or draw is negative. Net CF = Net Profit + Owner Investments/(Draws) + CF
+Asset Changes + CF Liability Changes. Projected equity = prior + Net Profit + owner activity.
+**Reason:** The label encodes the sign so it can't be misread. Adopting the label without
+flipping the formula produced a $190k Net CF error (draws double-counted), caught only by
+comparing to the workbook — the tie-out tied straight through it. Retained lesson below (#3).
+
+### [2026-09-10] Projected balance sheet fleshed out, with a tie-out and its limits
+**Decision:** Targets shows the full projected BS (current/long-term assets, current/long-term
+liabilities, equity, all subtotals) plus a summary P&L, and a **Total Liabilities & Equity** line
+that must equal Total Assets. Proven: the two differ by exactly the prior year's own imbalance.
+**Reason:** It surfaces an unbalanced imported balance sheet to the dollar. It does NOT catch sign
+errors — any identity inside one self-consistent model ties regardless of convention.
+
+### [2026-09-10] Tax Savings Reserve retired; folded into owner draws
+**Decision:** Migration 023 folds `owner_tax_savings` into `owner_distributions` month-by-month
+and zeroes it; the engine passes 0 for the reserve; the row is gone from Forecast Drivers and
+Report. Draws are entered inclusive of any reserve.
+**Reason:** It was a disaggregated view the advisor no longer wants as a line. Hiding the row
+while the engine still read it would have let a stale value move cash invisibly; folding keeps
+every owner-draws total identical.
+
+### [2026-09-10] Autosave + Excel-style undo replace Save buttons (Note 18)
+**Decision:** Targets and Forecast commit on blur / Enter / Tab (never per keystroke; notes debounce
+600ms). One undo entry per committed edit (field-granular on Forecast so a row autofill is one
+step), newest first, capped at 20, session memory only, cleared on reload/year switch/Sync
+Actuals. Forecast recalculates on every commit — the Recalculate button is gone; Sync Actuals
+stays as a deliberate reset. Each Targets entry records the $/% mode it was entered under.
+**Reason:** No save button to forget. Cross-screen undo persistence was considered and rejected
+as too complex for the value (parking lot).
+
+### [2026-09-10] $ | % of revenue toggles
+**Decision:** Targets: COGS/Payroll/Marketing/Overhead enter-and-display, Gross/Net Profit
+display-only; toggling switches all three columns, each divided by its OWN revenue. Editable
+conversion at 2 decimals (1 decimal drifted ~$160 on a $525k base). Forecast: every $-denominated
+row (not counts, days, avg values, or Total Revenue); Payroll inputs excluded, the Total Payroll
+line gets a display-only toggle. Denominator is the engine's revenue for that month.
+**Reason:** The advisor thinks in % of revenue for spend lines. Job counts and per-job prices as a
+% of revenue are not meaningful numbers.
+
+### [2026-09-10] Red Team #1 — targets derived server-side, one formula
+**Decision:** `app/engine/targets.py` derives Revenue, Gross/Net Profit, cash-flow roll-ups, the
+projected BS and summary P&L from the stored driver targets. GET /targets returns them as
+`derived`; the Scoreboard grades against the same derivation (`_annual_targets`); computed
+metrics are never stored (migration 024 removes the legacy rows, keeping any that carry a note).
+The Targets page no longer computes anything; computed rows refresh on commit, not while typing.
+**Reason:** The advisor's rule — a number is input or derived in one place and carried
+everywhere, so a problem is traced to its source. Two copies of a formula guarantee drift.
+
+### [2026-09-10] Red Team #3 — direction tests, not a second check figure
+**Decision:** The proposed "ending cash − opening cash = Net CF" check was rejected as
+tautological (projected cash is defined as opening + Net CF). `backend/scripts/verify_targets.py`
+instead asserts direction — a −95,000 draw reduces Net CF and equity by 95,000; a purchase
+reduces cash and raises the asset; a repayment reduces cash and the debt — plus a hand-computed
+Net CF, the tie-out, and the working-capital formulas. Run it after any engine change.
+**Reason:** Only a check computed a different way, or an externally-fixed expectation, catches a
+sign error. The workbook comparison remains the final authority (CLAUDE.md).
+
+### [2026-09-10] Red Team #4 — COS: a $ entry pins the month
+**Decision:** COS stays % of revenue by default. A month entered in $ is stored in
+`cos_fixed_monthly` (migration 025) and does not move with revenue; entering a % releases it.
+`calculate_cost_of_sales()` is a pure function whose trace states which rule applied. Pinned
+months show a gold $ marker.
+**Reason:** A typed dollar figure that silently changes later reads as the app changing the
+number. Presence, not truthiness — a pinned $0 is honoured.
+
+### [2026-09-10] Red Team #5 — grade on favourable variance, in integers
+**Decision:** `_compute_grade` no longer uses actual/target. A ratio of two negative numbers
+compares magnitudes and graded every negative-target metric backwards. Grades now come from the
+difference in the favourable direction over |target|, evaluated in integer arithmetic
+(20·diff ≥ −|target| ⇔ ≥ −5%) so positive-target grades are provably identical to the old rule
+(200,000 random + boundary cases). `owner_total_draws` is higher-is-better, labelled "Owner
+Investments/(Draws)". Stored grades refresh on Recalculate.
+**Reason:** Cash-perspective metrics regularly carry negative targets.
+
+### [2026-09-10] Red Team #6 — migrations run before create_all, dev included
+**Decision:** `auto_migrate_if_enabled()` is on by default (`ORDOBOOK_AUTO_MIGRATE=0` opts out)
+and runs before `create_all()` in dev as well as packaged. Migration 021 (and 022+) are
+idempotent.
+**Reason:** `create_all` creates tables Alembic doesn't know about and never alters existing
+ones; running it first put the version marker behind reality (the 021 DuplicateTable failure)
+and left new columns to a manual `alembic upgrade head`. The dev DB now migrates itself.
+
+### [2026-09-10] Red Team #2 — undo stays in session memory (confirmed)
+**Decision:** Kept. An accidental reload loses the *recovery*, not the data (edits are saved).
+**Reason:** Persisting the stack, and cross-screen stacking, were judged more complexity than
+value; the advisor also prefers that undo on one screen can never touch work done on another.
+
+### Process lessons (retained)
+- Gate commits behind a single script that exits non-zero, with `set -e` — twice a failing test
+  did not block a push because a heredoc's exit status didn't chain.
+- Never put backticks in a `git commit -m "…"` string; bash command-substitutes them.
+- Verify a data migration on a seeded database, with bound parameters — a `:100` inside a JSON
+  literal in `sa.text()` is a bind parameter, and a test that inserts nothing "passes".
+
+---
+
 ## 💡 Parking Lot (Acknowledged Future Ideas)
 
 These are real ideas that belong in a future version or a separate project.
@@ -716,3 +850,10 @@ They are documented here so they don't get lost.
 - **Multi-user access** — staff or contractor accounts with role-based permissions
 - **Blockchain / audit trail** — immutable financial record keeping (very long-term)
 - **5-Year Plan module** — absorbed into Scenario Sandbox; precision multi-year forecasting deprioritized
+- **Cross-screen undo** — a single undo stack that survives navigating Targets → Forecast → Targets
+  and interleaves edits across screens. Rejected 2026-09-10 as too complex for v1 (where the stack
+  lives, entries whose screen is unmounted, re-navigating on undo); advisor prefers per-screen isolation.
+- **Scenario Sandbox "Owner Draws" label/sign** — the sandbox still labels the input "Owner Draws";
+  align with the signed "Investments or (Draws)" convention once its own sign handling is confirmed.
+- **Store nothing derived** — the Scoreboard still persists grades (legitimately, they're advisor
+  overridable). Audit any other stored-but-derivable values against the one-formula rule.

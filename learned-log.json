@@ -1,1 +1,56 @@
-[]
+[
+  {
+    "date": "2026-09-10",
+    "project": "ordobook",
+    "tag": "process",
+    "lesson": "Gate commits behind one script that exits non-zero, with set -e. A heredoc's failing exit status does not chain into the next line; two pushes went out on failed tests before this was fixed."
+  },
+  {
+    "date": "2026-09-10",
+    "project": "ordobook",
+    "tag": "process",
+    "lesson": "Never put backticks in a git -m string — bash command-substitutes them and the word vanishes from the message."
+  },
+  {
+    "date": "2026-09-10",
+    "project": "ordobook",
+    "tag": "testing",
+    "lesson": "Verify a data migration on a SEEDED database with bound parameters. A ':100' inside a JSON literal in sa.text() is a bind parameter; the insert failed and the migration 'passed' on an empty table."
+  },
+  {
+    "date": "2026-09-10",
+    "project": "ordobook",
+    "tag": "finance",
+    "lesson": "A balance-sheet tie-out inside one self-consistent model ties straight through a sign error. Catch sign errors with direction tests (a -95k draw must reduce cash by 95k) and the reference workbook — not with another identity."
+  },
+  {
+    "date": "2026-09-10",
+    "project": "ordobook",
+    "tag": "finance",
+    "lesson": "Grading actual/target by ratio is wrong whenever the target is negative (two negatives compare magnitudes). Grade the difference in the favourable direction over |target|, in integer arithmetic."
+  },
+  {
+    "date": "2026-09-10",
+    "project": "ordobook",
+    "tag": "architecture",
+    "lesson": "A number is input or derived in ONE place and carried everywhere. Two copies of a formula (JS for display, stored copy for grading) guarantee drift; prove a port key-for-key before deleting the original."
+  },
+  {
+    "date": "2026-09-10",
+    "project": "ordobook",
+    "tag": "infra",
+    "lesson": "create_all before Alembic creates tables the ledger doesn't know about and never alters existing ones. Migrate first on every launch; make migrations idempotent."
+  },
+  {
+    "date": "2026-09-10",
+    "project": "ordobook",
+    "tag": "git",
+    "lesson": "Don't cherry-pick files across diverged branches — it silently drops the other side's work on shared files. Merge first, then build."
+  },
+  {
+    "date": "2026-09-10",
+    "project": "ordobook",
+    "tag": "ux",
+    "lesson": "When one upload shape is wrong (two Balance Sheets, no P&L) the screen looks plausible. Say it — a warning beats a screen the user has to notice is sparse."
+  }
+]

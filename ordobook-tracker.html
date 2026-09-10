@@ -392,31 +392,31 @@ body {
 {
   "project": "ORDOBOOK",
   "description": "Financial advisory workflow app — QB ingestion → analytical engine → client deliverables",
-  "updated": "2026-09-09",
+  "updated": "2026-09-10",
   "columns": [
     {
       "name": "ORDOBook",
       "sub": "React · FastAPI · SQLite · Local-first desktop",
       "priorities": [
         {
-          "title": "Validate blank-screen-on-422 fix end-to-end",
-          "note": "Code shipped 2026-05-15 but failure mode not retriggered. First task next session: real Vetter Plumbing import + Confirm on /mapping-review. Page should now show error text instead of going blank."
+          "title": "Batch 4 — Actuals year grid, sidebar, scrollbar, driver tooltips",
+          "note": "Workspace→Actuals defaults to the Actuals History 12-month grid with a year selector and a List View button; collapsible sidebar; always-visible horizontal scrollbar on overflow; clickable definition/sign-convention tooltips on every cash-flow driver (write after Red Team #3/#4); Actuals job-count edit joins autosave. Notes 8/4, 9, 13, 12."
+        },
+        {
+          "title": "Batch 5 — Action Plan restructure (data-model change)",
+          "note": "Objectives as parent rows (≤3) with nested action items (≤3 each) carrying their own owners + due date; multi-owner chips; owner roster editor; wrapping/auto-size text; notes popover in front. Migration + CRUD + UI. Plan first. Note 6."
         },
         {
           "title": "Advisor-editable Scoreboard text fields",
-          "note": "Visual Scoreboard auto-generates headline, per-priority reason, and action items. User flagged as top functional backlog item. Add DB-backed fields (ScoreboardSummary row for headline; extend ScoreboardEntry with priority_reason + action_item). Surface inline-edit UI on Scoreboard.jsx; mirror in _build_scoreboard_template_data for PDF."
+          "note": "Headline / priority reason / action items as DB-backed fields on the visual Scoreboard; mirror into _build_scoreboard_template_data for the PDF. Carried from May."
         },
         {
-          "title": "Phase 6 — Electron Packaging",
-          "note": "Wrap React + FastAPI in Electron shell. Migrate DB from PostgreSQL to SQLite. Bundle Python venv. electron-builder config."
+          "title": "Residual demo items → Phase 6b Electron",
+          "note": "Never exercised live: Reports→Actuals, Scenario Sandbox, Client Profile, PDF + JSON exports. Once they pass, run PHASE-6B-ELECTRON.md (shell is scaffolded, inert). 6c signing after; budget for it — Electron+Python bundles trip AV."
         },
         {
-          "title": "Phase 6 — Code Signing + Auto-Update",
-          "note": "macOS notarization (Apple Developer account required), electron-updater for auto-updates. Required before distributing."
-        },
-        {
-          "title": "Engine Verification vs. Vetter Plumbing Jan 2026",
-          "note": "Systematic diff of analytical engine outputs against the reference workbook. Module 3 hard requirement."
+          "title": "Engine verification vs. Vetter Jan-2026 workbook",
+          "note": "Systematic diff of the monthly forecast engine against the reference workbook (Module 3 hard requirement). verify_targets.py covers the Targets derivation; the forecast engine needs its equivalent."
         }
       ],
       "backlog": [
@@ -429,9 +429,248 @@ body {
         "Per-client recurring task checklist — monthly workflow with customizable tasks that roll forward to next session",
         "DONE: Phase 4a Nav Restructure (WorkspaceShell, ReportsShell, two-space routing, sidebar)",
         "DONE: Phase 4b Scenario Sandbox (ScenarioSandbox.jsx, 3-col, client view, POST /scenario/calculate)",
-        "DONE: Phase 5 Deliverables — Action Plan (migration 021, CRUD API, ActionPlan.jsx), Reports Actuals, JSON export, PDF export (WeasyPrint)"
+        "DONE: Phase 5 Deliverables — Action Plan (migration 021, CRUD API, ActionPlan.jsx), Reports Actuals, JSON export, PDF export (WeasyPrint)",
+        "DONE: Blank-screen-on-422 fix — exercised across a full day of imports 2026-09-10 (never reproduced)",
+        "DONE: Batch 1 Targets — CF drivers, projected BS + tie-out, summary P&L, $/% toggles, notes (022), autosave+undo, server-side derivation (024)",
+        "DONE: Batch 2 canonical order (categories.js) — dropdown groups, Category Totals, Actuals History/Detail",
+        "DONE: Batch 3 autosave + undo on Targets and Forecast; Forecast auto-recalculates",
+        "DONE: Red Team 2026-09-10 — six items (SSOT derivation, direction tests, COS pinning 025, integer grading, auto-migrate, undo scope)",
+        "Parking: cross-screen undo stack (rejected for v1 — per-screen isolation preferred)",
+        "Parking: Scenario Sandbox 'Owner Draws' label/sign alignment with the signed convention"
       ],
-      "shipped": []
+      "shipped": [
+        {
+          "date": "2026-09-10",
+          "what": "COS $ entry pins the month; % releases it (migration 025, calculate_cost_of_sales)",
+          "tags": [
+            "engine",
+            "migration",
+            "ux"
+          ],
+          "learned": "Presence, not truthiness: a pinned $0 must be honoured, so compare the fixed dict by key."
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Targets derived server-side; Scoreboard grades the same derivation; stored computed rows removed (024)",
+          "tags": [
+            "engine",
+            "backend",
+            "migration"
+          ],
+          "learned": "Two copies of a formula guarantee drift. The JS↔Python port was proven key-for-key before the JS was deleted."
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Direction tests for the Targets derivation (verify_targets.py)",
+          "tags": [
+            "tooling",
+            "engine"
+          ],
+          "learned": "A tie-out inside one self-consistent model ties through a sign error. Assert direction instead."
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Grades on favourable variance in integer arithmetic; owner draws graded as signed cash",
+          "tags": [
+            "backend",
+            "fix"
+          ],
+          "learned": "A ratio of two negatives compares magnitudes — every negative-target metric was graded backwards. The first fix rounded at the boundary; integer math made equivalence exact."
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Auto-migrate on every launch, dev included; 021 idempotent",
+          "tags": [
+            "backend",
+            "tooling"
+          ],
+          "learned": "create_all before Alembic leaves the ledger behind reality (021 DuplicateTable)."
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Tax Savings Reserve retired — folded into owner draws (023); Total Payroll display toggle",
+          "tags": [
+            "engine",
+            "migration",
+            "ux"
+          ],
+          "learned": "Hiding a row the engine still reads lets stale values move cash invisibly. Fold, then stop reading."
+        },
+        {
+          "date": "2026-09-10",
+          "what": "$ | % of revenue toggles on Forecast money rows",
+          "tags": [
+            "ux",
+            "frontend"
+          ]
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Forecast autosave + auto-recalculate + Excel-style undo; Recalculate button removed",
+          "tags": [
+            "ux",
+            "frontend"
+          ],
+          "learned": "Undo at field (12-month dict) granularity makes a row autofill one step. A sequence counter drops stale responses on fast Tab-through."
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Targets autosave on blur/Enter/Tab + undo dropdown; Save button removed",
+          "tags": [
+            "ux",
+            "frontend"
+          ],
+          "learned": "Each undo entry records the $/% mode it was entered under so a value is never reinterpreted."
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Expanded note panel portaled to body (unclippable)",
+          "tags": [
+            "fix",
+            "frontend"
+          ],
+          "learned": "position:fixed still clips under a transformed ancestor; a portal removes every ancestor."
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Canonical financial-statement order as a shared module; grouped mapping dropdown; Category Totals ordered",
+          "tags": [
+            "ux",
+            "frontend"
+          ],
+          "learned": "Category Totals looked random because it sorted by dollar magnitude."
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Import: warn on missing/duplicate report files; merge same account across files; Cancel Import",
+          "tags": [
+            "fix",
+            "ux",
+            "backend"
+          ],
+          "learned": "Two Balance Sheets and no P&L looked plausible on screen — silence was the bug."
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Targets per-metric notes column with autosave (migration 022)",
+          "tags": [
+            "feature",
+            "migration"
+          ]
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Owner draws sign fix: Net CF $233,279 → $43,279 (matches workbook)",
+          "tags": [
+            "fix",
+            "engine"
+          ],
+          "learned": "Adopting the workbook's signed label without flipping the formula double-counted draws. Only the workbook comparison caught it."
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Targets $/% toggles switching all three columns, each on its own revenue",
+          "tags": [
+            "ux",
+            "frontend"
+          ],
+          "learned": "1-decimal round-trips drifted ~$160 on $525k; editable conversion uses 2 decimals."
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Targets: full cash-flow drivers, full projected BS with L&E tie-out, summary P&L; 2025 CF comparison",
+          "tags": [
+            "feature",
+            "engine"
+          ]
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Forecast Total Jobs row; mapping review Balance Sheet first with statement toggle",
+          "tags": [
+            "ux",
+            "frontend"
+          ]
+        },
+        {
+          "date": "2026-09-10",
+          "what": "P&L import root cause: QB header order (company on row 0); forecast-config 500 race",
+          "tags": [
+            "fix",
+            "backend"
+          ],
+          "learned": "The Balance Sheet only ever worked because the else-branch happened to be right for it."
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Invoices by Month import fixed; collapsed export rejected with guidance",
+          "tags": [
+            "fix",
+            "backend"
+          ],
+          "learned": "A collapsed export parsed 'successfully' as all zeros — a silent wrong number is worse than an error."
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Dock launcher ORDOBOOK.app (osacompile), start/stop scripts, Rosetta + PATH fixes, exec bits in git",
+          "tags": [
+            "packaging",
+            "tooling"
+          ],
+          "learned": "An .app whose executable is a shell script has no Mach-O header — Apple Silicon asks for Rosetta. Dock launches get a minimal PATH."
+        },
+        {
+          "date": "2026-07-21",
+          "what": "Electron: probe a free backend port; packaging lessons folded into the runbook",
+          "tags": [
+            "packaging",
+            "docs"
+          ],
+          "learned": "Borrowed from the PJT retrospective: don't hardcode a port; green build ≠ works; test on a clean VM."
+        },
+        {
+          "date": "2026-06-29",
+          "what": "Auto-migrate user DB on launch so data persists across packaged versions",
+          "tags": [
+            "packaging",
+            "backend"
+          ]
+        },
+        {
+          "date": "2026-06-29",
+          "what": "Electron shell scaffold (inert); FastAPI serves the built SPA",
+          "tags": [
+            "packaging"
+          ]
+        },
+        {
+          "date": "2026-06-29",
+          "what": "Phase 6a audit: fixed two fresh-build migration bugs (013, 016); audit_schema.py",
+          "tags": [
+            "fix",
+            "migration",
+            "tooling"
+          ],
+          "learned": "Two migrations only failed on a fresh SQLite build — never on the dev Postgres already at head."
+        },
+        {
+          "date": "2026-05-19",
+          "what": "Scoreboard redesign (Concept 5) + Report Card split; PDF via Jinja2/WeasyPrint with bundled fonts",
+          "tags": [
+            "feature",
+            "frontend",
+            "backend"
+          ]
+        },
+        {
+          "date": "2026-05-15",
+          "what": "Blank-screen-on-422 fix: formatApiError + ErrorBoundary",
+          "tags": [
+            "fix",
+            "frontend"
+          ]
+        }
+      ]
     }
   ]
 }
