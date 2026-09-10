@@ -56,7 +56,7 @@ else
 fi
 
 echo ""
-echo "  Done. Close the ORDOBOOK window if it's still open."
+echo "  Done."
 echo "───────────────────────────────────────────"
 echo ""
 sleep 1

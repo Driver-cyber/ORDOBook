@@ -114,12 +114,22 @@ fi
 # ── 4. Open the app window ────────────────────────────────────────────────
 # Chrome's --app mode = no address bar, no tabs, its own dock icon. The separate
 # --user-data-dir keeps it fully independent of your everyday Chrome windows.
+# If a window from a previous launch is still open, bring it forward instead of
+# spawning a second one. If NO window is open but the profile still carries a lock
+# from a crashed/killed Chrome, a fresh launch hands the URL to a ghost and nothing
+# appears — so clear stale locks before opening.
 say "▸  Opening ORDOBOOK..."
-open -na "Google Chrome" --args \
-  --app="$APP_URL" \
-  --user-data-dir="$CHROME_PROFILE" \
-  2>/dev/null \
-  || fail "Couldn't open Google Chrome. Open $APP_URL manually."
+if pgrep -f "user-data-dir=$CHROME_PROFILE" >/dev/null 2>&1; then
+  osascript -e 'tell application "Google Chrome" to activate' >/dev/null 2>&1 || true
+  say "•  ORDOBOOK window was already open — brought it forward"
+else
+  rm -f "$CHROME_PROFILE"/Singleton* 2>/dev/null
+  open -na "Google Chrome" --args \
+    --app="$APP_URL" \
+    --user-data-dir="$CHROME_PROFILE" \
+    2>/dev/null \
+    || fail "Couldn't open Google Chrome. Open $APP_URL manually."
+fi
 
 echo ""
 echo "  ORDOBOOK is running."
