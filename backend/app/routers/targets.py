@@ -37,7 +37,9 @@ SCOREBOARD_METRICS = [
     {"key": "cf_assets_change",     "label": "CF: Asset Changes",     "type": "cents", "higher_is_better": True,  "section": "Cash Flow",  "agg": "sum",          "computed": True},
     {"key": "cf_liabilities_change","label": "CF: Liability Changes", "type": "cents", "higher_is_better": True,  "section": "Cash Flow",  "agg": "sum",          "computed": True},
     {"key": "net_cash_flow",        "label": "Net Cash Flow",         "type": "cents", "higher_is_better": True,  "section": "Cash Flow",  "agg": "sum"},
-    {"key": "owner_total_draws",    "label": "Owner Draws",           "type": "cents", "higher_is_better": False, "section": "Cash Flow",  "agg": "sum"},
+    # Signed cash: a draw is negative, an investment positive. From the cash
+    # perspective the Scoreboard takes, higher (less negative) is better.
+    {"key": "owner_total_draws",    "label": "Owner Investments/(Draws)", "type": "cents", "higher_is_better": True,  "section": "Cash Flow",  "agg": "sum"},
 ]
 
 SECTION_ORDER = ["P&L", "Operations", "Cash Flow"]
@@ -187,25 +189,26 @@ def _aggregate(periods: list, metric: dict) -> int:
 
 
 def _compute_grade(actual: int, prorated_target: int, higher_is_better: bool) -> Optional[str]:
-    """Auto-assign a grade based on actual vs prorated target."""
-    if prorated_target == 0:
+    """Auto-assign a grade from the favourable variance vs the prorated target.
+
+    Graded on _variance_pct — the difference in the favourable direction over
+    |target| — rather than on actual/target. For a positive target the two are
+    identical (ratio >= 0.95 is exactly variance >= -5%), but a ratio of two
+    negative numbers compares magnitudes and grades signed cash metrics
+    backwards: a -80k draw against a -95k target is a smaller draw (good), yet
+    ratio 0.84 read as "missed". Cash-perspective metrics — owner draws, CF asset
+    and liability changes, net cash flow — regularly carry negative targets.
+
+    Thresholds: green >= -5%, yellow >= -20%, red below.
+    """
+    variance = _variance_pct(actual, prorated_target, higher_is_better)
+    if variance is None:
         return None
-    ratio = actual / prorated_target  # float OK here — not financial math, just a threshold check
-    if higher_is_better:
-        if ratio >= 0.95:
-            return "green"
-        elif ratio >= 0.80:
-            return "yellow"
-        else:
-            return "red"
-    else:
-        # Lower is better (expenses, DSO, DIO)
-        if ratio <= 1.05:
-            return "green"
-        elif ratio <= 1.20:
-            return "yellow"
-        else:
-            return "red"
+    if variance >= -5.0:
+        return "green"
+    if variance >= -20.0:
+        return "yellow"
+    return "red"
 
 
 def _variance_pct(actual: int, prorated_target: int, higher_is_better: bool) -> Optional[float]:
