@@ -392,7 +392,7 @@ body {
 {
   "project": "ORDOBOOK",
   "description": "Financial advisory workflow app — QB ingestion → analytical engine → client deliverables",
-  "updated": "2026-05-21",
+  "updated": "2026-09-09",
   "columns": [
     {
       "name": "ORDOBook",
@@ -420,6 +420,7 @@ body {
         }
       ],
       "backlog": [
+        "Product 2 (cloud tier) — anonymized advisory engine: OrdoBook exports a de-identified client profile locally (pseudonymized name, ages rounded to 5, dollars to nearest 1k), uploads it with a P&L to a cloud LLM that simulates the return, projects current tax liability, and surfaces the top 2 highest-impact planning moves. Chat front end so an owner can run their own scenarios. Results re-match to the real client on load back into desktop OrdoBook. Encryption keys stay on the local machine — the cloud is told only which scheme to use, so shared-server data isn't usefully identifying. Sellable to firms off one processor function.",
         "God Mode / Level 1–3 audit trail UI (calc_trace stored, hover/panel/fullscreen UI not built)",
         "Meeting Mode — app-menu toggle, action plan review + live editor",
         "Advisor Context Layer — private per-client notes field",
