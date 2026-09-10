@@ -3,29 +3,12 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { confirmImport } from '../api/ingestion'
 import { formatApiError } from '../api/errors'
 
-const CATEGORIES = [
-  { value: 'revenue', label: 'Revenue' },
-  { value: 'cost_of_sales', label: 'Cost of Sales' },
-  { value: 'payroll_expenses', label: 'Payroll Expenses' },
-  { value: 'marketing_expenses', label: 'Marketing Expenses' },
-  { value: 'depreciation_amortization', label: 'Depreciation & Amortization' },
-  { value: 'overhead_expenses', label: 'Overhead Expenses' },
-  { value: 'other_income_expense', label: 'Other Income / Expense' },
-  { value: 'cash', label: 'Cash' },
-  { value: 'accounts_receivable', label: 'Accounts Receivable' },
-  { value: 'inventory', label: 'Inventory' },
-  { value: 'other_current_assets', label: 'Other Current Assets' },
-  { value: 'total_fixed_assets', label: 'Fixed Assets' },
-  { value: 'total_other_long_term_assets', label: 'Other Long-Term Assets' },
-  { value: 'accounts_payable', label: 'Accounts Payable' },
-  { value: 'other_current_liabilities', label: 'Other Current Liabilities' },
-  { value: 'total_long_term_liabilities', label: 'Long-Term Liabilities' },
-  { value: 'equity_before_net_profit', label: 'Equity (excl. Net Profit)' },
-  { value: 'net_profit_for_year', label: 'Net Profit for Year (BS)' },
-  { value: 'excluded', label: '— Exclude this account —' },
-]
-
-const CAT_LABEL = Object.fromEntries(CATEGORIES.map(c => [c.value, c.label]))
+import {
+  CATEGORY_GROUPS,
+  EXCLUDED_CATEGORY,
+  CAT_LABEL,
+  sortEntriesByCategory,
+} from '../lib/categories'
 
 function fmt(cents) {
   const dollars = cents / 100
@@ -288,9 +271,9 @@ export default function MappingReview() {
             </h2>
             <p className="text-[11px] text-text-muted mb-4">Live preview of your mapping for the first period. Updates as you reassign accounts below.</p>
             <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-[12px]">
-              {Object.entries(totals[periods[0]] || {})
-                .filter(([, v]) => v !== 0)
-                .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+              {sortEntriesByCategory(
+                Object.entries(totals[periods[0]] || {}).filter(([, v]) => v !== 0)
+              )
                 .map(([cat, cents]) => (
                   <div key={cat} className="flex justify-between items-center py-0.5 border-b border-border/40">
                     <span className="text-text-muted">{CAT_LABEL[cat] || cat}</span>
@@ -429,9 +412,16 @@ function MappingTable({ title, rows, mappings, periods, onSetMapping, suggestion
                         isNew ? 'border-[rgba(92,158,110,0.45)]' : 'border-border'
                       }`}
                     >
-                      {CATEGORIES.map(c => (
-                        <option key={c.value} value={c.value}>{c.label}</option>
+                      {CATEGORY_GROUPS.map(group => (
+                        <optgroup key={group.label} label={group.label}>
+                          {group.items
+                            .filter(c => c.selectable !== false)
+                            .map(c => (
+                              <option key={c.value} value={c.value}>{c.label}</option>
+                            ))}
+                        </optgroup>
                       ))}
+                      <option value={EXCLUDED_CATEGORY.value}>{EXCLUDED_CATEGORY.label}</option>
                     </select>
                   </td>
                   {periods.slice(0, 3).map(p => (

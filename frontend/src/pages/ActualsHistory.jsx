@@ -282,26 +282,6 @@ export default function ActualsHistory() {
 
           <tbody>
 
-            {/* ══ INCOME STATEMENT ════════════════════════════════════════════ */}
-            <SectionHeader label="Income Statement" colCount={n} />
-            <DataRow label="Revenue"            values={periods.map(d => d.revenue)}         highlight />
-            <DataRow label="Job Count"           values={periods.map(d => String(d.job_count))} muted isText />
-            <DataRow label="Cost of Sales"       values={periods.map(d => d.cost_of_sales)} />
-            <DataRow label="Gross Profit"        values={computed.map(c => c.grossProfit)}   highlight />
-
-            <SectionHeader label="Operating Expenses" colCount={n} />
-            <DataRow label="Payroll"                    values={periods.map(d => d.payroll_expenses)} />
-            <DataRow label="Marketing"                  values={periods.map(d => d.marketing_expenses)} indent />
-            <DataRow label="Depreciation & Amort."      values={periods.map(d => d.depreciation_amortization)} indent />
-            <DataRow label="Overhead"                   values={periods.map(d => d.overhead_expenses)} indent />
-            <DataRow label="Total Expenses"             values={computed.map(c => c.totalExpenses)}    highlight />
-            <DataRow label="Net Operating Profit"       values={computed.map(c => c.netOperatingProfit)} highlight />
-
-            <SectionHeader label="Other" colCount={n} />
-            <DataRow label="Other Income / (Expense)" values={periods.map(d => d.other_income_expense)} muted />
-            <Divider colCount={n} />
-            <DataRow label="Net Profit" values={computed.map(c => c.netProfit)} highlight />
-
             {/* ══ BALANCE SHEET — ASSETS ══════════════════════════════════════ */}
             <SectionHeader label="Assets" colCount={n} />
             <DataRow label="Cash"                   values={periods.map(d => d.cash)} />
@@ -327,6 +307,29 @@ export default function ActualsHistory() {
             <DataRow label="Net Profit for Year"         values={periods.map(d => d.net_profit_for_year)} />
             <DataRow label="Total Equity"                values={computed.map(c => c.totalEquity)}           highlight />
             <DataRow label="Total Liabilities & Equity"  values={computed.map(c => c.totalLiabilitiesEquity)} highlight />
+
+            {/* ══ OPERATIONS (non-accounting) ═══════════════════════════════ */}
+            <SectionHeader label="Operations" colCount={n} />
+            <DataRow label="Job Count"           values={periods.map(d => String(d.job_count))} muted isText />
+
+            {/* ══ INCOME STATEMENT ════════════════════════════════════════════ */}
+            <SectionHeader label="Income Statement" colCount={n} />
+            <DataRow label="Revenue"            values={periods.map(d => d.revenue)}         highlight />
+            <DataRow label="Cost of Sales"       values={periods.map(d => d.cost_of_sales)} />
+            <DataRow label="Gross Profit"        values={computed.map(c => c.grossProfit)}   highlight />
+
+            <SectionHeader label="Operating Expenses" colCount={n} />
+            <DataRow label="Payroll"                    values={periods.map(d => d.payroll_expenses)} />
+            <DataRow label="Marketing"                  values={periods.map(d => d.marketing_expenses)} indent />
+            <DataRow label="Depreciation & Amort."      values={periods.map(d => d.depreciation_amortization)} indent />
+            <DataRow label="Overhead"                   values={periods.map(d => d.overhead_expenses)} indent />
+            <DataRow label="Total Expenses"             values={computed.map(c => c.totalExpenses)}    highlight />
+            <DataRow label="Net Operating Profit"       values={computed.map(c => c.netOperatingProfit)} highlight />
+
+            <SectionHeader label="Other" colCount={n} />
+            <DataRow label="Other Income / (Expense)" values={periods.map(d => d.other_income_expense)} muted />
+            <Divider colCount={n} />
+            <DataRow label="Net Profit" values={computed.map(c => c.netProfit)} highlight />
 
             {/* ══ CASH FLOW INDICATORS ════════════════════════════════════════ */}
             <SectionHeader label="Cash Flow Indicators" colCount={n} />

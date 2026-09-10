@@ -138,6 +138,33 @@ export default function ActualsDetail() {
       <div className="flex-1 overflow-y-auto px-8 py-6">
         <div className="max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 
+          {/* Balance Sheet */}
+          <div className="bg-surface border border-border rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-border">
+              <h2 className="font-display font-semibold text-sm text-text-primary">Balance Sheet</h2>
+            </div>
+            <SectionHeader label="Assets" />
+            <Row label="Cash" value={data.cash} />
+            <Row label="Accounts Receivable" value={data.accounts_receivable} />
+            <Row label="Inventory" value={data.inventory} />
+            <Row label="Other Current Assets" value={data.other_current_assets} />
+            <Row label="Total Current Assets" value={totalCurrentAssets} calculated />
+            <Row label="Fixed Assets" value={data.total_fixed_assets} />
+            <Row label="Other Long-Term Assets" value={data.total_other_long_term_assets} />
+            <Row label="Total Assets" value={totalAssets} calculated />
+            <SectionHeader label="Liabilities" />
+            <Row label="Accounts Payable" value={data.accounts_payable} />
+            <Row label="Other Current Liabilities" value={data.other_current_liabilities} />
+            <Row label="Total Current Liabilities" value={totalCurrentLiabilities} calculated />
+            <Row label="Long-Term Liabilities" value={data.total_long_term_liabilities} />
+            <Row label="Total Liabilities" value={totalLiabilities} calculated />
+            <SectionHeader label="Equity" />
+            <Row label="Equity (excl. Net Profit)" value={data.equity_before_net_profit} />
+            <Row label="Net Profit for Year" value={data.net_profit_for_year} />
+            <Row label="Total Equity" value={totalEquity} calculated />
+            <Row label="Total Liabilities & Equity" value={totalLiabilitiesEquity} calculated />
+          </div>
+
           {/* ── Income Statement ───────────────────────────────────────────── */}
           <div className="bg-surface border border-border rounded-xl overflow-hidden">
             <div className="px-5 py-4 border-b border-border flex items-center justify-between">
@@ -178,33 +205,6 @@ export default function ActualsDetail() {
             <SectionHeader label="Other" />
             <Row label="Other Income / (Expense)" value={data.other_income_expense} />
             <Row label="Net Profit" value={netProfit} calculated />
-          </div>
-
-          {/* Balance Sheet */}
-          <div className="bg-surface border border-border rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-border">
-              <h2 className="font-display font-semibold text-sm text-text-primary">Balance Sheet</h2>
-            </div>
-            <SectionHeader label="Assets" />
-            <Row label="Cash" value={data.cash} />
-            <Row label="Accounts Receivable" value={data.accounts_receivable} />
-            <Row label="Inventory" value={data.inventory} />
-            <Row label="Other Current Assets" value={data.other_current_assets} />
-            <Row label="Total Current Assets" value={totalCurrentAssets} calculated />
-            <Row label="Fixed Assets" value={data.total_fixed_assets} />
-            <Row label="Other Long-Term Assets" value={data.total_other_long_term_assets} />
-            <Row label="Total Assets" value={totalAssets} calculated />
-            <SectionHeader label="Liabilities" />
-            <Row label="Accounts Payable" value={data.accounts_payable} />
-            <Row label="Other Current Liabilities" value={data.other_current_liabilities} />
-            <Row label="Total Current Liabilities" value={totalCurrentLiabilities} calculated />
-            <Row label="Long-Term Liabilities" value={data.total_long_term_liabilities} />
-            <Row label="Total Liabilities" value={totalLiabilities} calculated />
-            <SectionHeader label="Equity" />
-            <Row label="Equity (excl. Net Profit)" value={data.equity_before_net_profit} />
-            <Row label="Net Profit for Year" value={data.net_profit_for_year} />
-            <Row label="Total Equity" value={totalEquity} calculated />
-            <Row label="Total Liabilities & Equity" value={totalLiabilitiesEquity} calculated />
           </div>
 
         </div>
