@@ -85,7 +85,9 @@ else
   [ -x "./venv/bin/uvicorn" ] \
     || fail "No venv found at $PROJECT_DIR/backend/venv
    Create it:  python3.12 -m venv venv && source venv/bin/activate && pip install -r requirements.txt"
-  nohup ./venv/bin/uvicorn app.main:app --port "$BACKEND_PORT" \
+  # --reload so backend edits take effect without restarting the app (this is
+  # still a dev-mode launcher, not a packaged build).
+  nohup ./venv/bin/uvicorn app.main:app --port "$BACKEND_PORT" --reload \
     >"$LOG_DIR/backend.log" 2>&1 &
   for _ in $(seq 1 40); do backend_ok && break; sleep 0.5; done
   backend_ok || fail "Backend didn't come up. Check $LOG_DIR/backend.log"

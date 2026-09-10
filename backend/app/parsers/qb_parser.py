@@ -19,6 +19,10 @@ _MONTH_NAMES = frozenset([
     "July", "August", "September", "October", "November", "December",
 ])
 
+# How many leading rows to search for report title / company name. QuickBooks
+# varies the header order between report types, so we scan rather than assume.
+_HEADER_SCAN_ROWS = 6
+
 _MONTH_ABBR_TO_FULL = {
     m[:3].lower(): m for m in _MONTH_NAMES
 }
@@ -370,21 +374,39 @@ def parse_file(file_bytes: bytes, filename: str) -> dict:
     }
 
 
+def _looks_like_date_range(text: str) -> bool:
+    """True for a QB header date-range line, e.g. 'January 1, 2025-September 10, 2026'."""
+    if "-" not in text:
+        return False
+    words = text.split()
+    if not words:
+        return False
+    return words[0].rstrip(",") in _MONTH_NAMES
+
+
 def detect_report_type(file_bytes: bytes) -> str:
     """
-    Read only the first cell to determine which QB report type this file is.
+    Scan the opening rows to determine which QB report type this file is.
     Returns: "profit_and_loss" | "balance_sheet" | "invoices_by_month" | "unknown"
+
+    QuickBooks is inconsistent about header order: some exports lead with the
+    report title, others lead with the company name and put the title on row 2
+    (observed on "Invoices by Month"). Checking only the first cell misidentifies
+    the latter as "unknown", so scan the first few rows and take the first match.
     """
     wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
     ws = wb.active
-    rows = list(ws.iter_rows(max_row=1, values_only=True))
-    first_cell = str(rows[0][0] or "") if rows and rows[0] else ""
-    if "Invoices by Month" in first_cell:
-        return "invoices_by_month"
-    if "Profit and Loss" in first_cell:
-        return "profit_and_loss"
-    if "Balance Sheet" in first_cell:
-        return "balance_sheet"
+    rows = list(ws.iter_rows(max_row=_HEADER_SCAN_ROWS, values_only=True))
+    for row in rows:
+        if not row:
+            continue
+        cell = str(row[0] or "")
+        if "Invoices by Month" in cell:
+            return "invoices_by_month"
+        if "Profit and Loss" in cell:
+            return "profit_and_loss"
+        if "Balance Sheet" in cell:
+            return "balance_sheet"
     return "unknown"
 
 
@@ -406,7 +428,20 @@ def parse_invoice_report(file_bytes: bytes, filename: str) -> dict:
     if not all_rows:
         raise ValueError("File appears to be empty.")
 
-    company_name = str(all_rows[1][0]).strip() if len(all_rows) > 1 and all_rows[1][0] else ""
+    # Header order varies (see detect_report_type). Take the first non-empty
+    # header cell that is neither the report title nor the date-range line,
+    # rather than assuming the company name sits on a fixed row.
+    company_name = ""
+    for row in all_rows[:_HEADER_SCAN_ROWS]:
+        if not row or row[0] is None:
+            continue
+        candidate = str(row[0]).strip()
+        if not candidate or "Invoices by Month" in candidate:
+            continue
+        if _looks_like_date_range(candidate):
+            continue
+        company_name = candidate
+        break
 
     from datetime import date as _date, datetime as _datetime
 
@@ -445,6 +480,16 @@ def parse_invoice_report(file_bytes: bytes, filename: str) -> dict:
             # Format C: col_a is None, col_b is an invoice date (datetime object or "MM/DD/YYYY" string)
             if isinstance(col_b, (_date, _datetime)) or (isinstance(col_b, str) and '/' in col_b):
                 counts[current_month] += 1
+
+    # A collapsed export (month headers only, no invoice detail rows) parses
+    # without error but yields zero for every month, which would silently wipe
+    # out job counts — a core KPI. Fail loudly and say how to fix it.
+    if counts and not any(counts.values()):
+        raise ValueError(
+            "This 'Invoices by Month' export contains no invoice detail rows, so "
+            "every month would import as 0 jobs. Re-export it from QuickBooks with "
+            "the rows expanded (not collapsed) so each invoice is listed."
+        )
 
     return {
         "report_type": "invoices_by_month",
