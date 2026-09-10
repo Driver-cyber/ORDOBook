@@ -161,7 +161,7 @@ function DriverRow({ label, monthInts, actualsMonths = new Set(), getValue, getD
 
 // ── Calculated summary row ────────────────────────────────────────────────────
 
-function CalcRow({ label, periods, field, fields, highlight = false, sublabel }) {
+function CalcRow({ label, periods, field, fields, highlight = false, sublabel, format = fmt }) {
   const getVal = (p) => fields
     ? fields.reduce((s, f) => s + (p?.[f] ?? 0), 0)
     : (p?.[field] ?? 0)
@@ -191,16 +191,19 @@ function CalcRow({ label, periods, field, fields, highlight = false, sublabel })
         <td key={i} className="text-right px-2 py-2 font-mono text-[12px] font-semibold"
             style={{ color, minWidth: 58 }}>
           <Tooltip content={getTooltip(p)}>
-            {fmt(getVal(p))}
+            {format(getVal(p))}
           </Tooltip>
         </td>
       ))}
       <td className="text-right px-2 py-2 font-mono text-[12px] font-semibold" style={{ color }}>
-        {fmt(total)}
+        {format(total)}
       </td>
     </tr>
   )
 }
+
+// Job counts are plain integers, not cents — fmt() would render them as currency.
+const fmtCount = (n) => (n === null || n === undefined) ? '—' : Number(n).toLocaleString()
 
 // ── Sub-section label ─────────────────────────────────────────────────────────
 
@@ -491,6 +494,8 @@ export default function ForecastDrivers() {
               onAutofill={val => autofillField('large_job_avg_value_monthly', val * 100)}
             />
 
+            {/* Small + Medium + Large, summed by the engine as total_job_count */}
+            <CalcRow label="Total Jobs" periods={orderedPeriods} field="total_job_count" format={fmtCount} />
             <CalcRow label="Total Revenue" periods={orderedPeriods} field="revenue" highlight />
 
             {/* ══ COST OF SALES ═════════════════════════════════════════════════ */}
