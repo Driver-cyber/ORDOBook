@@ -157,5 +157,5 @@ applies that migration to your existing DB without losing rows. The patch loop i
 - **`/api` calls 404 in production** → the SPA fallback or static mount didn't
   engage. Confirm `frontend/dist` exists and `ORDOBOOK_FRONTEND_DIST` points at it.
 - **DB errors on first launch** → run `python scripts/audit_schema.py`; it must
-  print PASS. `create_all` builds the schema on first run, so no `alembic upgrade`
-  is needed for a fresh SQLite DB.
+  print PASS. Migrations run to head automatically on launch (fresh or existing DB),
+  so a failure here means a broken migration, not a missing `alembic upgrade`.

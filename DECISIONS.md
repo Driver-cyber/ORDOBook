@@ -8,7 +8,7 @@
 
 ## 🎯 Current North Star
 
-**Build a cloud-hosted financial advisory workflow application** that replaces the manual
+**Build a local-first desktop financial advisory workflow application** that replaces the manual
 Excel workbook process for a solo consulting practice. The immediate goal is to automate
 monthly bookkeeping data ingestion from QuickBooks Online exports, run the analytical
 models, and produce the Scoreboard, 12-Month Forecast, and Action Plan deliverables.
