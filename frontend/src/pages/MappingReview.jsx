@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { confirmImport } from '../api/ingestion'
+import { formatApiError } from '../api/errors'
 
 const CATEGORIES = [
   { value: 'revenue', label: 'Revenue' },
@@ -97,6 +98,9 @@ export default function MappingReview() {
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  // Which statement's accounts are being mapped. Balance Sheet first — it's the
+  // order the advisor reviews in, and one table at a time keeps the screen readable.
+  const [activeStatement, setActiveStatement] = useState('balance_sheet')
 
   // Derive rows/periods before any early return so hooks are always called in the same order
   const periods = preview?.periods_detected ?? []
@@ -114,6 +118,15 @@ export default function MappingReview() {
   // Separate P&L and BS rows
   const plRows = rows.filter(r => ['income', 'cogs', 'expenses', 'other_income', 'other_expenses'].includes(r.section))
   const bsRows = rows.filter(r => ['assets', 'liabilities', 'liabilities_equity', 'equity'].includes(r.section))
+
+  // Fall back to whichever statement actually has rows, so uploading only a P&L
+  // (or only a Balance Sheet) never lands on an empty tab.
+  const shownStatement =
+    activeStatement === 'balance_sheet' && bsRows.length === 0 && plRows.length > 0
+      ? 'profit_and_loss'
+      : activeStatement === 'profit_and_loss' && plRows.length === 0 && bsRows.length > 0
+        ? 'balance_sheet'
+        : activeStatement
 
   const setMapping = (row, category) => {
     const key = `${row.section}::${row.account_name}`
@@ -170,7 +183,7 @@ export default function MappingReview() {
 
       navigate(`/clients/${id}`)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Save failed')
+      setError(formatApiError(err, 'Save failed'))
       setSaving(false)
     }
   }
@@ -258,11 +271,44 @@ export default function MappingReview() {
             </div>
           </section>
 
-          {/* P&L accounts */}
-          {plRows.length > 0 && (
+          {/* Statement toggle — map one statement at a time so the screen stays
+              readable. Balance Sheet is first because that's the review order. */}
+          {(bsRows.length > 0 || plRows.length > 0) && (
+            <div className="flex items-center gap-2">
+              {bsRows.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveStatement('balance_sheet')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                    shownStatement === 'balance_sheet'
+                      ? 'bg-accent text-white border-accent'
+                      : 'bg-surface text-text-secondary border-border hover:text-text-primary'
+                  }`}
+                >
+                  Balance Sheet <span className="opacity-70">({bsRows.length})</span>
+                </button>
+              )}
+              {plRows.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveStatement('profit_and_loss')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                    shownStatement === 'profit_and_loss'
+                      ? 'bg-accent text-white border-accent'
+                      : 'bg-surface text-text-secondary border-border hover:text-text-primary'
+                  }`}
+                >
+                  Profit &amp; Loss <span className="opacity-70">({plRows.length})</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Balance Sheet accounts */}
+          {shownStatement === 'balance_sheet' && bsRows.length > 0 && (
             <MappingTable
-              title="Profit & Loss Accounts"
-              rows={plRows}
+              title="Balance Sheet Accounts"
+              rows={bsRows}
               mappings={mappings}
               periods={periods}
               onSetMapping={setMapping}
@@ -270,11 +316,11 @@ export default function MappingReview() {
             />
           )}
 
-          {/* Balance Sheet accounts */}
-          {bsRows.length > 0 && (
+          {/* P&L accounts */}
+          {shownStatement === 'profit_and_loss' && plRows.length > 0 && (
             <MappingTable
-              title="Balance Sheet Accounts"
-              rows={bsRows}
+              title="Profit & Loss Accounts"
+              rows={plRows}
               mappings={mappings}
               periods={periods}
               onSetMapping={setMapping}
