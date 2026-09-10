@@ -59,8 +59,31 @@ function NoteCell({ value, onSave }) {
   const [text, setText] = useState(value ?? '')
   const [expanded, setExpanded] = useState(false)
   const [status, setStatus] = useState('idle') // idle | saving | saved
+  const [anchor, setAnchor] = useState(null)
   const timer = useRef(null)
   const lastSaved = useRef(value ?? '')
+  const wrapRef = useRef(null)
+
+  // The table card is `rounded-xl overflow-hidden`, which clips absolutely
+  // positioned children — the panel's lower half (and its close button) got cut
+  // off. Position it `fixed` against the cell's measured rect instead, which
+  // escapes the clip entirely. Re-measure on scroll/resize so it tracks the row.
+  useEffect(() => {
+    if (!expanded) return
+    const measure = () => {
+      if (wrapRef.current) setAnchor(wrapRef.current.getBoundingClientRect())
+    }
+    measure()
+    const onKey = (e) => { if (e.key === 'Escape') setExpanded(false) }
+    window.addEventListener('scroll', measure, true)
+    window.addEventListener('resize', measure)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('scroll', measure, true)
+      window.removeEventListener('resize', measure)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [expanded])
 
   // Adopt external changes (year switch, reload) without clobbering in-progress typing.
   useEffect(() => {
@@ -95,7 +118,7 @@ function NoteCell({ value, onSave }) {
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
 
   return (
-    <div className="relative">
+    <div className="relative" ref={wrapRef}>
       <div className="flex items-start gap-1">
         <textarea
           rows={2}
@@ -121,28 +144,42 @@ function NoteCell({ value, onSave }) {
         </div>
       )}
 
-      {expanded && (
-        <div className="absolute top-0 right-0 z-20 w-80 bg-surface border border-accent rounded-lg shadow-lg p-2">
-          <textarea
-            autoFocus
-            rows={8}
-            value={text}
-            onChange={e => handleChange(e.target.value)}
-            onBlur={handleBlur}
-            placeholder="Why this target?"
-            className="w-full resize-none bg-transparent focus:outline-none text-xs text-text-primary placeholder:text-text-muted"
-          />
-          <div className="flex justify-between items-center pt-1 border-t border-border">
-            <span className="text-[9px] text-text-muted">Autosaves — no save button</span>
-            <button
-              type="button"
-              onClick={() => setExpanded(false)}
-              className="text-[10px] text-text-muted hover:text-text-primary px-1"
-            >
-              Close
-            </button>
+      {expanded && anchor && (
+        <>
+          {/* Click-anywhere-else to close, so there's always a way out even if
+              the panel itself ends up somewhere unexpected. */}
+          <div className="fixed inset-0 z-30" onClick={() => setExpanded(false)} />
+          <div
+            className="fixed z-40 bg-surface border border-accent rounded-lg shadow-xl p-2"
+            style={{
+              // Anchored to the Notes cell and grown leftward, so it covers the
+              // Notes column rather than the metric name or the data columns.
+              top: Math.min(anchor.top, window.innerHeight - 240),
+              left: Math.max(8, anchor.right - 340),
+              width: 340,
+            }}
+          >
+            <textarea
+              autoFocus
+              rows={8}
+              value={text}
+              onChange={e => handleChange(e.target.value)}
+              onBlur={handleBlur}
+              placeholder="Why this target?"
+              className="w-full resize-none bg-transparent focus:outline-none text-xs text-text-primary placeholder:text-text-muted"
+            />
+            <div className="flex justify-between items-center pt-1 border-t border-border">
+              <span className="text-[9px] text-text-muted">Autosaves · Esc to close</span>
+              <button
+                type="button"
+                onClick={() => setExpanded(false)}
+                className="text-[10px] text-text-muted hover:text-text-primary px-1"
+              >
+                Close
+              </button>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   )
