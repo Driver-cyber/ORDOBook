@@ -138,6 +138,13 @@ export default function MappingReview() {
 
   const needsReview = preview.suggestions.filter(s => s.needs_review && s.confidence !== 'saved').length
 
+  // Discard the staged import. Nothing has been written at this point — the
+  // preview lives in route state only — so this just navigates away.
+  function handleCancel() {
+    if (!window.confirm('Discard this import? Nothing has been saved yet.')) return
+    navigate(`/clients/${id}`)
+  }
+
   const handleConfirm = async () => {
     setSaving(true)
     setError(null)
@@ -208,13 +215,24 @@ export default function MappingReview() {
             )}
           </p>
         </div>
-        <button
-          onClick={handleConfirm}
-          disabled={saving}
-          className="px-4 py-2 rounded-lg bg-accent text-bg text-sm font-medium hover:bg-[#d4b87a] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          {saving ? 'Saving…' : 'Confirm & Import'}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Nothing is written until Confirm, but leaving shouldn't require
+              knowing that — make backing out an explicit, obvious action. */}
+          <button
+            onClick={handleCancel}
+            disabled={saving}
+            className="px-4 py-2 rounded-lg border border-border text-text-secondary text-sm font-medium hover:text-text-primary hover:border-text-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            Cancel Import
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={saving}
+            className="px-4 py-2 rounded-lg bg-accent text-bg text-sm font-medium hover:bg-[#d4b87a] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            {saving ? 'Saving…' : 'Confirm & Import'}
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">

@@ -180,6 +180,28 @@ async def upload_files(
             company_name = parsed["company_name"]
         source_files.append(upload.filename)
 
+    # Merge rows for the same account across files.
+    #
+    # Uploading several exports of the same report (e.g. a 2024 Balance Sheet and
+    # a 2025-2026 one) previously produced a duplicate row per account — one per
+    # file, each carrying values only for its own periods. That shows every
+    # account twice on the review screen and makes mapping ambiguous.
+    #
+    # Rows are identified by (report section, account name, row type), and their
+    # period values are combined. A later file wins for a period both cover; the
+    # same account/period should carry the same figure in either export, so this
+    # only matters if the exports genuinely disagree.
+    merged_rows: dict[tuple, dict] = {}
+    for row in all_rows:
+        key = (row.get("section", ""), row.get("account_name", ""), row.get("row_type", ""))
+        if key in merged_rows:
+            merged_rows[key]["values"].update(row.get("values") or {})
+        else:
+            merged = dict(row)
+            merged["values"] = dict(row.get("values") or {})
+            merged_rows[key] = merged
+    all_rows = list(merged_rows.values())
+
     # Sort periods chronologically — drop any labels that don't parse as "Month YYYY"
     # (e.g. QB sometimes emits a "Dec 31 – Dec 31 2024" sub-period column that should be ignored)
     def period_sort_key(label: str):
