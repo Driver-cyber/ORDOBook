@@ -213,7 +213,7 @@ def _period_from_drivers(month: int, config: dict, prior_projected: dict | None 
     # --- Owner Draws ---
     owner_draws, draws_trace = calculate_owner_draws(
         distributions=Decimal(config.get("owner_distributions", {}).get(month_key, 0)),
-        tax_savings=Decimal(config.get("owner_tax_savings", {}).get(month_key, 0)),
+        tax_savings=Decimal(0),  # reserve is folded into distributions (migration 023)
     )
 
     # --- Overhead ---
@@ -274,7 +274,7 @@ def _period_from_drivers(month: int, config: dict, prior_projected: dict | None 
     dpo = int(config.get("dpo_monthly", {}).get(month_key, 0))
 
     distributions = Decimal(config.get("owner_distributions", {}).get(month_key, 0))
-    tax_savings = Decimal(config.get("owner_tax_savings", {}).get(month_key, 0))
+    tax_savings = Decimal(0)  # folded into distributions (migration 023)
 
     projected_ar = int(revenue * dso / 30) if dso > 0 else 0
     projected_inventory_val = int(cos * dio / 30) if dio > 0 else 0

@@ -186,12 +186,23 @@ function DriverRow({ label, monthInts, actualsMonths = new Set(), getValue, getD
 
 // ── Calculated summary row ────────────────────────────────────────────────────
 
-function CalcRow({ label, periods, field, fields, highlight = false, sublabel, format = fmt }) {
+function CalcRow({ label, periods, field, fields, highlight = false, sublabel, format = fmt, mode, onToggleMode }) {
   const getVal = (p) => fields
     ? fields.reduce((s, f) => s + (p?.[f] ?? 0), 0)
     : (p?.[field] ?? 0)
   const total = (periods || []).reduce((s, p) => s + getVal(p), 0)
   const color = highlight ? S.gold : S.textSecondary
+  // Display-only % of that month's revenue; the YTD cell is Σ value / Σ revenue.
+  const isPct = mode === 'pct'
+  const totalRev = (periods || []).reduce((s, p) => s + (p?.revenue ?? 0), 0)
+  const cellText = (p) => {
+    if (!isPct) return format(getVal(p))
+    if (!p || !(p.revenue > 0)) return '—'
+    return fmtPct(getVal(p) / p.revenue * 100)
+  }
+  const totalText = isPct
+    ? (totalRev > 0 ? fmtPct(total / totalRev * 100) : '—')
+    : format(total)
 
   const getTooltip = (p) => {
     if (!p) return null
@@ -209,19 +220,22 @@ function CalcRow({ label, periods, field, fields, highlight = false, sublabel, f
     <tr style={{ borderTop: `1px solid ${S.border}` }}>
       <td /> {/* autofill column spacer */}
       <td className="px-3 py-2 text-[12px] font-semibold" style={{ color, width: 185 }}>
-        {label}
+        <span className="inline-flex items-center gap-2">
+          {label}
+          {onToggleMode && <ModeToggle mode={mode} onChange={onToggleMode} />}
+        </span>
         {sublabel && <span className="block text-[10px] font-normal" style={{ color: S.textMuted }}>{sublabel}</span>}
       </td>
       {(periods || []).map((p, i) => (
         <td key={i} className="text-right px-2 py-2 font-mono text-[12px] font-semibold"
             style={{ color, minWidth: 58 }}>
           <Tooltip content={getTooltip(p)}>
-            {format(getVal(p))}
+            {cellText(p)}
           </Tooltip>
         </td>
       ))}
       <td className="text-right px-2 py-2 font-mono text-[12px] font-semibold" style={{ color }}>
-        {format(total)}
+        {totalText}
       </td>
     </tr>
   )
@@ -746,7 +760,6 @@ export default function ForecastDrivers() {
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('cost_per_pay_run_monthly', m, draft?.cost_per_pay_run ?? 0)}
               getDisplay={m => viewDisplay('cost_per_pay_run_monthly', m, draft?.cost_per_pay_run ?? 0)}
-              mode={modeOf('cost_per_pay_run_monthly')} onToggleMode={md => setMode('cost_per_pay_run_monthly', md)}
               onChange={(m, v) => setMonthField('cost_per_pay_run_monthly', m, v, 100)}
               onCommit={(m, lbl) => commitMonthField('cost_per_pay_run_monthly', m, lbl, 100)}
               onAutofill={(val, lbl) => autofillField('cost_per_pay_run_monthly', val, lbl, 100)}
@@ -766,12 +779,12 @@ export default function ForecastDrivers() {
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('payroll_one_off', m)}
               getDisplay={m => viewDisplay('payroll_one_off', m)}
-              mode={modeOf('payroll_one_off')} onToggleMode={md => setMode('payroll_one_off', md)}
               onChange={(m, v) => setMonthField('payroll_one_off', m, v, 100)}
               onCommit={(m, lbl) => commitMonthField('payroll_one_off', m, lbl, 100)}
               onAutofill={(val, lbl) => autofillField('payroll_one_off', val, lbl, 100)}
             />
-            <CalcRow label="Total Payroll" periods={orderedPeriods} field="payroll_expenses" highlight />
+            <CalcRow label="Total Payroll" periods={orderedPeriods} field="payroll_expenses" highlight
+              mode={modeOf('total_payroll')} onToggleMode={md => setMode('total_payroll', md)} />
 
             {/* ══ OTHER EXPENSES ════════════════════════════════════════════════ */}
             <SectionHeader label="Other Expenses" />
@@ -886,16 +899,6 @@ export default function ForecastDrivers() {
               onChange={(m, v) => setMonthField('owner_distributions', m, v, 100)}
               onCommit={(m, lbl) => commitMonthField('owner_distributions', m, lbl, 100)}
               onAutofill={(val, lbl) => autofillField('owner_distributions', val, lbl, 100)}
-            />
-            <DriverRow
-              label="Tax Savings Reserve ($)"
-              monthInts={monthInts} actualsMonths={actualsMonths}
-              getValue={m => viewValue('owner_tax_savings', m)}
-              mode={modeOf('owner_tax_savings')} onToggleMode={md => setMode('owner_tax_savings', md)}
-              getDisplay={m => fmt(periodByMonth[m]?.owner_tax_savings ?? 0)}
-              onChange={(m, v) => setMonthField('owner_tax_savings', m, v, 100)}
-              onCommit={(m, lbl) => commitMonthField('owner_tax_savings', m, lbl, 100)}
-              onAutofill={(val, lbl) => autofillField('owner_tax_savings', val, lbl, 100)}
             />
 
             <SubHeader label="Investing & Financing" />

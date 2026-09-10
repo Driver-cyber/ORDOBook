@@ -341,7 +341,6 @@ export default function ForecastReport() {
             <DataRow label="Inventory Change"    values={invChangeCells} ytd={ytd('inventory_change')} muted />
             <DataRow label="AP Change"           values={apChangeCells}  ytd={ytd('ap_change')} muted />
             <DataRow label="Owner Distributions" values={ordered.map(p => cell(p, 'owner_distributions'))} ytd={ytd('owner_distributions')} />
-            <DataRow label="Tax Savings Reserve" values={ordered.map(p => cell(p, 'owner_tax_savings'))} ytd={ytd('owner_tax_savings')} />
 
             <SubHeader label="Investing & Financing" />
             <DataRow label="CapEx"                  values={capexCells}    ytd={ytd('capex')} muted />
