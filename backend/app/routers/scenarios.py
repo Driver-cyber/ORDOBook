@@ -91,6 +91,7 @@ def _build_config(scenario: ScenarioInput) -> dict:
         "overhead_schedule": [],
         # P&L drivers
         "cos_pct_monthly": cos_pct_monthly,
+        "cos_fixed_monthly": {},
         "marketing_monthly": marketing_monthly,
         "depreciation_monthly": {str(m): 0 for m in range(1, 13)},
         "other_income_expense_monthly": other_monthly,

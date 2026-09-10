@@ -11,6 +11,35 @@ from app.engine.owner_draws import calculate_owner_draws
 from app.engine.overhead import calculate_overhead
 
 
+def calculate_cost_of_sales(config: dict, month_key: str, revenue: Decimal) -> tuple[Decimal, dict]:
+    """Cost of Sales for one month.
+
+    A month with a fixed dollar entry (cos_fixed_monthly, cents) is pinned to it
+    and does not move with revenue. Otherwise COS is cos_pct_monthly % of
+    revenue. Both inputs are drivers; the trace says which applied.
+    """
+    fixed = config.get("cos_fixed_monthly", {}).get(month_key)
+    if fixed is not None:
+        cos = Decimal(int(fixed))
+        return cos, {
+            "value": int(cos),
+            "formula": "fixed $ entry",
+            "components": [
+                {"label": "COS (fixed $ entry, pinned)", "value": int(cos), "source": "forecast_driver"},
+            ],
+        }
+    cos_pct = Decimal(str(config.get("cos_pct_monthly", {}).get(month_key, 0)))
+    cos = (revenue * cos_pct / Decimal(100)).quantize(Decimal("1"))
+    return cos, {
+        "value": int(cos),
+        "formula": f"revenue × {cos_pct}%",
+        "components": [
+            {"label": f"COS % ({cos_pct}% of ${revenue / 100:,.0f})", "value": int(cos),
+             "source": "forecast_driver"},
+        ],
+    }
+
+
 def build_forecast_period(
     month: int,
     config: dict,
@@ -222,17 +251,8 @@ def _period_from_drivers(month: int, config: dict, prior_projected: dict | None 
         month=month,
     )
 
-    # --- Cost of Sales (% of revenue) ---
-    cos_pct = Decimal(str(config.get("cos_pct_monthly", {}).get(month_key, 0)))
-    cos = (revenue * cos_pct / Decimal(100)).quantize(Decimal("1"))
-    cos_trace = {
-        "value": int(cos),
-        "formula": f"revenue × {cos_pct}%",
-        "components": [
-            {"label": f"COS % ({cos_pct}% of ${revenue / 100:,.0f})", "value": int(cos),
-             "source": "forecast_driver"},
-        ],
-    }
+    # --- Cost of Sales ---
+    cos, cos_trace = calculate_cost_of_sales(config, month_key, revenue)
 
     # --- Marketing ---
     marketing = Decimal(config.get("marketing_monthly", {}).get(month_key, 0))

@@ -43,6 +43,10 @@ class ForecastConfig(Base):
 
     # Cost of Sales — per-month percentage of revenue (e.g., {"1": 35.5, "2": 36.0})
     cos_pct_monthly = Column(JSON, nullable=False, default=dict)
+    # Cost of Sales — per-month FIXED dollar entry in cents. A month present here
+    # is pinned to that amount and ignores cos_pct_monthly; a month absent uses
+    # % of revenue. Entering a % for a month releases its pin.
+    cos_fixed_monthly = Column(JSON, nullable=False, default=dict)
 
     # Other expenses — per-month dollar amounts in cents
     marketing_monthly = Column(JSON, nullable=False, default=dict)       # {"1": 50000, ...}

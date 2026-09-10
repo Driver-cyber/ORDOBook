@@ -31,6 +31,7 @@ class ForecastConfigCreate(BaseModel):
     other_overhead_monthly: dict[str, int] = {}         # catch-all overhead per month (cents)
 
     cos_pct_monthly: dict[str, float] = {}
+    cos_fixed_monthly: dict[str, int] = {}  # cents; presence pins the month
     marketing_monthly: dict[str, int] = {}
     depreciation_monthly: dict[str, int] = {}
     other_income_expense_monthly: dict[str, int] = {}
@@ -72,6 +73,7 @@ class ForecastConfigUpdate(BaseModel):
     other_overhead_monthly: dict[str, int] | None = None
 
     cos_pct_monthly: dict[str, float] | None = None
+    cos_fixed_monthly: dict[str, int] | None = None
     marketing_monthly: dict[str, int] | None = None
     depreciation_monthly: dict[str, int] | None = None
     other_income_expense_monthly: dict[str, int] | None = None
@@ -117,6 +119,7 @@ class ForecastConfigOut(BaseModel):
     other_overhead_monthly: dict[str, Any]
 
     cos_pct_monthly: dict[str, Any]
+    cos_fixed_monthly: dict[str, Any] = {}
     marketing_monthly: dict[str, Any]
     depreciation_monthly: dict[str, Any]
     other_income_expense_monthly: dict[str, Any]

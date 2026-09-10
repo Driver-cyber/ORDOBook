@@ -343,13 +343,21 @@ export default function ForecastDrivers() {
   // Live edit: keeps the cell showing what's typed. Not a commit.
   const setMonthField = (field, month, rawVal, scale = 1) => {
     const n = Number(rawVal) || 0
+    if (field === 'cos_pct_monthly') {
+      // $ entry pins the month to that amount; % entry sets the % and releases it.
+      setDraft(prev => {
+        const pct = { ...(prev.cos_pct_monthly || {}) }
+        const fixed = { ...(prev.cos_fixed_monthly || {}) }
+        if (modeOf(field) === 'dollar') fixed[String(month)] = Math.round(n * 100)
+        else { pct[String(month)] = n; delete fixed[String(month)] }
+        return { ...prev, cos_pct_monthly: pct, cos_fixed_monthly: fixed }
+      })
+      return
+    }
     let val
     if (scale === 100 && modeOf(field) === 'pct') {
       // Entered as % of this month's revenue — store the cents it resolves to.
       val = Math.round(revAt(month) * n / 100)
-    } else if (field === 'cos_pct_monthly' && modeOf(field) === 'dollar') {
-      // COS is stored as a % — a $ entry converts at this month's revenue.
-      val = revAt(month) > 0 ? +((n * 100) / revAt(month) * 100).toFixed(2) : 0
     } else {
       val = n * scale
     }
@@ -387,6 +395,21 @@ export default function ForecastDrivers() {
 
   // One cell committed (blur / Enter / Tab). One undo entry per commit.
   function commitMonthField(field, month, label, scale = 1) {
+    if (field === 'cos_pct_monthly') {
+      const prevPct = committedRef.current.cos_pct_monthly || {}
+      const prevFixed = committedRef.current.cos_fixed_monthly || {}
+      const pct = draft.cos_pct_monthly || {}
+      const fixed = draft.cos_fixed_monthly || {}
+      if (sameDict(prevPct, pct) && sameFixed(prevFixed, fixed)) return
+      committedRef.current.cos_pct_monthly = { ...pct }
+      committedRef.current.cos_fixed_monthly = { ...fixed }
+      const mk = String(month)
+      const shown = mk in fixed ? `${fmt(fixed[mk])} (pinned)` : `${pct[mk] ?? 0}%`
+      pushUndo({ label: `${label} · ${MONTHS[month - 1]} → ${shown}`,
+                 fields: { cos_pct_monthly: { ...prevPct }, cos_fixed_monthly: { ...prevFixed } } })
+      persist(draft)
+      return
+    }
     const prev = committedRef.current[field] || {}
     const next = draft[field] || {}
     if (sameDict(prev, next)) return
@@ -402,22 +425,40 @@ export default function ForecastDrivers() {
   // Row autofill: copy the first forecast month across the remaining forecast
   // months, skipping confirmed actuals. One undo entry for the whole row.
   const autofillField = (field, val, label, scale = 1) => {
-    const filled = { ...(draft[field] || {}) }
     const n = Number(val) || 0
+    if (field === 'cos_pct_monthly') {
+      const pct = { ...(draft.cos_pct_monthly || {}) }
+      const fixed = { ...(draft.cos_fixed_monthly || {}) }
+      const dollar = modeOf(field) === 'dollar'
+      for (let m = 1; m <= 12; m++) {
+        if (actualsMonths.has(m)) continue
+        if (dollar) fixed[String(m)] = Math.round(n * 100)
+        else { pct[String(m)] = n; delete fixed[String(m)] }
+      }
+      const prevPct = committedRef.current.cos_pct_monthly || {}
+      const prevFixed = committedRef.current.cos_fixed_monthly || {}
+      if (sameDict(prevPct, pct) && sameFixed(prevFixed, fixed)) return
+      const nextDraft = { ...draft, cos_pct_monthly: pct, cos_fixed_monthly: fixed }
+      setDraft(nextDraft)
+      committedRef.current.cos_pct_monthly = { ...pct }
+      committedRef.current.cos_fixed_monthly = { ...fixed }
+      pushUndo({ label: `${label} · fill row → ${dollar ? fmt(n * 100) + ' (pinned)' : n + '%'}`,
+                 fields: { cos_pct_monthly: { ...prevPct }, cos_fixed_monthly: { ...prevFixed } } })
+      persist(nextDraft)
+      return
+    }
+    const filled = { ...(draft[field] || {}) }
     const pctEntry = scale === 100 && modeOf(field) === 'pct'
-    const cosDollar = field === 'cos_pct_monthly' && modeOf(field) === 'dollar'
     for (let m = 1; m <= 12; m++) {
       if (actualsMonths.has(m)) continue
-      filled[String(m)] = pctEntry ? Math.round(revAt(m) * n / 100)
-        : cosDollar ? (revAt(m) > 0 ? +((n * 100) / revAt(m) * 100).toFixed(2) : 0)
-        : n * scale
+      filled[String(m)] = pctEntry ? Math.round(revAt(m) * n / 100) : n * scale
     }
     const prev = committedRef.current[field] || {}
     if (sameDict(prev, filled)) return
     const nextDraft = { ...draft, [field]: filled }
     setDraft(nextDraft)
     committedRef.current[field] = { ...filled }
-    const shown = pctEntry ? `${n}%` : cosDollar ? fmt(n * 100) : fmtV(filled[String(1)], scale)
+    const shown = pctEntry ? `${n}%` : fmtV(filled[String(1)], scale)
     pushUndo({ field, label: `${label} · fill row → ${shown}`, prev: { ...prev } })
     persist(nextDraft)
   }
@@ -429,8 +470,11 @@ export default function ForecastDrivers() {
     if (entries.length === 0) return
     const nextDraft = { ...draft }
     for (const e of entries) {
-      nextDraft[e.field] = { ...e.prev }
-      committedRef.current[e.field] = { ...e.prev }
+      const restore = e.fields ?? { [e.field]: e.prev }
+      for (const [fld, prev] of Object.entries(restore)) {
+        nextDraft[fld] = { ...prev }
+        committedRef.current[fld] = { ...prev }
+      }
     }
     setDraft(nextDraft)
     setUndoStack(stack => stack.slice(count))
@@ -492,9 +536,25 @@ export default function ForecastDrivers() {
   }
   // COS is STORED as a % of revenue. In $ mode we show/enter the dollars it
   // resolves to at that month's revenue.
-  const cosView = m => modeOf('cos_pct_monthly') === 'pct'
-    ? dvFloat('cos_pct_monthly', m)
-    : Math.round(revAt(m) * (Number(dv('cos_pct_monthly', m)) || 0) / 100 / 100)
+  // A month with a fixed $ entry is PINNED: it shows that amount (or the % it
+  // implies) and does not move with revenue. Entering a % releases the pin.
+  const cosFixed = m => {
+    const v = draft?.cos_fixed_monthly?.[String(m)]
+    return (v === null || v === undefined) ? null : Number(v)
+  }
+  const cosView = m => {
+    const fx = cosFixed(m)
+    if (modeOf('cos_pct_monthly') === 'pct') {
+      if (fx !== null) return revAt(m) > 0 ? +(fx / revAt(m) * 100).toFixed(1) : ''
+      return dvFloat('cos_pct_monthly', m)
+    }
+    if (fx !== null) return Math.round(fx / 100)
+    return Math.round(revAt(m) * (Number(dv('cos_pct_monthly', m)) || 0) / 100 / 100)
+  }
+  // COS commits touch two dicts (pct + fixed); compare both, presence-sensitive
+  // for the fixed one because a pinned $0 is not the same as no pin.
+  const sameFixed = (a = {}, b = {}) =>
+    JSON.stringify(Object.entries(a).sort()) === JSON.stringify(Object.entries(b).sort())
 
   const actualsCosDisplay = (month) => {
     const p = periodByMonth[month]
@@ -570,7 +630,7 @@ export default function ForecastDrivers() {
                   </div>
                   <ul className="max-h-72 overflow-y-auto">
                     {undoStack.map((e, i) => (
-                      <li key={e.at + e.field}>
+                      <li key={e.at + (e.field ?? 'cos')}>
                         <button
                           type="button"
                           onClick={() => undo(i + 1)}
@@ -723,13 +783,17 @@ export default function ForecastDrivers() {
                   COS
                   <ModeToggle mode={modeOf('cos_pct_monthly')} onChange={md => setMode('cos_pct_monthly', md)} />
                 </span>
-                <span className="block text-[10px]" style={{ color: S.textMuted }}>stored as % of revenue</span>
+                <span className="block text-[10px]" style={{ color: S.textMuted }}>% of revenue · a $ entry pins that month</span>
               </td>
               {monthInts.map(m =>
                 actualsMonths.has(m)
                   ? <ActualsCell key={m} display={actualsCosDisplay(m)} />
                   : (
-                    <td key={m} className="px-1 py-1" style={{ minWidth: 58 }}>
+                    <td key={m} className="px-1 py-1 relative" style={{ minWidth: 58 }}>
+                      {cosFixed(m) !== null && (
+                        <span title="Pinned $ entry — does not move with revenue. Enter a % to release."
+                              className="absolute left-1 top-0 font-mono text-[9px]" style={{ color: S.gold }}>$</span>
+                      )}
                       <input
                         type="number" min="0" step={modeOf('cos_pct_monthly') === 'pct' ? 0.1 : 1}
                         placeholder={modeOf('cos_pct_monthly') === 'pct' ? '0.0' : '0'}
