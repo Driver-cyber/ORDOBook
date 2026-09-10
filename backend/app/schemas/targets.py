@@ -35,6 +35,9 @@ class TargetsResponse(BaseModel):
     # December ending balance sheet from the prior fiscal year — used to compute
     # projected cash/AR/AP/equity and the cash flow impact of working capital changes
     prior_year_ending_balances: Dict[str, Optional[int]] = {}
+    # Every computed value the Targets page shows, derived server-side from the
+    # stored drivers (app.engine.targets). Never persisted.
+    derived: Dict[str, Optional[int]] = {}
 
 
 class GradeOverrideRequest(BaseModel):

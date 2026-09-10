@@ -7,6 +7,7 @@ from app.database import get_db
 from app.models.targets import ClientTarget, ScoreboardEntry
 from app.models.forecast_period import ForecastPeriod
 from app.models.monthly_actuals import MonthlyActuals
+from app.engine.targets import compute_target_derived, COMPUTED_KEYS
 from app.schemas.targets import (
     TargetsUpsertRequest, TargetsResponse, TargetOut, TargetNoteUpdate,
     ScoreboardResponse, GradeOverrideRequest,
@@ -228,6 +229,53 @@ def _variance_pct(actual: int, prorated_target: int, higher_is_better: bool) -> 
     return round(raw if higher_is_better else -raw, 1)
 
 
+def _ending_balances(rec) -> dict:
+    """Full balance sheet from a MonthlyActuals row (cents)."""
+    return {
+        "cash": rec.cash or 0,
+        "accounts_receivable": rec.accounts_receivable or 0,
+        "inventory": rec.inventory or 0,
+        "other_current_assets": rec.other_current_assets or 0,
+        "total_fixed_assets": rec.total_fixed_assets or 0,
+        "total_other_long_term_assets": rec.total_other_long_term_assets or 0,
+        "accounts_payable": rec.accounts_payable or 0,
+        "other_current_liabilities": rec.other_current_liabilities or 0,
+        "total_long_term_liabilities": rec.total_long_term_liabilities or 0,
+        # Equity = retained equity + current year net income
+        "equity": (rec.equity_before_net_profit or 0) + (rec.net_profit_for_year or 0),
+    }
+
+
+def _prior_ending(client_id: int, year: int, db: Session) -> dict:
+    """December ending balance sheet of the prior year — basis for the projected BS."""
+    prior_dec = db.query(MonthlyActuals).filter(
+        MonthlyActuals.client_id == client_id,
+        MonthlyActuals.fiscal_year == year - 1,
+        MonthlyActuals.month == 12,
+    ).first()
+    return _ending_balances(prior_dec) if prior_dec else {}
+
+
+def _annual_targets(client_id: int, year: int, db: Session) -> dict:
+    """metric_key -> annual target, drivers as stored plus derived metrics.
+
+    Single source of truth for grading: computed metrics (revenue, net cash flow…)
+    are never read from the database — they are derived from the drivers here,
+    exactly as the Targets page shows them. Derived keys are only present once at
+    least one driver has been set, so an empty target sheet still reads as
+    'no target' rather than a target of zero.
+    """
+    rows = db.query(ClientTarget).filter(
+        ClientTarget.client_id == client_id,
+        ClientTarget.fiscal_year == year,
+    ).all()
+    drivers = {t.metric_key: t.target_value for t in rows if t.metric_key not in COMPUTED_KEYS}
+    if not drivers:
+        return {}
+    derived = compute_target_derived(drivers, _prior_ending(client_id, year, db))
+    return {**drivers, **{k: derived[k] for k in COMPUTED_KEYS}}
+
+
 # ---------------------------------------------------------------------------
 # Endpoints — Targets
 # ---------------------------------------------------------------------------
@@ -245,12 +293,6 @@ def get_targets(client_id: int, year: int, db: Session = Depends(get_db)):
         MonthlyActuals.fiscal_year == year - 1,
     ).all()
 
-    # December ending balance sheet of the prior year — basis for projected BS
-    prior_dec = db.query(MonthlyActuals).filter(
-        MonthlyActuals.client_id == client_id,
-        MonthlyActuals.fiscal_year == year - 1,
-        MonthlyActuals.month == 12,
-    ).first()
 
     # December two years back — the opening position for the prior-year comparison
     # column, so its cash-flow movements can be measured. May not be imported.
@@ -270,24 +312,7 @@ def get_targets(client_id: int, year: int, db: Session = Depends(get_db)):
                       + (prior_open_dec.net_profit_for_year or 0),
         }
 
-    prior_ending: dict = {}
-    if prior_dec:
-        # Full ending balance sheet — the projected BS needs every line to present
-        # subtotals (Total Current Assets / Total Assets / Total Liabilities) and
-        # the Total Liabilities & Equity tie-out against Total Assets.
-        prior_ending = {
-            "cash": prior_dec.cash or 0,
-            "accounts_receivable": prior_dec.accounts_receivable or 0,
-            "inventory": prior_dec.inventory or 0,
-            "other_current_assets": prior_dec.other_current_assets or 0,
-            "total_fixed_assets": prior_dec.total_fixed_assets or 0,
-            "total_other_long_term_assets": prior_dec.total_other_long_term_assets or 0,
-            "accounts_payable": prior_dec.accounts_payable or 0,
-            "other_current_liabilities": prior_dec.other_current_liabilities or 0,
-            "total_long_term_liabilities": prior_dec.total_long_term_liabilities or 0,
-            # Equity = retained equity + current year net income
-            "equity": (prior_dec.equity_before_net_profit or 0) + (prior_dec.net_profit_for_year or 0),
-        }
+    prior_ending = _prior_ending(client_id, year, db)
 
     # Current year forecast for comparison column
     forecast_periods = db.query(ForecastPeriod).filter(
@@ -295,12 +320,18 @@ def get_targets(client_id: int, year: int, db: Session = Depends(get_db)):
         ForecastPeriod.fiscal_year == year,
     ).all()
 
+    # `targets` keeps every row, including legacy computed-key rows that carry a
+    # note — the note lives there. Their target_value is ignored: computed
+    # metrics come from `derived`.
+    drivers = {t.metric_key: t.target_value for t in targets if t.metric_key not in COMPUTED_KEYS}
+    derived = compute_target_derived(drivers, prior_ending) if drivers else {}
     return TargetsResponse(
         fiscal_year=year,
         targets=[TargetOut.model_validate(t) for t in targets],
         prior_year_actuals=_aggregate_actuals(prior_actuals, opening_bs=prior_opening),
         current_year_forecast=_aggregate_forecast_for_targets(forecast_periods),
         prior_year_ending_balances=prior_ending,
+        derived=derived,
     )
 
 
@@ -314,6 +345,8 @@ def upsert_targets(client_id: int, year: int, body: TargetsUpsertRequest, db: Se
         ).all()
     }
     for item in body.targets:
+        if item.metric_key in COMPUTED_KEYS:
+            continue  # derived, never stored
         if item.metric_key in existing:
             rec = existing[item.metric_key]
             rec.target_value = item.target_value
@@ -387,14 +420,8 @@ def get_scoreboard(client_id: int, year: int, db: Session = Depends(get_db)):
         ForecastPeriod.source_type == "actual",
     ).order_by(ForecastPeriod.month).all()
 
-    # Targets and stored grades
-    targets_map = {
-        t.metric_key: t
-        for t in db.query(ClientTarget).filter(
-            ClientTarget.client_id == client_id,
-            ClientTarget.fiscal_year == year,
-        ).all()
-    }
+    # Targets (drivers + derived, one source of truth) and stored grades
+    annual_targets = _annual_targets(client_id, year, db)
     grades_map = {
         g.metric_key: g
         for g in db.query(ScoreboardEntry).filter(
@@ -414,8 +441,7 @@ def get_scoreboard(client_id: int, year: int, db: Session = Depends(get_db)):
         full_year_forecast = _aggregate(all_periods, metric)
         prior_year_total = _aggregate(prior_periods, metric) if prior_periods else None
 
-        target_obj = targets_map.get(key)
-        annual_target = target_obj.target_value if target_obj else None
+        annual_target = annual_targets.get(key)
         has_target = annual_target is not None
 
         prorated_target = None
@@ -541,13 +567,7 @@ def recalculate_grades(client_id: int, year: int, db: Session = Depends(get_db))
     actual_periods = [p for p in all_periods if p.source_type == "actual"]
     months_elapsed = len(actual_periods)
 
-    targets_map = {
-        t.metric_key: t
-        for t in db.query(ClientTarget).filter(
-            ClientTarget.client_id == client_id,
-            ClientTarget.fiscal_year == year,
-        ).all()
-    }
+    annual_targets = _annual_targets(client_id, year, db)
     existing_entries = {
         e.metric_key: e
         for e in db.query(ScoreboardEntry).filter(
@@ -562,11 +582,10 @@ def recalculate_grades(client_id: int, year: int, db: Session = Depends(get_db))
         if entry and entry.grade_is_override:
             continue  # Don't touch manual overrides
 
-        target_obj = targets_map.get(key)
-        if not target_obj or months_elapsed == 0:
+        annual_target = annual_targets.get(key)
+        if annual_target is None or months_elapsed == 0:
             continue
 
-        annual_target = target_obj.target_value
         prorated_target = int(annual_target * months_elapsed / 12)
         if prorated_target == 0:
             continue

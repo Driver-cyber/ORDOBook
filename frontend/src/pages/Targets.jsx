@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getClient } from '../api/clients'
@@ -247,164 +247,9 @@ function fmtChange(cents) {
   return (cents >= 0 ? '+$' : '-$') + abs.toLocaleString()
 }
 
-/**
- * Compute all derived values from driver inputs + prior year ending balances.
- *
- * Cash flow impact of working capital changes:
- *   Target AR  = Annual Revenue / 365 × DSO target
- *   Target Inv = Annual COS     / 365 × DIO target
- *   Target AP  = Annual COS     / 365 × DPO target
- *
- *   cf_assets_change     = -(ΔAR + ΔInventory)   — positive = favorable (assets decreased)
- *   cf_liabilities_change = ΔAP                   — positive = favorable (liabilities increased)
- *   Net Cash Flow        = Net Profit + owner_total_draws (signed) + cf_assets_change + cf_liabilities_change
- */
-function computeDerived(inputs, pctModes, priorEnding) {
-  // P&L
-  const totalJobs = parseCount(inputs.total_jobs ?? '') ?? 0
-  const avgJobValue = parseToCents(inputs.blended_avg_job_value ?? '') ?? 0
-  const revenue = totalJobs * avgJobValue
-
-  // Resolve an entered value to cents regardless of whether the row is currently
-  // being entered as dollars or as a % of Revenue.
-  const asCents = (key) => {
-    const raw = inputs[key] ?? ''
-    if ((pctModes?.[key] ?? 'dollar') === 'pct') {
-      const pct = parseFloat(String(raw).replace(/[%,\s]/g, ''))
-      return isNaN(pct) ? 0 : Math.round(revenue * pct / 100)
-    }
-    return parseToCents(raw) ?? 0
-  }
-
-  const cosCents = asCents('cost_of_sales')
-
-  const grossProfit = revenue - cosCents
-  const payroll = asCents('payroll_expenses')
-  const marketing = asCents('marketing_expenses')
-  const overhead = asCents('overhead_expenses')
-  const netOpProfit = grossProfit - payroll - marketing - overhead
-  const otherIE = parseToCents(inputs.other_income_expense ?? '') ?? 0
-  const netProfit = netOpProfit + otherIE
-
-  // Cash Flow
-  const dso = parseCount(inputs.dso_days ?? '') ?? 0
-  const dio = parseCount(inputs.dio_days ?? '') ?? 0
-  const dpo = parseCount(inputs.dpo_days ?? '') ?? 0
-  const ownerDraws = parseToCents(inputs.owner_total_draws ?? '') ?? 0
-
-  // Explicit cash flow drivers — SIGNED cash amounts. A purchase or repayment is
-  // negative (reduces cash); a sale or new borrowing is positive.
-  const cfOtherCA = parseToCents(inputs.cf_other_current_assets ?? '') ?? 0
-  const cfFixedLT = parseToCents(inputs.cf_fixed_assets ?? '') ?? 0
-  const cfCurDebt = parseToCents(inputs.cf_current_debt ?? '') ?? 0
-  const cfLTDebt  = parseToCents(inputs.cf_long_term_debt ?? '') ?? 0
-
-  // Prior year ending balances (from December actuals of prior year)
-  const priorAR = priorEnding?.accounts_receivable ?? 0
-  const priorInventory = priorEnding?.inventory ?? 0
-  const priorAP = priorEnding?.accounts_payable ?? 0
-  const priorCash = priorEnding?.cash ?? 0
-  const priorEquity = priorEnding?.equity ?? 0
-  const priorOtherCA = priorEnding?.other_current_assets ?? 0
-  const priorFixed = priorEnding?.total_fixed_assets ?? 0
-  const priorOtherLTA = priorEnding?.total_other_long_term_assets ?? 0
-  const priorOtherCL = priorEnding?.other_current_liabilities ?? 0
-  const priorLTL = priorEnding?.total_long_term_liabilities ?? 0
-
-  // Target working capital balances (annual rate → daily × days outstanding)
-  const targetAR       = (dso > 0 && revenue > 0)   ? Math.round(revenue   / 365 * dso) : priorAR
-  const targetInventory = (dio > 0 && cosCents > 0)  ? Math.round(cosCents  / 365 * dio) : priorInventory
-  const targetAP       = (dpo > 0 && cosCents > 0)   ? Math.round(cosCents  / 365 * dpo) : priorAP
-
-  // Delta vs prior year ending balance
-  const arChange        = targetAR        - priorAR
-  const inventoryChange = targetInventory - priorInventory
-  const apChange        = targetAP        - priorAP
-
-  // Net CF impact of asset moves: working capital (AR/inventory) plus the explicit
-  // other-current-asset and fixed-asset drivers, which are already signed cash amounts.
-  const cfAssetsChange      = -(arChange + inventoryChange) + cfOtherCA + cfFixedLT
-  // Liability side: AP working capital plus explicit debt movements.
-  const cfLiabilitiesChange = apChange + cfCurDebt + cfLTDebt
-
-  // Owner activity is a SIGNED cash amount, matching its label ("Investments or
-  // (Draws) by Owner") and the other cash flow drivers: a draw is negative, an
-  // investment positive. So it is ADDED, not subtracted — subtracting a negative
-  // draw would credit cash instead of reducing it.
-  //   Net CF = Net Profit + Owner Investments/(Draws) + CF Assets + CF Liabilities
-  const netCashFlow = netProfit + ownerDraws + cfAssetsChange + cfLiabilitiesChange
-
-  // ── Projected Balance Sheet ───────────────────────────────────────────────
-  // Balance movements are the mirror of the cash movements above: a purchase is
-  // negative cash and therefore increases the asset, so the balance subtracts the
-  // driver. New borrowing is positive cash and increases the liability, so it adds.
-  const projectedCash    = priorCash + netCashFlow
-  const projOtherCA      = priorOtherCA - cfOtherCA
-  const projFixedAssets  = Math.max(0, priorFixed - cfFixedLT)
-  const projOtherLTA     = priorOtherLTA
-  const projOtherCL      = priorOtherCL + cfCurDebt
-  const projLTL          = priorLTL + cfLTDebt
-  const projectedEquity  = priorEquity + netProfit + ownerDraws
-
-  // Subtotals
-  const totalCurrentAssets      = projectedCash + targetAR + targetInventory + projOtherCA
-  const totalAssets             = totalCurrentAssets + projFixedAssets + projOtherLTA
-  const totalCurrentLiabilities = targetAP + projOtherCL
-  const totalLiabilities        = totalCurrentLiabilities + projLTL
-  // Tie-out check: this should equal totalAssets on a balanced sheet.
-  const totalLiabilitiesEquity  = totalLiabilities + projectedEquity
-
-  // Summary P&L (mirrors the projected year)
-  const totalOperatingExpenses = payroll + marketing + overhead
-
-  return {
-    // P&L computed
-    revenue,
-    cost_of_sales: cosCents,
-    gross_profit: grossProfit,
-    net_operating_profit: netOpProfit,
-    net_profit: netProfit,
-    // CF computed
-    cf_assets_change: cfAssetsChange,
-    cf_liabilities_change: cfLiabilitiesChange,
-    net_cash_flow: netCashFlow,
-    // Projected Balance Sheet
-    target_ar: targetAR,
-    target_inventory: targetInventory,
-    target_ap: targetAP,
-    projected_cash: projectedCash,
-    projected_equity: projectedEquity,
-    proj_other_current_assets: projOtherCA,
-    proj_fixed_assets: projFixedAssets,
-    proj_other_long_term_assets: projOtherLTA,
-    proj_other_current_liabilities: projOtherCL,
-    proj_long_term_liabilities: projLTL,
-    total_current_assets: totalCurrentAssets,
-    total_assets: totalAssets,
-    total_current_liabilities: totalCurrentLiabilities,
-    total_liabilities: totalLiabilities,
-    total_liabilities_equity: totalLiabilitiesEquity,
-    // Summary P&L
-    total_operating_expenses: totalOperatingExpenses,
-    other_income_expense: otherIE,
-    // Prior year ending (pass through for BS display)
-    prior_cash: priorCash,
-    prior_ar: priorAR,
-    prior_inventory: priorInventory,
-    prior_ap: priorAP,
-    prior_equity: priorEquity,
-    prior_other_current_assets: priorOtherCA,
-    prior_fixed_assets: priorFixed,
-    prior_other_long_term_assets: priorOtherLTA,
-    prior_other_current_liabilities: priorOtherCL,
-    prior_long_term_liabilities: priorLTL,
-    prior_total_current_assets: priorCash + priorAR + priorInventory + priorOtherCA,
-    prior_total_assets: priorCash + priorAR + priorInventory + priorOtherCA + priorFixed + priorOtherLTA,
-    prior_total_current_liabilities: priorAP + priorOtherCL,
-    prior_total_liabilities: priorAP + priorOtherCL + priorLTL,
-    prior_total_liabilities_equity: priorAP + priorOtherCL + priorLTL + priorEquity,
-  }
-}
+// Derived values (Revenue, Gross Profit, Net Cash Flow, the projected balance
+// sheet…) are computed server-side in app/engine/targets.py — the single source
+// of truth the Scoreboard also grades against — and arrive on every response.
 
 export default function Targets() {
   const { id } = useParams()
@@ -433,10 +278,9 @@ export default function Targets() {
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  const derived = useMemo(
-    () => computeDerived(inputs, pctModes, priorEndingBalances),
-    [inputs, pctModes, priorEndingBalances]
-  )
+  // Server-derived values; refreshed on load and after every committed edit.
+  // Computed rows update on commit (blur / Enter / Tab), not while typing.
+  const [derived, setDerived] = useState({})
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -449,6 +293,7 @@ export default function Targets() {
       setPriorYearActuals(t.prior_year_actuals ?? {})
       setForecastSummary(t.current_year_forecast ?? {})
       setPriorEndingBalances(t.prior_year_ending_balances ?? {})
+      setDerived(t.derived ?? {})
 
       // Populate driver inputs only (computed metrics are re-derived on the fly)
       const driverKeys = new Set(METRICS.filter(m => !m.computed).map(m => m.key))
@@ -538,34 +383,26 @@ export default function Targets() {
   // inputs + modes snapshots rather than the memoised `derived`, so undo can
   // persist a restored state in the same tick it sets it.
   function buildTargetPayload(inp, modes) {
-    const d = computeDerived(inp, modes, priorEndingBalances)
+    // Drivers only. Computed metrics are derived server-side from these and
+    // come back on the response; they are never sent or stored.
     const targets = []
-    const anyDriverSet = METRICS
-      .filter(m => !m.computed)
-      .some(m => (inp[m.key] ?? '').trim() !== '')
-
     for (const metric of METRICS) {
+      if (metric.computed) continue
+      const raw = inp[metric.key] ?? ''
+      if (raw.trim() === '') continue
       let val, ttype
-      if (metric.computed) {
-        if (!anyDriverSet) continue
-        val = d[metric.key]
-        if (val === null || val === undefined) continue
+      if (metric.hasPercentToggle && (modes[metric.key] ?? 'dollar') === 'pct') {
+        // Typed as % of revenue: resolve to cents against the latest derived
+        // revenue (refreshed on every commit, so a jobs edit lands first).
+        const pct = parseFloat(String(raw).replace(/[%,\s]/g, ''))
+        val = isNaN(pct) ? null : Math.round((derived.revenue || 0) * pct / 100)
         ttype = 'cents'
+      } else if (metric.type === 'count' || metric.type === 'days') {
+        val = parseCount(raw)
+        ttype = metric.type
       } else {
-        const raw = inp[metric.key] ?? ''
-        if (raw.trim() === '') continue
-        // Percent-entered rows are always stored as cents — derived already
-        // holds the resolved amount, so persist that rather than the typed %.
-        if (metric.hasPercentToggle && (modes[metric.key] ?? 'dollar') === 'pct') {
-          val = d[metric.key]
-          ttype = 'cents'
-        } else if (metric.type === 'count' || metric.type === 'days') {
-          val = parseCount(raw)
-          ttype = metric.type
-        } else {
-          val = parseToCents(raw)
-          ttype = 'cents'
-        }
+        val = parseToCents(raw)
+        ttype = 'cents'
       }
       if (val === null || val === undefined || isNaN(val)) continue
       targets.push({ metric_key: metric.key, target_value: val, target_type: ttype })
@@ -577,7 +414,8 @@ export default function Targets() {
     setSaving(true)
     setSaveStatus('saving')
     try {
-      await saveTargets(id, year, buildTargetPayload(inp, modes))
+      const resp = await saveTargets(id, year, buildTargetPayload(inp, modes))
+      setDerived(resp.derived ?? {})
       setSaveStatus('saved')
       setTimeout(() => setSaveStatus('idle'), 1200)
     } catch {
