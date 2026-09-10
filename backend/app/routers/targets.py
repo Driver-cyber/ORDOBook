@@ -8,7 +8,7 @@ from app.models.targets import ClientTarget, ScoreboardEntry
 from app.models.forecast_period import ForecastPeriod
 from app.models.monthly_actuals import MonthlyActuals
 from app.schemas.targets import (
-    TargetsUpsertRequest, TargetsResponse, TargetOut,
+    TargetsUpsertRequest, TargetsResponse, TargetOut, TargetNoteUpdate,
     ScoreboardResponse, GradeOverrideRequest,
 )
 
@@ -320,6 +320,41 @@ def upsert_targets(client_id: int, year: int, body: TargetsUpsertRequest, db: Se
             ))
     db.commit()
     return get_targets(client_id, year, db)
+
+
+@router.patch("/{client_id}/targets/{year}/note", response_model=TargetOut)
+def update_target_note(client_id: int, year: int, body: TargetNoteUpdate,
+                       db: Session = Depends(get_db)):
+    """Save the advisor note for one metric.
+
+    Deliberately separate from the targets upsert: notes autosave as the advisor
+    types, and routing them through the bulk upsert would silently commit target
+    edits that haven't been saved yet.
+
+    A note can be written before a target exists, so the row is created with a
+    zero target when needed — a zero target grades as None, exactly like a missing
+    one, so this never introduces a spurious red on the Scoreboard.
+    """
+    rec = db.query(ClientTarget).filter(
+        ClientTarget.client_id == client_id,
+        ClientTarget.fiscal_year == year,
+        ClientTarget.metric_key == body.metric_key,
+    ).first()
+
+    if rec is None:
+        rec = ClientTarget(
+            client_id=client_id,
+            fiscal_year=year,
+            metric_key=body.metric_key,
+            target_value=0,
+            target_type="cents",
+        )
+        db.add(rec)
+
+    rec.notes = (body.notes or "").strip() or None
+    db.commit()
+    db.refresh(rec)
+    return TargetOut.model_validate(rec)
 
 
 # ---------------------------------------------------------------------------

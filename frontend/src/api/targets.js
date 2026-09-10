@@ -16,6 +16,18 @@ export async function saveTargets(clientId, year, targets) {
   return res.json()
 }
 
+// Saves only the advisor note for one metric. Separate from saveTargets so an
+// autosaving note never commits target edits the advisor hasn't saved yet.
+export async function saveTargetNote(clientId, year, metricKey, notes) {
+  const res = await fetch(`${BASE}/${clientId}/targets/${year}/note`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ metric_key: metricKey, notes }),
+  })
+  if (!res.ok) throw new Error('Failed to save note')
+  return res.json()
+}
+
 export async function getScoreboard(clientId, year) {
   const res = await fetch(`${BASE}/${clientId}/scoreboard/${year}`)
   if (!res.ok) throw new Error('Failed to load scoreboard')

@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getClient } from '../api/clients'
-import { getTargets, saveTargets } from '../api/targets'
+import { getTargets, saveTargets, saveTargetNote } from '../api/targets'
 
 // Metrics in UI display order.
 // computed=true: value is derived from driver inputs — shown read-only.
@@ -45,6 +45,108 @@ const METRICS = [
 ]
 
 const SECTIONS = ['Operations', 'P&L', 'Cash Flow']
+
+/**
+ * Per-metric advisor note: a two-line box that autosaves, with an expand button
+ * for anything longer. The expanded panel is anchored over the Notes column only,
+ * so the metric name and the three data columns stay readable behind it.
+ *
+ * Autosave is debounced rather than per-keystroke — one request per character
+ * would hammer the API for no benefit. Also flushes on blur so clicking away
+ * always persists.
+ */
+function NoteCell({ value, onSave }) {
+  const [text, setText] = useState(value ?? '')
+  const [expanded, setExpanded] = useState(false)
+  const [status, setStatus] = useState('idle') // idle | saving | saved
+  const timer = useRef(null)
+  const lastSaved = useRef(value ?? '')
+
+  // Adopt external changes (year switch, reload) without clobbering in-progress typing.
+  useEffect(() => {
+    setText(value ?? '')
+    lastSaved.current = value ?? ''
+  }, [value])
+
+  const flush = useCallback(async (next) => {
+    if (next === lastSaved.current) return
+    setStatus('saving')
+    try {
+      await onSave(next)
+      lastSaved.current = next
+      setStatus('saved')
+      setTimeout(() => setStatus('idle'), 1200)
+    } catch {
+      setStatus('idle')
+    }
+  }, [onSave])
+
+  function handleChange(next) {
+    setText(next)
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(() => flush(next), 600)
+  }
+
+  function handleBlur() {
+    if (timer.current) clearTimeout(timer.current)
+    flush(text)
+  }
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
+
+  return (
+    <div className="relative">
+      <div className="flex items-start gap-1">
+        <textarea
+          rows={2}
+          value={text}
+          onChange={e => handleChange(e.target.value)}
+          onBlur={handleBlur}
+          placeholder="Note…"
+          className="w-full resize-none bg-transparent border border-transparent hover:border-border focus:border-accent focus:outline-none rounded px-1.5 py-1 text-xs text-text-primary placeholder:text-text-muted transition-colors"
+        />
+        <button
+          type="button"
+          onClick={() => setExpanded(v => !v)}
+          title={expanded ? 'Collapse note' : 'Expand note'}
+          className="mt-1 shrink-0 text-text-muted hover:text-text-primary text-xs leading-none px-1"
+        >
+          {expanded ? '✕' : '⤢'}
+        </button>
+      </div>
+
+      {status !== 'idle' && (
+        <div className="absolute -bottom-3 right-6 text-[9px] text-text-muted">
+          {status === 'saving' ? 'saving…' : 'saved'}
+        </div>
+      )}
+
+      {expanded && (
+        <div className="absolute top-0 right-0 z-20 w-80 bg-surface border border-accent rounded-lg shadow-lg p-2">
+          <textarea
+            autoFocus
+            rows={8}
+            value={text}
+            onChange={e => handleChange(e.target.value)}
+            onBlur={handleBlur}
+            placeholder="Why this target?"
+            className="w-full resize-none bg-transparent focus:outline-none text-xs text-text-primary placeholder:text-text-muted"
+          />
+          <div className="flex justify-between items-center pt-1 border-t border-border">
+            <span className="text-[9px] text-text-muted">Autosaves — no save button</span>
+            <button
+              type="button"
+              onClick={() => setExpanded(false)}
+              className="text-[10px] text-text-muted hover:text-text-primary px-1"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const SECTION_LABELS = {
   Operations: 'Operations (Drivers → Revenue)',
@@ -264,6 +366,8 @@ export default function Targets() {
   const [client, setClient] = useState(null)
   // Driver inputs: key → display string (what user typed)
   const [inputs, setInputs] = useState({})
+  // metric key → advisor note text, loaded with the targets
+  const [notes, setNotes] = useState({})
   // Per-metric display/entry mode: metric key → 'dollar' | 'pct'. Absent = 'dollar'.
   const [pctModes, setPctModes] = useState({})
   const modeOf = (key) => pctModes[key] ?? 'dollar'
@@ -303,6 +407,14 @@ export default function Targets() {
         }
       }
       setInputs(inputMap)
+
+      // Notes load for every metric, including computed ones — you can annotate
+      // a derived row even though you can't type a target into it.
+      const noteMap = {}
+      for (const item of t.targets) {
+        if (item.notes) noteMap[item.metric_key] = item.notes
+      }
+      setNotes(noteMap)
     } catch {
       // No targets yet — fine
     } finally {
@@ -343,6 +455,13 @@ export default function Targets() {
 
     setPctModes(prev => ({ ...prev, [metricKey]: newMode }))
   }
+
+  // Notes persist on their own endpoint, so this never commits pending target
+  // edits. Local state updates first so the box doesn't flicker back on save.
+  const handleNoteSave = useCallback(async (metricKey, next) => {
+    setNotes(prev => ({ ...prev, [metricKey]: next }))
+    await saveTargetNote(id, year, metricKey, next)
+  }, [id, year])
 
   // Render a comparison-column value, honouring the row's current mode. Each
   // column divides by its OWN revenue so the three columns stay comparable.
@@ -470,17 +589,20 @@ export default function Targets() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border">
-                        <th className="text-left px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-text-muted w-[32%]">
+                        <th className="text-left px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-text-muted w-[26%]">
                           Metric
                         </th>
-                        <th className="text-right px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-text-muted w-[28%]">
+                        <th className="text-right px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-text-muted w-[22%]">
                           {year} Target
                         </th>
-                        <th className="text-right px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-text-muted w-[20%]">
+                        <th className="text-right px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-text-muted w-[16%]">
                           {year - 1} Actual
                         </th>
-                        <th className="text-right px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-text-muted w-[20%]">
+                        <th className="text-right px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-text-muted w-[16%]">
                           {year} Forecast
+                        </th>
+                        <th className="text-left px-3 py-3 font-mono text-[10px] uppercase tracking-widest text-text-muted w-[20%]">
+                          Notes
                         </th>
                       </tr>
                     </thead>
@@ -595,6 +717,14 @@ export default function Targets() {
                             {/* Current year forecast — as % of forecast revenue */}
                             <td className="px-5 py-3 text-right font-mono text-sm text-text-muted">
                               {fmtColumn(forecastSummary[metric.key], metric, forecastSummary.revenue)}
+                            </td>
+
+                            {/* Advisor note — autosaves independently of Save Targets */}
+                            <td className="px-3 py-2 align-top">
+                              <NoteCell
+                                value={notes[metric.key] ?? ''}
+                                onSave={next => handleNoteSave(metric.key, next)}
+                              />
                             </td>
                           </tr>
                         )

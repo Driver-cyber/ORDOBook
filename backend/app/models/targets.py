@@ -14,6 +14,9 @@ class ClientTarget(Base):
     target_value = Column(BigInteger, nullable=False)
     # "cents" | "count" | "days"
     target_type = Column(String(10), nullable=False, default="cents")
+    # Advisor note explaining WHY this target was set. Distinct from
+    # ScoreboardEntry.notes, which records how the metric performed.
+    notes = Column(Text, nullable=True)
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),

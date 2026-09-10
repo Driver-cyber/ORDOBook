@@ -12,10 +12,17 @@ class TargetsUpsertRequest(BaseModel):
     targets: List[TargetItem]
 
 
+class TargetNoteUpdate(BaseModel):
+    """Update just the advisor note on one metric, leaving target values alone."""
+    metric_key: str
+    notes: Optional[str] = None
+
+
 class TargetOut(BaseModel):
     metric_key: str
     target_value: int
     target_type: str
+    notes: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
