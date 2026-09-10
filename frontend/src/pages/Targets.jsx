@@ -20,12 +20,21 @@ const METRICS = [
   { key: 'net_operating_profit',  label: 'Net Operating Profit',   type: 'cents', section: 'P&L', computed: true },
   { key: 'other_income_expense',  label: 'Other Income / Expense', type: 'cents', section: 'P&L', computed: false },
   { key: 'net_profit',            label: 'Net Profit',             type: 'cents', section: 'P&L', computed: true },
-  // Cash Flow — DSO/DIO/DPO drive the working capital impact rows
-  { key: 'dso_days',              label: 'DSO (Days)',             type: 'days',  section: 'Cash Flow', computed: false },
-  { key: 'dio_days',              label: 'DIO (Days)',             type: 'days',  section: 'Cash Flow', computed: false },
-  { key: 'dpo_days',              label: 'DPO (Days)',             type: 'days',  section: 'Cash Flow', computed: false },
-  { key: 'owner_total_draws',     label: 'Owner Draws',            type: 'cents', section: 'Cash Flow', computed: false },
-  // cf_assets_change and cf_liabilities_change are now computed from DSO/DIO/DPO targets
+  // Cash Flow — driver order mirrors the reference workbook: asset-side drivers,
+  // then liability-side, then owner. Money drivers are SIGNED CASH AMOUNTS:
+  // a purchase/repayment is entered negative because it reduces cash.
+  { key: 'dso_days',                    label: 'DSO (Days)',                                          type: 'days',  section: 'Cash Flow', computed: false },
+  { key: 'dio_days',                    label: 'DIO (Days)',                                          type: 'days',  section: 'Cash Flow', computed: false },
+  { key: 'cf_other_current_assets',     label: 'Sale or (Purchase) of Other Current Assets',          type: 'cents', section: 'Cash Flow', computed: false },
+  { key: 'cf_fixed_assets',             label: 'Sale or (Purchase) of Other Long-Term & Fixed Assets', type: 'cents', section: 'Cash Flow', computed: false },
+  { key: 'dpo_days',                    label: 'DPO (Days)',                                          type: 'days',  section: 'Cash Flow', computed: false },
+  { key: 'cf_current_debt',             label: 'Additions or (Repayments) to Other Current Debt',     type: 'cents', section: 'Cash Flow', computed: false },
+  { key: 'cf_long_term_debt',           label: 'Additions or (Repayments) to Long-Term Debt',         type: 'cents', section: 'Cash Flow', computed: false },
+  { key: 'owner_total_draws',           label: 'Investments or (Draws) by Owner',                     type: 'cents', section: 'Cash Flow', computed: false },
+  // Computed roll-ups. Asset/liability change rows absorb both the working-capital
+  // effect of DSO/DIO/DPO and the explicit drivers above, so the documented
+  // Net CF formula stays intact:
+  //   Net CF = Net Profit − Owner Draws + CF: Asset Changes + CF: Liability Changes
   { key: 'cf_assets_change',      label: 'CF: Asset Changes',      type: 'cents', section: 'Cash Flow', computed: true },
   { key: 'cf_liabilities_change', label: 'CF: Liability Changes',  type: 'cents', section: 'Cash Flow', computed: true },
   { key: 'net_cash_flow',         label: 'Net Cash Flow',          type: 'cents', section: 'Cash Flow', computed: true },
@@ -124,12 +133,24 @@ function computeDerived(inputs, cosMode, priorEnding) {
   const dpo = parseCount(inputs.dpo_days ?? '') ?? 0
   const ownerDraws = parseToCents(inputs.owner_total_draws ?? '') ?? 0
 
+  // Explicit cash flow drivers — SIGNED cash amounts. A purchase or repayment is
+  // negative (reduces cash); a sale or new borrowing is positive.
+  const cfOtherCA = parseToCents(inputs.cf_other_current_assets ?? '') ?? 0
+  const cfFixedLT = parseToCents(inputs.cf_fixed_assets ?? '') ?? 0
+  const cfCurDebt = parseToCents(inputs.cf_current_debt ?? '') ?? 0
+  const cfLTDebt  = parseToCents(inputs.cf_long_term_debt ?? '') ?? 0
+
   // Prior year ending balances (from December actuals of prior year)
   const priorAR = priorEnding?.accounts_receivable ?? 0
   const priorInventory = priorEnding?.inventory ?? 0
   const priorAP = priorEnding?.accounts_payable ?? 0
   const priorCash = priorEnding?.cash ?? 0
   const priorEquity = priorEnding?.equity ?? 0
+  const priorOtherCA = priorEnding?.other_current_assets ?? 0
+  const priorFixed = priorEnding?.total_fixed_assets ?? 0
+  const priorOtherLTA = priorEnding?.total_other_long_term_assets ?? 0
+  const priorOtherCL = priorEnding?.other_current_liabilities ?? 0
+  const priorLTL = priorEnding?.total_long_term_liabilities ?? 0
 
   // Target working capital balances (annual rate → daily × days outstanding)
   const targetAR       = (dso > 0 && revenue > 0)   ? Math.round(revenue   / 365 * dso) : priorAR
@@ -141,16 +162,37 @@ function computeDerived(inputs, cosMode, priorEnding) {
   const inventoryChange = targetInventory - priorInventory
   const apChange        = targetAP        - priorAP
 
-  // Net CF impact of working capital moves
-  const cfAssetsChange      = -(arChange + inventoryChange)  // positive = favorable
-  const cfLiabilitiesChange = apChange                       // positive = favorable
+  // Net CF impact of asset moves: working capital (AR/inventory) plus the explicit
+  // other-current-asset and fixed-asset drivers, which are already signed cash amounts.
+  const cfAssetsChange      = -(arChange + inventoryChange) + cfOtherCA + cfFixedLT
+  // Liability side: AP working capital plus explicit debt movements.
+  const cfLiabilitiesChange = apChange + cfCurDebt + cfLTDebt
 
-  // Net Cash Flow = Net Profit − Owner Draws + WC Asset Changes + WC Liability Changes
+  // Net Cash Flow = Net Profit − Owner Draws + CF Asset Changes + CF Liability Changes
   const netCashFlow = netProfit - ownerDraws + cfAssetsChange + cfLiabilitiesChange
 
-  // Projected Balance Sheet
-  const projectedCash   = priorCash   + netCashFlow
-  const projectedEquity = priorEquity + netProfit - ownerDraws
+  // ── Projected Balance Sheet ───────────────────────────────────────────────
+  // Balance movements are the mirror of the cash movements above: a purchase is
+  // negative cash and therefore increases the asset, so the balance subtracts the
+  // driver. New borrowing is positive cash and increases the liability, so it adds.
+  const projectedCash    = priorCash + netCashFlow
+  const projOtherCA      = priorOtherCA - cfOtherCA
+  const projFixedAssets  = Math.max(0, priorFixed - cfFixedLT)
+  const projOtherLTA     = priorOtherLTA
+  const projOtherCL      = priorOtherCL + cfCurDebt
+  const projLTL          = priorLTL + cfLTDebt
+  const projectedEquity  = priorEquity + netProfit - ownerDraws
+
+  // Subtotals
+  const totalCurrentAssets      = projectedCash + targetAR + targetInventory + projOtherCA
+  const totalAssets             = totalCurrentAssets + projFixedAssets + projOtherLTA
+  const totalCurrentLiabilities = targetAP + projOtherCL
+  const totalLiabilities        = totalCurrentLiabilities + projLTL
+  // Tie-out check: this should equal totalAssets on a balanced sheet.
+  const totalLiabilitiesEquity  = totalLiabilities + projectedEquity
+
+  // Summary P&L (mirrors the projected year)
+  const totalOperatingExpenses = payroll + marketing + overhead
 
   return {
     // P&L computed
@@ -169,12 +211,35 @@ function computeDerived(inputs, cosMode, priorEnding) {
     target_ap: targetAP,
     projected_cash: projectedCash,
     projected_equity: projectedEquity,
+    proj_other_current_assets: projOtherCA,
+    proj_fixed_assets: projFixedAssets,
+    proj_other_long_term_assets: projOtherLTA,
+    proj_other_current_liabilities: projOtherCL,
+    proj_long_term_liabilities: projLTL,
+    total_current_assets: totalCurrentAssets,
+    total_assets: totalAssets,
+    total_current_liabilities: totalCurrentLiabilities,
+    total_liabilities: totalLiabilities,
+    total_liabilities_equity: totalLiabilitiesEquity,
+    // Summary P&L
+    total_operating_expenses: totalOperatingExpenses,
+    other_income_expense: otherIE,
     // Prior year ending (pass through for BS display)
     prior_cash: priorCash,
     prior_ar: priorAR,
     prior_inventory: priorInventory,
     prior_ap: priorAP,
     prior_equity: priorEquity,
+    prior_other_current_assets: priorOtherCA,
+    prior_fixed_assets: priorFixed,
+    prior_other_long_term_assets: priorOtherLTA,
+    prior_other_current_liabilities: priorOtherCL,
+    prior_long_term_liabilities: priorLTL,
+    prior_total_current_assets: priorCash + priorAR + priorInventory + priorOtherCA,
+    prior_total_assets: priorCash + priorAR + priorInventory + priorOtherCA + priorFixed + priorOtherLTA,
+    prior_total_current_liabilities: priorAP + priorOtherCL,
+    prior_total_liabilities: priorAP + priorOtherCL + priorLTL,
+    prior_total_liabilities_equity: priorAP + priorOtherCL + priorLTL + priorEquity,
   }
 }
 
@@ -497,11 +562,13 @@ export default function Targets() {
                       <th className="text-left px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-text-muted w-[40%]">
                         Account
                       </th>
-                      <th className="text-right px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-text-muted">
-                        {year - 1} Ending
-                      </th>
+                      {/* Current year first — matches the column order of the
+                          Operations / P&L / Cash Flow tables above. */}
                       <th className="text-right px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-text-muted">
                         {year} Projected
+                      </th>
+                      <th className="text-right px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-text-muted">
+                        {year - 1} Ending
                       </th>
                       <th className="text-right px-5 py-3 font-mono text-[10px] uppercase tracking-widest text-text-muted">
                         Change
@@ -510,50 +577,70 @@ export default function Targets() {
                   </thead>
                   <tbody>
                     {[
-                      {
-                        label: 'Cash',
-                        hint: 'Prior cash + Net Cash Flow',
-                        prior: derived.prior_cash,
-                        projected: derived.projected_cash,
-                      },
-                      {
-                        label: 'Accounts Receivable',
-                        hint: `Revenue / 365 × ${parseCount(inputs.dso_days ?? '') ?? 0} DSO days`,
-                        prior: derived.prior_ar,
-                        projected: derived.target_ar,
-                      },
-                      {
-                        label: 'Inventory',
-                        hint: `COS / 365 × ${parseCount(inputs.dio_days ?? '') ?? 0} DIO days`,
-                        prior: derived.prior_inventory,
-                        projected: derived.target_inventory,
-                      },
-                      {
-                        label: 'Accounts Payable',
-                        hint: `COS / 365 × ${parseCount(inputs.dpo_days ?? '') ?? 0} DPO days`,
-                        prior: derived.prior_ap,
-                        projected: derived.target_ap,
-                      },
-                      {
-                        label: 'Net Equity',
-                        hint: 'Prior equity + Net Profit − Owner Draws',
-                        prior: derived.prior_equity,
-                        projected: derived.projected_equity,
-                      },
-                    ].map(({ label, hint, prior, projected }, i, arr) => {
+                      { label: 'Cash', hint: 'Prior cash + Net Cash Flow',
+                        prior: derived.prior_cash, projected: derived.projected_cash },
+                      { label: 'Accounts Receivable', hint: `Revenue / 365 × ${parseCount(inputs.dso_days ?? '') ?? 0} DSO days`,
+                        prior: derived.prior_ar, projected: derived.target_ar },
+                      { label: 'Inventory', hint: `COS / 365 × ${parseCount(inputs.dio_days ?? '') ?? 0} DIO days`,
+                        prior: derived.prior_inventory, projected: derived.target_inventory },
+                      { label: 'Other Current Assets', hint: 'Prior balance − sale/(purchase) driver',
+                        prior: derived.prior_other_current_assets, projected: derived.proj_other_current_assets },
+                      { label: 'Total Current Assets', kind: 'subtotal',
+                        prior: derived.prior_total_current_assets, projected: derived.total_current_assets },
+                      { label: 'Fixed Assets', hint: 'Prior balance − sale/(purchase) driver',
+                        prior: derived.prior_fixed_assets, projected: derived.proj_fixed_assets },
+                      { label: 'Other Long-Term Assets', hint: 'Held at prior balance',
+                        prior: derived.prior_other_long_term_assets, projected: derived.proj_other_long_term_assets },
+                      { label: 'Total Assets', kind: 'subtotal',
+                        prior: derived.prior_total_assets, projected: derived.total_assets },
+                      { label: 'Accounts Payable', hint: `COS / 365 × ${parseCount(inputs.dpo_days ?? '') ?? 0} DPO days`,
+                        prior: derived.prior_ap, projected: derived.target_ap },
+                      { label: 'Other Current Liabilities', hint: 'Prior balance + additions/(repayments) driver',
+                        prior: derived.prior_other_current_liabilities, projected: derived.proj_other_current_liabilities },
+                      { label: 'Total Current Liabilities', kind: 'subtotal',
+                        prior: derived.prior_total_current_liabilities, projected: derived.total_current_liabilities },
+                      { label: 'Long-Term Liabilities', hint: 'Prior balance + additions/(repayments) driver',
+                        prior: derived.prior_long_term_liabilities, projected: derived.proj_long_term_liabilities },
+                      { label: 'Total Liabilities', kind: 'subtotal',
+                        prior: derived.prior_total_liabilities, projected: derived.total_liabilities },
+                      { label: 'Equity', hint: 'Prior equity + Net Profit − Owner Draws',
+                        prior: derived.prior_equity, projected: derived.projected_equity },
+                      { label: 'Total Liabilities & Equity', kind: 'check',
+                        hint: 'Should equal Total Assets',
+                        prior: derived.prior_total_liabilities_equity, projected: derived.total_liabilities_equity },
+                    ].map(({ label, hint, prior, projected, kind }, i, arr) => {
                       const change = projected - prior
                       const isLast = i === arr.length - 1
+                      const isSubtotal = kind === 'subtotal' || kind === 'check'
+                      // Tie-out: a balanced sheet has Total L&E === Total Assets.
+                      const balanced = kind === 'check'
+                        ? projected === derived.total_assets
+                        : null
                       return (
-                        <tr key={label} className={!isLast ? 'border-b border-border' : ''}>
+                        <tr
+                          key={label}
+                          className={[
+                            !isLast ? 'border-b border-border' : '',
+                            isSubtotal ? 'bg-surface-subtle' : '',
+                          ].filter(Boolean).join(' ')}
+                        >
                           <td className="px-5 py-3">
-                            <div className="text-sm font-medium text-text-primary">{label}</div>
-                            <div className="text-[10px] text-text-muted mt-0.5">{hint}</div>
+                            <div className={`text-sm text-text-primary ${isSubtotal ? 'font-semibold' : 'font-medium'}`}>
+                              {label}
+                              {balanced === true && <span className="ml-2 text-[10px] text-text-muted">✓ balanced</span>}
+                              {balanced === false && (
+                                <span className="ml-2 text-[10px] text-red-600">
+                                  ✕ off by {fmtDollars(projected - derived.total_assets)}
+                                </span>
+                              )}
+                            </div>
+                            {hint && <div className="text-[10px] text-text-muted mt-0.5">{hint}</div>}
+                          </td>
+                          <td className={`px-5 py-3 text-right font-mono text-sm ${isSubtotal ? 'text-text-primary font-semibold' : 'text-text-secondary font-medium'}`}>
+                            {fmtDollars(projected)}
                           </td>
                           <td className="px-5 py-3 text-right font-mono text-sm text-text-muted">
                             {fmtDollars(prior)}
-                          </td>
-                          <td className="px-5 py-3 text-right font-mono text-sm text-text-secondary font-medium">
-                            {fmtDollars(projected)}
                           </td>
                           <td className="px-5 py-3 text-right font-mono text-sm text-text-muted">
                             {fmtChange(change)}
@@ -565,6 +652,49 @@ export default function Targets() {
                 </table>
               </div>
             )}
+          </section>
+
+          {/* Summary P&L — the projected year at a glance, beneath the balance sheet */}
+          <section>
+            <h2 className="font-mono text-[10px] uppercase tracking-widest text-text-muted mb-3">
+              Summary P&amp;L ({year} target)
+            </h2>
+            <div className="bg-surface border border-border rounded-xl overflow-hidden">
+              <table className="w-full">
+                <tbody>
+                  {[
+                    { label: 'Income', value: derived.revenue },
+                    { label: 'Cost of Sales', value: derived.cost_of_sales },
+                    { label: 'Gross Profit', value: derived.gross_profit, kind: 'subtotal' },
+                    { label: 'Total Expenses', value: derived.total_operating_expenses,
+                      hint: 'Payroll + Marketing + Overhead' },
+                    { label: 'Other Income / (Expense)', value: derived.other_income_expense },
+                    { label: 'Net Income', value: derived.net_profit, kind: 'subtotal' },
+                  ].map(({ label, value, hint, kind }, i, arr) => {
+                    const isSubtotal = kind === 'subtotal'
+                    return (
+                      <tr
+                        key={label}
+                        className={[
+                          i !== arr.length - 1 ? 'border-b border-border' : '',
+                          isSubtotal ? 'bg-surface-subtle' : '',
+                        ].filter(Boolean).join(' ')}
+                      >
+                        <td className="px-5 py-3 w-[40%]">
+                          <div className={`text-sm text-text-primary ${isSubtotal ? 'font-semibold' : 'font-medium'}`}>
+                            {label}
+                          </div>
+                          {hint && <div className="text-[10px] text-text-muted mt-0.5">{hint}</div>}
+                        </td>
+                        <td className={`px-5 py-3 text-right font-mono text-sm ${isSubtotal ? 'text-text-primary font-semibold' : 'text-text-secondary'}`}>
+                          {fmtDollars(value)}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </section>
 
           <p className="text-text-muted text-[11px]">

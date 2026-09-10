@@ -59,15 +59,30 @@ def _get_metric_value(period: ForecastPeriod, key: str) -> int:
     return getattr(period, key, 0) or 0
 
 
-def _aggregate_actuals(actuals: list) -> dict:
+def _aggregate_actuals(actuals: list, opening_bs=None) -> dict:
     """
     Aggregate MonthlyActuals records into a metric_key → int|None dict for the
     Targets page prior-year comparison column.
-    Cash-flow metrics (DSO, net_cash_flow, etc.) aren't stored in raw QB actuals
-    — those come from the forecast engine — so they're returned as None.
+
+    Cash-flow comparison values are derived here rather than left blank:
+      - DSO/DIO/DPO come from the year-end balance against the annual flow.
+      - Balance *changes* (CF asset/liability, net cash flow, owner draws) need an
+        opening balance sheet — December of the year before `actuals`. Pass it as
+        `opening_bs`; without it those stay None rather than showing an untraceable
+        number.
     """
     if not actuals:
         return {}
+
+    # Year-end balance sheet = the latest month present in the set.
+    _latest = max(actuals, key=lambda a: a.month)
+    latest_bs = {
+        "cash": _latest.cash or 0,
+        "accounts_receivable": _latest.accounts_receivable or 0,
+        "inventory": _latest.inventory or 0,
+        "accounts_payable": _latest.accounts_payable or 0,
+        "equity": (_latest.equity_before_net_profit or 0) + (_latest.net_profit_for_year or 0),
+    }
     total_jobs = sum(a.job_count or 0 for a in actuals)
     total_revenue = sum(a.revenue or 0 for a in actuals)
     total_cos = sum(a.cost_of_sales or 0 for a in actuals)
@@ -86,6 +101,21 @@ def _aggregate_actuals(actuals: list) -> dict:
         total_net_profit = 0
     # net_op = net_profit - other_income_expense (algebraically equivalent to GP - total_expenses)
     net_op_profit = total_net_profit - total_other_ie
+
+    # Balance-sheet movements need an opening position to measure against.
+    cf_assets_change = cf_liabilities_change = net_cash_flow = owner_draws = None
+    if opening_bs:
+        ar_change = latest_bs["accounts_receivable"] - (opening_bs.get("accounts_receivable") or 0)
+        inv_change = latest_bs["inventory"] - (opening_bs.get("inventory") or 0)
+        ap_change = latest_bs["accounts_payable"] - (opening_bs.get("accounts_payable") or 0)
+        # Signed positive-favorable, matching the Targets page convention.
+        cf_assets_change = -(ar_change + inv_change)
+        cf_liabilities_change = ap_change
+        net_cash_flow = latest_bs["cash"] - (opening_bs.get("cash") or 0)
+        # Equity roll-forward: opening + net profit − draws = closing, so
+        # draws = opening + net profit − closing.
+        owner_draws = (opening_bs.get("equity") or 0) + total_net_profit - latest_bs["equity"]
+
     return {
         "revenue": total_revenue,
         "cost_of_sales": total_cos,
@@ -98,15 +128,27 @@ def _aggregate_actuals(actuals: list) -> dict:
         "net_profit": total_net_profit,
         "total_jobs": total_jobs,
         "blended_avg_job_value": total_revenue // total_jobs if total_jobs > 0 else 0,
-        # Cash flow metrics require the forecast engine — not in raw QB actuals
-        "dso_days": None,
-        "dio_days": None,
-        "dpo_days": None,
-        "cf_assets_change": None,
-        "cf_liabilities_change": None,
-        "net_cash_flow": None,
-        "owner_total_draws": None,
+        # Days ratios are derivable from the year-end balance sheet and the annual
+        # flow, using the same relationship the Targets page inverts to project
+        # working capital (AR = Revenue / 365 × DSO).
+        "dso_days": _days_ratio(latest_bs.get("accounts_receivable"), total_revenue),
+        "dio_days": _days_ratio(latest_bs.get("inventory"), total_cos),
+        "dpo_days": _days_ratio(latest_bs.get("accounts_payable"), total_cos),
+        # These need an opening balance sheet (December of the year before) to
+        # compute a true change. Left None when it isn't available rather than
+        # showing a number that can't be traced to a source.
+        "cf_assets_change": cf_assets_change,
+        "cf_liabilities_change": cf_liabilities_change,
+        "net_cash_flow": net_cash_flow,
+        "owner_total_draws": owner_draws,
     }
+
+
+def _days_ratio(balance: int | None, annual_flow: int) -> int | None:
+    """Days outstanding implied by a year-end balance against an annual flow."""
+    if not balance or annual_flow <= 0:
+        return None
+    return round(balance / (annual_flow / 365))
 
 
 def _aggregate_forecast_for_targets(periods: list) -> dict:
@@ -200,13 +242,39 @@ def get_targets(client_id: int, year: int, db: Session = Depends(get_db)):
         MonthlyActuals.month == 12,
     ).first()
 
+    # December two years back — the opening position for the prior-year comparison
+    # column, so its cash-flow movements can be measured. May not be imported.
+    prior_open_dec = db.query(MonthlyActuals).filter(
+        MonthlyActuals.client_id == client_id,
+        MonthlyActuals.fiscal_year == year - 2,
+        MonthlyActuals.month == 12,
+    ).first()
+    prior_opening: dict | None = None
+    if prior_open_dec:
+        prior_opening = {
+            "cash": prior_open_dec.cash or 0,
+            "accounts_receivable": prior_open_dec.accounts_receivable or 0,
+            "inventory": prior_open_dec.inventory or 0,
+            "accounts_payable": prior_open_dec.accounts_payable or 0,
+            "equity": (prior_open_dec.equity_before_net_profit or 0)
+                      + (prior_open_dec.net_profit_for_year or 0),
+        }
+
     prior_ending: dict = {}
     if prior_dec:
+        # Full ending balance sheet — the projected BS needs every line to present
+        # subtotals (Total Current Assets / Total Assets / Total Liabilities) and
+        # the Total Liabilities & Equity tie-out against Total Assets.
         prior_ending = {
             "cash": prior_dec.cash or 0,
             "accounts_receivable": prior_dec.accounts_receivable or 0,
             "inventory": prior_dec.inventory or 0,
+            "other_current_assets": prior_dec.other_current_assets or 0,
+            "total_fixed_assets": prior_dec.total_fixed_assets or 0,
+            "total_other_long_term_assets": prior_dec.total_other_long_term_assets or 0,
             "accounts_payable": prior_dec.accounts_payable or 0,
+            "other_current_liabilities": prior_dec.other_current_liabilities or 0,
+            "total_long_term_liabilities": prior_dec.total_long_term_liabilities or 0,
             # Equity = retained equity + current year net income
             "equity": (prior_dec.equity_before_net_profit or 0) + (prior_dec.net_profit_for_year or 0),
         }
@@ -220,7 +288,7 @@ def get_targets(client_id: int, year: int, db: Session = Depends(get_db)):
     return TargetsResponse(
         fiscal_year=year,
         targets=[TargetOut.model_validate(t) for t in targets],
-        prior_year_actuals=_aggregate_actuals(prior_actuals),
+        prior_year_actuals=_aggregate_actuals(prior_actuals, opening_bs=prior_opening),
         current_year_forecast=_aggregate_forecast_for_targets(forecast_periods),
         prior_year_ending_balances=prior_ending,
     )
