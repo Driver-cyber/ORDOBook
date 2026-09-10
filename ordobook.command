@@ -15,6 +15,11 @@
 
 set -uo pipefail
 
+# Launches from Finder/Dock inherit a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin)
+# that has no Homebrew — so npm/node wouldn't be found. Add the usual Homebrew
+# locations explicitly so this behaves the same from Terminal or the Dock.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 PROJECT_DIR="/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook"
 PG_BIN="/opt/homebrew/opt/postgresql@17/bin"
 PGDATA="/opt/homebrew/var/postgresql@17"
