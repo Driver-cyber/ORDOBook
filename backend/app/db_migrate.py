@@ -35,11 +35,18 @@ def upgrade_to_head() -> None:
 
 
 def auto_migrate_if_enabled() -> None:
-    """Run migrations on startup only when ORDOBOOK_AUTO_MIGRATE=1.
+    """Bring the database to head on startup. On by default; ORDOBOOK_AUTO_MIGRATE=0 disables.
 
-    The packaged app (Electron) sets this so each launch self-heals the schema.
-    In dev it's unset: migrations are run manually (see SETUP.md) and create_all
-    bootstraps a fresh dev DB — dev behavior is unchanged.
+    Runs in dev as well as in the packaged app. Migrations must run BEFORE
+    main.py's create_all(): create_all creates missing tables without telling
+    Alembic and never alters existing ones, so running it first leaves the
+    version marker behind reality (a table exists that Alembic thinks it still
+    has to create — the 021 DuplicateTable failure) and leaves new columns
+    missing until someone runs 'alembic upgrade head' by hand. Migrating first
+    makes create_all a harmless safety net.
+
+    Set ORDOBOOK_AUTO_MIGRATE=0 to opt out (e.g. when deliberately holding a
+    database at an older revision).
     """
-    if os.getenv("ORDOBOOK_AUTO_MIGRATE") == "1":
+    if os.getenv("ORDOBOOK_AUTO_MIGRATE", "1") != "0":
         upgrade_to_head()

@@ -13,9 +13,9 @@ from app.routers import exports as exports_router
 
 load_dotenv()
 
-# Packaged app (ORDOBOOK_AUTO_MIGRATE=1): bring the user's existing DB up to head
-# before serving, so schema changes ship across versions without losing data.
-# No-op in dev — migrations are run manually there (see SETUP.md).
+# Bring the database to head BEFORE create_all, in dev and packaged alike, so
+# Alembic's ledger always matches reality and new columns land without a manual
+# 'alembic upgrade head'. ORDOBOOK_AUTO_MIGRATE=0 opts out.
 auto_migrate_if_enabled()
 
 # Bootstrap a fresh dev DB from the models. In the packaged app the migration
