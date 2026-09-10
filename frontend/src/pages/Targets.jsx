@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getClient } from '../api/clients'
 import { getTargets, saveTargets, saveTargetNote } from '../api/targets'
@@ -55,6 +56,10 @@ const SECTIONS = ['Operations', 'P&L', 'Cash Flow']
  * would hammer the API for no benefit. Also flushes on blur so clicking away
  * always persists.
  */
+// Expanded-note panel size; used to keep it fully inside the viewport.
+const PANEL_WIDTH = 340
+const PANEL_HEIGHT = 260
+
 function NoteCell({ value, onSave }) {
   const [text, setText] = useState(value ?? '')
   const [expanded, setExpanded] = useState(false)
@@ -144,7 +149,7 @@ function NoteCell({ value, onSave }) {
         </div>
       )}
 
-      {expanded && anchor && (
+      {expanded && anchor && createPortal(
         <>
           {/* Click-anywhere-else to close, so there's always a way out even if
               the panel itself ends up somewhere unexpected. */}
@@ -154,9 +159,11 @@ function NoteCell({ value, onSave }) {
             style={{
               // Anchored to the Notes cell and grown leftward, so it covers the
               // Notes column rather than the metric name or the data columns.
-              top: Math.min(anchor.top, window.innerHeight - 240),
-              left: Math.max(8, anchor.right - 340),
-              width: 340,
+              // Clamped so the whole panel — Close button included — stays on
+              // screen even for a row near the bottom of the viewport.
+              top: Math.max(8, Math.min(anchor.top, window.innerHeight - PANEL_HEIGHT - 8)),
+              left: Math.max(8, anchor.right - PANEL_WIDTH),
+              width: PANEL_WIDTH,
             }}
           >
             <textarea
@@ -179,7 +186,8 @@ function NoteCell({ value, onSave }) {
               </button>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   )
