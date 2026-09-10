@@ -12,10 +12,12 @@ If WeasyPrint is not installed the PDF endpoints return HTTP 503.
 import io
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -26,6 +28,12 @@ from app.models.monthly_actuals import MonthlyActuals
 from app.models.targets import ClientTarget, ScoreboardEntry
 
 router = APIRouter(prefix="/api/clients", tags=["exports"])
+
+TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
+_jinja = Environment(
+    loader=FileSystemLoader(str(TEMPLATES_DIR)),
+    autoescape=select_autoescape(["html", "j2"]),
+)
 
 # ---------------------------------------------------------------------------
 # JSON Export
@@ -159,78 +167,196 @@ def _get_weasyprint():
         return None, None
 
 
-def _scoreboard_html(client: Client, year: int, periods, targets, grades) -> str:
-    from app.routers.targets import SCOREBOARD_METRICS, _aggregate, _compute_grade, _variance_pct
+# --- Scoreboard PDF: Concept 5 — "The Sketch" --------------------------------
 
-    actual_periods = [p for p in periods if p.source_type == "actual"]
-    months_elapsed = len(actual_periods)
-    targets_map = {t.metric_key: t for t in targets}
+_HERO_KEYS = ("revenue", "net_profit", "net_cash_flow")
+_HERO_LABEL = {"revenue": "Revenue", "net_profit": "Net Profit", "net_cash_flow": "Net Cash Flow"}
+_HERO_ABBR = {"revenue": "R", "net_profit": "NP", "net_cash_flow": "NCF"}
 
-    rows_html = ""
-    for metric in SCOREBOARD_METRICS:
-        key = metric["key"]
-        ytd = _aggregate(actual_periods, metric)
-        full = _aggregate(periods, metric)
-        t_obj = targets_map.get(key)
-        annual_target = t_obj.target_value if t_obj else None
-        g_obj = grades.get(key)
-        grade = g_obj.grade if g_obj and g_obj.grade_is_override else None
-        if not grade and annual_target and months_elapsed > 0:
-            prorated = int(annual_target * months_elapsed / 12)
-            grade = _compute_grade(ytd, prorated, metric["higher_is_better"]) if prorated else None
+_DOT_COLOR = {"green": "var(--green)", "yellow": "var(--yellow)", "red": "var(--red)"}
 
-        grade_color = {"green": "#2d9e52", "yellow": "#d4a017", "red": "#d43f3f"}.get(grade or "", "#aaa")
+_ACTIONS_BY_KEY = {
+    "dso_days": "Call top 5 AR accounts",
+    "dio_days": "Review inventory turn",
+    "dpo_days": "Review supplier payment terms",
+    "payroll_expenses": "Review hiring pace",
+    "marketing_expenses": "Audit marketing ROI",
+    "overhead_expenses": "Audit overhead line items",
+    "cost_of_sales": "Review COS drivers + margin",
+    "owner_total_draws": "Set draw cap for remaining quarters",
+    "cf_assets_change": "Working capital review",
+    "cf_liabilities_change": "AP terms review",
+    "net_cash_flow": "Cash conversion deep-dive",
+    "net_profit": "P&L review vs plan",
+    "net_operating_profit": "Operating margin review",
+    "gross_profit": "Pricing + COS review",
+    "revenue": "Revenue funnel review",
+    "total_jobs": "Job pipeline review",
+    "blended_avg_job_value": "Pricing review",
+}
 
-        def fmt(v, t):
-            if v is None:
-                return "—"
-            if t == "cents":
-                d = v / 100
-                if abs(d) >= 1_000_000:
-                    return f"${d/1_000_000:.1f}M"
-                return f"${round(d):,}"
-            if t == "days":
-                return f"{round(v)}d"
-            return f"{round(v):,}"
+_MONTH_NAMES = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+]
 
-        rows_html += f"""
-        <tr>
-          <td>{metric['label']}</td>
-          <td class="num">{fmt(ytd, metric['type'])}</td>
-          <td class="num">{fmt(full, metric['type'])}</td>
-          <td class="num">{fmt(annual_target, metric['type'])}</td>
-          <td class="center"><span style="color:{grade_color};font-weight:700">{(grade or '—').upper()}</span></td>
-        </tr>"""
 
-    return f"""<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<style>
-  body {{ font-family: system-ui, sans-serif; font-size: 11px; color: #1a1918; margin: 40px; }}
-  h1 {{ font-size: 20px; margin-bottom: 4px; }}
-  .sub {{ color: #888; margin-bottom: 24px; }}
-  table {{ width: 100%; border-collapse: collapse; }}
-  th {{ text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: .08em;
-        color: #888; padding: 6px 8px; border-bottom: 1px solid #ddd; }}
-  td {{ padding: 7px 8px; border-bottom: 1px solid #eee; }}
-  .num {{ text-align: right; font-family: monospace; }}
-  .center {{ text-align: center; }}
-  tr:nth-child(even) {{ background: #fafafa; }}
-</style>
-</head><body>
-  <h1>Scoreboard — {year}</h1>
-  <div class="sub">{client.name}</div>
-  <table>
-    <thead><tr>
-      <th>Metric</th><th class="num">YTD Actual</th>
-      <th class="num">Full Year Forecast</th><th class="num">Annual Target</th>
-      <th class="center">Grade</th>
-    </tr></thead>
-    <tbody>{rows_html}</tbody>
-  </table>
-  <p style="margin-top:24px;font-size:9px;color:#aaa">
-    Generated by ORDOBOOK · {datetime.now(timezone.utc).strftime('%Y-%m-%d')}
-  </p>
-</body></html>"""
+def _fmt_money(value):
+    if value is None:
+        return "—"
+    abs_v = abs(value)
+    sign = "−" if value < 0 else ""
+    if abs_v >= 1_000_000:
+        return f"{sign}${abs_v / 1_000_000:.1f}M"
+    if abs_v >= 1_000:
+        return f"{sign}${round(abs_v / 1_000)}K"
+    return f"{sign}${round(abs_v)}"
+
+
+def _fmt_value(value, type_):
+    if value is None:
+        return "—"
+    if type_ == "money":
+        return _fmt_money(value)
+    if type_ == "days":
+        return f"{round(value)}d"
+    return f"{round(value):,}"
+
+
+def _fmt_var(pct):
+    if pct is None:
+        return "—"
+    sign = "+" if pct >= 0 else ""
+    return f"{sign}{pct:.1f}%"
+
+
+def _auto_headline(red, yellow, green):
+    if red >= 3:
+        return "Multiple priorities need attention this period."
+    if red >= 1:
+        s = "" if red == 1 else "s"
+        return f"{red} item{s} in the red — let's talk through the path forward."
+    if yellow > green:
+        return "Mixed signals — several items to monitor."
+    if green > 0:
+        return "Performance on track — stay the course."
+    return "Set targets and import actuals to begin grading."
+
+
+def _auto_reason(metric_dollars, label, type_, var_pct, notes):
+    if notes:
+        return notes
+    if var_pct is None:
+        return f"Currently {_fmt_value(metric_dollars['ytd'], type_)} — no target set"
+    direction = "ahead of" if var_pct >= 0 else "behind"
+    ytd_str = _fmt_value(metric_dollars["ytd"], type_)
+    target_str = _fmt_value(metric_dollars["target"], type_)
+    return f"{ytd_str} vs {target_str} target — {_fmt_var(var_pct)} {direction} plan"
+
+
+def _build_scoreboard_template_data(client: Client, year: int, raw: dict) -> dict:
+    """Adapter: backend ScoreboardResponse dict → Concept 5 template data."""
+    sections_in = raw.get("sections", [])
+
+    def remap(m):
+        is_cents = m["type"] == "cents"
+        conv = lambda v: None if v is None else (v / 100 if is_cents else v)
+        return {
+            "key": m["key"],
+            "label": m["label"],
+            "grade": m["grade"] or "yellow",
+            "grade_short": (m["grade"] or "y")[0],
+            "ytd": conv(m["ytd_actual"]),
+            "target": conv(m["annual_target"]),
+            "prior": conv(m["prior_year_total"]),
+            "var_pct": m["variance_pct"],
+            "type": "money" if is_cents else m["type"],
+            "notes": m.get("notes"),
+            "is_top_priority": m["is_top_priority"],
+            "value": _fmt_value(conv(m["ytd_actual"]), "money" if is_cents else m["type"]),
+            "var": _fmt_var(m["variance_pct"]),
+        }
+
+    sections = []
+    all_metrics = []
+    for sec in sections_in:
+        metrics = [remap(m) for m in sec["metrics"]]
+        rank = {"green": 0, "yellow": 1, "red": 2}
+        sections.append({
+            "name": sec["name"],
+            "metrics_sorted": sorted(metrics, key=lambda m: rank.get(m["grade"], 1)),
+        })
+        all_metrics.extend(metrics)
+
+    # Heroes
+    heroes = []
+    for k in _HERO_KEYS:
+        m = next((x for x in all_metrics if x["key"] == k), None)
+        if not m:
+            continue
+        heroes.append({
+            "abbr": _HERO_ABBR[k],
+            "name": _HERO_LABEL[k],
+            "value": _fmt_money(m["ytd"]),
+            "target": _fmt_money(m["target"]),
+            "var": _fmt_var(m["var_pct"]),
+            "dot_color": _DOT_COLOR.get(m["grade"], "var(--ink-3)"),
+        })
+
+    # Priorities (max 3)
+    priorities = []
+    for m in all_metrics:
+        if not m["is_top_priority"]:
+            continue
+        priorities.append({
+            "key": m["key"],
+            "label": m["label"],
+            "reason": _auto_reason(m, m["label"], m["type"], m["var_pct"], m["notes"]),
+            "action": _ACTIONS_BY_KEY.get(m["key"], m["label"]),
+        })
+        if len(priorities) >= 3:
+            break
+
+    # Strip ordering: green → yellow → red
+    rank = {"green": 0, "yellow": 1, "red": 2}
+    strip = sorted(all_metrics, key=lambda m: rank.get(m["grade"], 1))
+    strip = [{"label": m["label"], "grade_short": m["grade_short"]} for m in strip]
+
+    counts = {
+        "green": raw.get("green_count", 0),
+        "yellow": raw.get("yellow_count", 0),
+        "red": raw.get("red_count", 0),
+    }
+    months_elapsed = raw.get("months_elapsed") or 1
+    month_idx = max(0, min(11, months_elapsed - 1))
+    today = datetime.now(timezone.utc)
+
+    return {
+        "client": client.name,
+        "period": f"YTD through {_MONTH_NAMES[month_idx]} {year}",
+        "prepared_by": "ORDOBOOK · Reviewed by advisor",
+        "prepared_date": today.strftime("%B %-d, %Y"),
+        "overall": {
+            "grade": raw.get("overall_grade"),
+            "headline": _auto_headline(counts["red"], counts["yellow"], counts["green"]),
+            "counts": counts,
+        },
+        "heroes": heroes,
+        "priorities": priorities,
+        "sections": sections,
+        "strip": strip,
+    }
+
+
+def _render_scoreboard_html(client: Client, year: int, db: Session) -> str:
+    from app.routers.targets import get_scoreboard
+
+    raw = get_scoreboard(client.id, year, db)
+    raw_dict = raw.model_dump() if hasattr(raw, "model_dump") else dict(raw)
+    template_data = _build_scoreboard_template_data(client, year, raw_dict)
+
+    template = _jinja.get_template("scoreboard.html.j2")
+    return template.render(data=template_data)
 
 
 def _action_plan_html(client: Client, year: int, items) -> str:
@@ -293,26 +419,12 @@ def export_pdf(client_id: int, export_type: str, year: int, db: Session = Depend
         raise HTTPException(status_code=404, detail="Client not found")
 
     if export_type == "scoreboard":
-        periods = (
-            db.query(ForecastPeriod)
-            .filter(ForecastPeriod.client_id == client_id, ForecastPeriod.fiscal_year == year)
-            .order_by(ForecastPeriod.month)
-            .all()
-        )
-        targets = (
-            db.query(ClientTarget)
-            .filter(ClientTarget.client_id == client_id, ClientTarget.fiscal_year == year)
-            .all()
-        )
-        grades = {
-            g.metric_key: g
-            for g in db.query(ScoreboardEntry).filter(
-                ScoreboardEntry.client_id == client_id,
-                ScoreboardEntry.fiscal_year == year,
-            ).all()
-        }
-        html_content = _scoreboard_html(client, year, periods, targets, grades)
-
+        html_content = _render_scoreboard_html(client, year, db)
+        css_path = TEMPLATES_DIR / "scoreboard.css"
+        pdf_bytes = HTML(
+            string=html_content,
+            base_url=str(TEMPLATES_DIR),
+        ).write_pdf(stylesheets=[CSS(filename=str(css_path))])
     else:  # action-plan
         items = (
             db.query(ActionPlanItem)
@@ -321,8 +433,8 @@ def export_pdf(client_id: int, export_type: str, year: int, db: Session = Depend
             .all()
         )
         html_content = _action_plan_html(client, year, items)
+        pdf_bytes = HTML(string=html_content).write_pdf()
 
-    pdf_bytes = HTML(string=html_content).write_pdf()
     filename = f"{client_id}_{year}_{export_type}.pdf"
 
     return StreamingResponse(

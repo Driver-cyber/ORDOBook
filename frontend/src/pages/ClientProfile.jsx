@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getClient, updateClient, deleteClient } from '../api/clients'
+import { formatApiError } from '../api/errors'
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const INDUSTRIES = ['Plumbing','HVAC','Electrical','Construction','Landscaping','Roofing','Other']
@@ -64,7 +65,7 @@ export default function ClientProfile({ onClientUpdated, onClientDeleted }) {
       setDirty(false)
       onClientUpdated?.(updated)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Save failed')
+      setError(formatApiError(err, 'Save failed'))
     } finally {
       setSaving(false)
     }

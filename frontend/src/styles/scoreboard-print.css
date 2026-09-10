@@ -1,0 +1,332 @@
+/* Concept 5 — "The Sketch" hybrid */
+
+.c5-page {
+  padding: 44px 50px 32px;
+}
+
+/* ── 1. Title band ─────────────────────────────────────────── */
+.c5-title {
+  border: 1.5px solid var(--ink);
+  padding: 14px 18px;
+  margin-bottom: 18px;
+}
+.c5-title-mark {
+  font-family: "DM Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.c5-title-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.c5-h1 {
+  font-family: "Syne", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+.c5-period {
+  font-family: "DM Mono", monospace;
+  font-size: 11px;
+  color: var(--ink-2);
+  letter-spacing: 0.06em;
+}
+.c5-desc {
+  font-family: "Syne", sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--ink);
+  margin-top: 6px;
+  text-wrap: pretty;
+  max-width: 620px;
+}
+
+/* ── 2. Hero tiles — neutral fill + indicator dot ─────────── */
+.c5-heroes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.c5-hero {
+  border: 1.5px solid var(--ink);
+  padding: 14px 16px 12px;
+  background: var(--paper);
+}
+.c5-hero-row {
+  display: flex; align-items: baseline; gap: 8px;
+  margin-bottom: 6px;
+}
+.c5-hero-abbr {
+  font-family: "Syne", sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+  border: 1px solid var(--gold);
+  padding: 1px 6px 0;
+}
+.c5-hero-name {
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.c5-hero-value {
+  font-size: 32px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+.c5-hero-target {
+  display: flex; align-items: center; gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+.c5-hero-target-label {
+  font-family: "DM Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.c5-hero-target-val {
+  font-size: 11px;
+  color: var(--ink-2);
+  flex: 1;
+}
+.c5-hero-dot {
+  width: 11px; height: 11px; border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  flex: none;
+}
+.c5-hero-var {
+  font-size: 11px;
+  font-weight: 500;
+  min-width: 48px;
+  text-align: right;
+}
+
+/* ── 3. Priorities + Action Items ─────────────────────────── */
+.c5-pri-block {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.c5-pri-main {
+  border: 1.5px solid var(--ink);
+  padding: 12px 16px 14px;
+}
+.c5-pri-head {
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--red);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.c5-pri-list {
+  list-style: none; padding: 0; margin: 0;
+}
+.c5-pri-list li {
+  display: grid;
+  grid-template-columns: 28px 160px 1fr;
+  gap: 10px;
+  padding: 5px 0;
+  border-top: 1px dashed var(--border);
+  align-items: baseline;
+}
+.c5-pri-list li:first-child { border-top: 0; }
+.c5-pri-n {
+  color: var(--red);
+  font-weight: 600;
+  font-size: 13px;
+}
+.c5-pri-label {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--ink);
+}
+.c5-pri-reason {
+  font-size: 11px;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.c5-actions {
+  border: 1.5px solid var(--ink);
+  padding: 12px 14px;
+  background: var(--surface-2);
+}
+.c5-actions-head {
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.c5-actions-list {
+  list-style: none; padding: 0; margin: 0;
+}
+.c5-actions-list li {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 11px;
+  align-items: flex-start;
+  border-top: 1px dashed var(--border);
+  color: var(--ink);
+  line-height: 1.35;
+}
+.c5-actions-list li:first-child { border-top: 0; }
+.c5-check {
+  width: 11px; height: 11px;
+  border: 1.5px solid var(--ink);
+  margin-top: 2px;
+}
+
+/* ── 4. More details — categorized boxes ──────────────────── */
+.c5-details { margin-bottom: 18px; }
+.c5-details-head {
+  font-family: "Syne", sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--ink);
+  margin-bottom: 10px;
+}
+.c5-cat { margin-bottom: 10px; }
+.c5-cat:last-child { margin-bottom: 0; }
+.c5-cat-name {
+  font-family: "DM Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+.c5-cat-row {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 4px;
+}
+.c5-box {
+  border: 1.25px solid var(--ink);
+  padding: 6px 7px 5px;
+  min-height: 60px;
+  display: flex; flex-direction: column;
+  position: relative;
+}
+.c5-box-g { background: var(--green-soft); }
+.c5-box-y { background: var(--yellow-soft); }
+.c5-box-r { background: var(--red-soft); }
+.c5-box-pri::after {
+  content: "★";
+  position: absolute;
+  top: 3px; right: 5px;
+  font-size: 10px;
+  color: var(--red);
+}
+.c5-box-label {
+  font-family: "DM Mono", monospace;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  line-height: 1.15;
+  min-height: 18px;
+}
+.c5-box-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-top: auto;
+  letter-spacing: -0.015em;
+}
+.c5-box-var {
+  font-size: 9px;
+  color: var(--ink-2);
+}
+.c5-box-r .c5-box-var { color: var(--red-ink); font-weight: 500; }
+.c5-box-y .c5-box-var { color: var(--yellow-ink); }
+.c5-box-g .c5-box-var { color: var(--green-ink); }
+
+/* P&L has 8 metrics, Cash Flow has 7, Operations has 3.
+   Use auto-fit-style fallback for short rows so they align left. */
+.c5-cat:nth-child(2) .c5-cat-row { grid-template-columns: repeat(3, 1fr) repeat(6, 1fr); }
+.c5-cat:nth-child(2) .c5-cat-row { grid-template-columns: repeat(9, 1fr); }
+.c5-cat:nth-child(3) .c5-cat-row { grid-template-columns: repeat(9, 1fr); }
+.c5-cat:nth-child(4) .c5-cat-row { grid-template-columns: repeat(9, 1fr); }
+
+/* ── 5. Overall score strip ───────────────────────────────── */
+.c5-overall {
+  margin-top: auto;
+  border-top: 1.5px solid var(--ink);
+  padding-top: 12px;
+}
+.c5-overall-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-family: "Syne", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.c5-overall-legend {
+  font-family: "DM Mono", monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 400;
+}
+.c5-strip {
+  display: grid;
+  grid-template-columns: repeat(18, 1fr);
+  gap: 3px;
+}
+.c5-strip-cell {
+  height: 28px;
+  border: 1.25px solid var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px;
+  font-weight: 500;
+}
+.c5-strip-r { background: var(--red-block); color: var(--red-ink); }
+.c5-strip-y { background: var(--yellow-block); color: var(--yellow-ink); }
+.c5-strip-g { background: var(--green-block); color: var(--green-ink); }
+.c5-strip-i { font-family: "DM Mono", monospace; opacity: 0.85; }
+
+.c5-strip-legend {
+  display: flex; gap: 14px; align-items: baseline;
+  margin-top: 6px;
+  font-family: "DM Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.c5-strip-legend .num { color: var(--ink); font-weight: 500; font-size: 12px; margin-right: 4px; }
+.c5-strip-total { color: var(--ink-3); margin-left: auto; }
+
+/* Force the page to be a vertical flex so overall sticks to bottom */
+.c5-page {
+  display: flex;
+  flex-direction: column;
+}
+.c5-page .pf { margin-top: 12px; }

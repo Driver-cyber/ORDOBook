@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getClients, createClient } from '../api/clients'
+import { formatApiError } from '../api/errors'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const INDUSTRIES = ['Plumbing','HVAC','Electrical','Construction','Landscaping','Roofing','Other']
@@ -30,7 +31,7 @@ function NewClientModal({ onClose, onCreated }) {
       })
       onCreated(client)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to create client')
+      setError(formatApiError(err, 'Failed to create client'))
       setSaving(false)
     }
   }

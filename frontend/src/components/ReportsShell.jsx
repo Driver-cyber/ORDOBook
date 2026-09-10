@@ -8,12 +8,14 @@ export default function ReportsShell({ children }) {
   const isActuals    = useMatch('/clients/:id/reports/actuals')
   const isForecast   = useMatch('/clients/:id/reports/forecast/:year')
   const isScoreboard = useMatch('/clients/:id/reports/scoreboard/:year')
+  const isReportCard = useMatch('/clients/:id/reports/report-card/:year')
   const isActionPlan = useMatch('/clients/:id/reports/action-plan')
 
   const tabs = [
-    { label: 'Actuals',     to: `/clients/${id}/reports/actuals`,                      active: !!isActuals    },
+    { label: 'Actuals',     to: `/clients/${id}/reports/actuals`,                       active: !!isActuals    },
     { label: 'Forecast',    to: `/clients/${id}/reports/forecast/${activeYear}`,        active: !!isForecast   },
     { label: 'Scoreboard',  to: `/clients/${id}/reports/scoreboard/${activeYear}`,      active: !!isScoreboard },
+    { label: 'Report Card', to: `/clients/${id}/reports/report-card/${activeYear}`,     active: !!isReportCard },
     { label: 'Action Plan', to: `/clients/${id}/reports/action-plan`,                   active: !!isActionPlan },
   ]
 

@@ -1,41 +1,80 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-06-29 | Phase 6a done + audited (2 fresh-build bugs fixed). Phase 6b
-> Electron shell SCAFFOLDED (inert until run). Demo run-through still required before activating 6b.
+> Last updated: 2026-05-19 (session close) | Scoreboard redesign (Concept 5) + Report Card split shipped. Blank-screen-on-422 fix landed in code but NOT yet validated against the original failure mode — see "Validation pending" below.
 
 ---
 
-## ⚡ Read First — what changed 2026-06-29 (away-from-Mac session)
+## Top priorities
 
-Three things were done remotely (all pushed to `claude/add-project-tracker-zGrFN`):
+1. **Validate the blank-screen fix end-to-end.** The code changes shipped (see "Blank-screen
+   fix" section below), build is clean, but the original failure mode — click Confirm on
+   `/clients/:id/mapping-review` so the backend returns a 422 — has NOT been re-triggered
+   to confirm the page now shows the error text instead of going blank. First task next
+   session: do a real import flow on Vetter Plumbing and trip the confirm path. If it shows
+   readable error text, the fix is validated and we move on. If it still blanks, debug.
+2. **Advisor-editable headline / priority reason / action items.** The new Scoreboard
+   currently auto-generates these three text fields. The user explicitly flagged this as
+   the highest functional backlog item — they want DB-backed fields so the advisor can
+   write the actual narrative for each period. Touches `ScoreboardEntry` (add `priority_reason`,
+   `action_item`) plus a new `ScoreboardSummary` row keyed on (client, year) for headline.
+   Surface inline-edit UI on the Scoreboard page; mirror the change in
+   `_build_scoreboard_template_data` (backend PDF).
+3. **Phase 6** — Electron packaging + SQLite migration.
 
-1. **Audited the Phase 6a SQLite migration — found & fixed 2 real bugs** that would have
-   crashed a packaged app on first launch (fresh DB, full migration chain):
-   - Migration 013 re-added `forecast_configs.notes` that 006 already defines → made idempotent.
-   - Migration 016 used PG-only `ADD COLUMN IF NOT EXISTS` (invalid in SQLite) → inspector pattern.
-   - Also registered `AccountMapping` + `MonthlyActuals` in `models/__init__.py` (create_all was
-     relying on router import order for those two tables).
-   - Added `backend/scripts/audit_schema.py` — run it before packaging; currently PASS, zero drift.
-2. **Scaffolded Phase 6b Electron shell** (`electron/`, root `package.json`, `electron-builder.yml`,
-   `PHASE-6B-ELECTRON.md`). Purely additive — does NOT change your dev workflow. See runbook.
-   `backend/app/main.py` now serves the built SPA when `frontend/dist` exists (no-op in dev).
-3. **Cleanup pass** on the above (4-angle review) — no behavior change.
-4. **Auto-migrate on startup** (`backend/app/db_migrate.py`) — the packaged app runs
-   `alembic upgrade head` on each launch so your data persists across versions (patch →
-   re-package → ship without wiping the DB). Gated by `ORDOBOOK_AUTO_MIGRATE=1`; **dev is
-   unchanged**. Tested: DB at 020 + rows → upgrades to 021, rows preserved.
-   ⚠️ NOTE: this is Phase 6b work done *before* the demo gate — we knowingly broke our own
-   rule because the demo is delayed. Logged in DECISIONS.md (2026-06-29). Demo still required.
+---
 
-**Still on you:** the demo (`DEMO-CHECKLIST.md`) before activating Electron, AND the
-`.env` fix below (the launcher fails without it because there's no `backend/.env`).
+## This Session's Work (2026-05-15 → 2026-05-19, single rolling session)
 
-### ⚠️ Launcher fix needed (app wasn't starting on Mac)
-There is no `backend/.env`, so the app fell through to SQLite (empty) instead of dev Postgres.
-Create `backend/.env` with:
-```
-DATABASE_URL=postgresql://postgres@localhost:5432/ordobook
-CORS_ORIGINS=http://localhost:5173
-```
+### Scoreboard redesign — Concept 5 ("The Sketch")
+
+Followed the design handoff the user brought back from a separate Claude chat
+(`SCOREBOARD-REDESIGN-BRIEF.md` was the outgoing brief; design's `HANDOFF.md` came back).
+Single-page 8.5×11 portrait, color-block hybrid: hero tiles → top priorities + action
+items → metric-box grid sorted green→yellow→red → 17-cell stoplight strip → footer.
+
+- Renamed data-rich `Scoreboard.jsx` → `ReportCard.jsx`; new route `/reports/report-card/:year`.
+- New visual `Scoreboard.jsx` ports Concept 5 — uses existing `GET /scoreboard/:year`,
+  cents→dollars adapter, auto-derived headline/reason/actions as placeholders (the DB-backed
+  versions are now top backlog).
+- Reports tab order: `Actuals | Forecast | Scoreboard | Report Card | Action Plan`.
+- Fonts bundled via Fontsource (`@fontsource/syne`, `@fontsource/dm-sans`, `@fontsource/dm-mono`) —
+  works offline (Electron-safe). Same woff2s mirrored into `backend/app/templates/fonts/` for
+  WeasyPrint PDF rendering.
+- Styles live at `frontend/src/styles/scoreboard-{tokens,print}.css` (frontend) and
+  `backend/app/templates/scoreboard.css` (backend, concatenated with `@font-face`). Yes, the
+  duplication is intentional — frontend Vite needs its copy, WeasyPrint needs its own. Keep
+  in sync if the design changes.
+- Backend PDF rewritten: Jinja2 template at `backend/app/templates/scoreboard.html.j2`,
+  rendered by `_render_scoreboard_html()` in `exports.py`. Reuses `get_scoreboard()` then
+  runs `_build_scoreboard_template_data()` adapter. Auto-text helpers (`_auto_headline`,
+  `_auto_reason`, `ACTIONS_BY_KEY`) mirror the frontend so PDF and on-screen match.
+- Installed `jinja2` + `weasyprint` into the backend venv (they were in `requirements.txt`
+  but never actually installed; smoke test caught this).
+- Smoke test passed: `GET /api/clients/3/export/pdf/scoreboard/2026 → 200, 27KB PDF`.
+  Preview saved at `SCOREBOARD-PREVIEW.pdf` at project root.
+
+### Blank-screen-on-422 fix (code landed, validation pending)
+
+- New `frontend/src/api/errors.js` exports `formatApiError(err, fallback)` — handles array
+  detail (joins `loc: msg`), string detail, network errors.
+- All four offending `setError(err.response?.data?.detail)` sites now route through it:
+  `MappingReview.jsx`, `UploadPage.jsx`, `ClientRoster.jsx`, `ClientProfile.jsx`.
+- New `frontend/src/components/ErrorBoundary.jsx` wraps both the `/` route and the
+  `ClientLayout` children. Future render crashes show an in-pane fallback (with a "Try again"
+  button) instead of unmounting the whole shell.
+- **Not yet validated against the original failure path.** The user didn't have time to
+  run an import + click Confirm to trigger the 422 and confirm the page now stays mounted
+  with readable error text. See top-priorities item #1 above.
+
+### Founding docs
+
+- `ordobook-tracker.html` — header date bumped, priorities renumbered, two new DONE entries
+  in the backlog, JSON block updated.
+- `MEMORY.md` — Current Status bumped to 2026-05-19; new index entry for the scoreboard split.
+- New memory file `project_scoreboard_split.md` captures the non-obvious split (Scoreboard.jsx
+  is now the visual one, ReportCard.jsx is the renamed data-rich one) and the font-bundling
+  pattern.
+- `feedback_api_error_rendering.md` — updated to "FIXED 2026-05-15" but the rule for new code
+  is preserved.
 
 ---
 
@@ -43,13 +82,9 @@ CORS_ORIGINS=http://localhost:5173
 
 Phases 1–5 are fully complete. Migrations 001–021 applied. 13 months of Vetter Plumbing
 actuals (Dec 2024–Dec 2025) imported. All deliverable generation (Action Plan, Reports Actuals,
-JSON export, PDF export) built and wired.
-
-**Phase 6a done (2026-04-24):** SQLite migration code complete — all models, migrations, and
-config updated to be DB-agnostic. Dev stays on PostgreSQL (existing .env unchanged). SQLite
-activates automatically when Electron is packaged (DATABASE_URL points to app-support path).
-
-**GATE: Demo run-through required before Phase 6b (Electron shell).** See `DEMO-CHECKLIST.md`.
+JSON export, PDF export) built and wired. Scoreboard / Report Card split delivered 2026-05-15.
+Blank-screen-on-422 blocker fixed 2026-05-15. Next: advisor-editable Scoreboard text fields,
+then Phase 6 (Electron + SQLite).
 
 ### Completed (chronological)
 - Phase 1 ✅ Foundation — client profiles, DB, routing
@@ -74,13 +109,11 @@ activates automatically when Electron is packaged (DATABASE_URL points to app-su
   - weasyprint + jinja2 added to requirements.txt
   - PDF install: `brew install cairo pango && pip install weasyprint` on Mac
 - Build tracker ✅ `ordobook-tracker.html` added 2026-04-22 as cross-project dashboard doc
-- Phase 6a ✅ SQLite migration code (2026-04-24):
-  - 4 model files: postgresql.JSONB → sqlalchemy.JSON
-  - 11 migration files: same + server_default literals fixed + raw PG SQL replaced
-  - database.py: default URL → sqlite:///./ordobook.db, check_same_thread=False
-  - alembic/env.py: render_as_batch=True
-  - requirements.txt: removed psycopg2-binary
-  - Dev stays on PostgreSQL via existing .env — no action needed until Electron packaging
+- Scoreboard redesign ✅ (2026-05-15): Concept 5 visual `Scoreboard.jsx`, data-rich page
+  renamed `ReportCard.jsx`, Reports tab order updated, Fontsource fonts bundled, Jinja2
+  PDF template at `backend/app/templates/`
+- Blank-screen-on-422 fix ✅ (2026-05-15): `frontend/src/api/errors.js` `formatApiError`
+  helper, all 4 `setError` sites converted, top-level `ErrorBoundary` wraps routes
 
 ---
 
@@ -108,14 +141,20 @@ npm run dev
 
 ---
 
-## Phase 6 — Electron Packaging
+## Phase 6 — Electron Packaging (next up)
 
-**Phase 6a (SQLite migration code) is done.** Dev stays on PostgreSQL.
+**Phase 5 is complete** — all deliverables built and wired 2026-04-23.
 
-**NEXT STEP: Complete the demo run-through (`DEMO-CHECKLIST.md`) first.**
-Fix any bugs found during demo, then proceed to Phase 6b.
+### Phase 6 build order:
 
-### Phase 6b — Electron Shell (GATED on demo)
+### 1. SQLite Migration
+- Change `DATABASE_URL` in `.env` from `postgresql://...` to `sqlite:///path/to/ordobook.db`
+- Update `alembic.ini` sqlalchemy.url
+- Install `aiosqlite` if needed for async driver
+- Run `alembic upgrade head` against SQLite — all migrations should apply cleanly via SQLAlchemy abstraction
+- Test data path: `~/Library/Application Support/ORDOBOOK/ordobook.db`
+
+### 2. Electron Shell
 - `npm install electron electron-builder --save-dev` in project root
 - `main.js` — starts FastAPI backend process on launch, opens browser window to localhost
 - `electron-builder.yml` — macOS + Windows targets, bundle Python venv
@@ -147,11 +186,7 @@ Fix any bugs found during demo, then proceed to Phase 6b.
 4. ✅ Phase 4a — Navigation restructure (confirmed 2026-04-23)
 5. ✅ Phase 4b — Scenario Sandbox (confirmed 2026-04-23)
 6. ✅ Phase 5 — Action Plan + Reports Actuals + PDF/JSON exports (2026-04-23)
-7. ✅ Phase 6a — SQLite migration code (2026-04-24) — dev still on Postgres
-   - ✅ Audited 2026-06-29: fixed 2 fresh-build bugs (013, 016), added audit_schema.py regression test
-8. **Demo run-through** ← CURRENT GATE (see DEMO-CHECKLIST.md). Create `backend/.env` first (see top).
-9. Phase 6b — Electron shell — ✅ SCAFFOLDED 2026-06-29 (inert); activate after demo (see PHASE-6B-ELECTRON.md)
-10. Phase 6c — Code signing + .dmg distribution
+7. **Phase 6** — Electron packaging + SQLite migration ← **NEXT**
 
 ---
 

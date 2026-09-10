@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import WorkspaceShell from './components/WorkspaceShell'
 import ReportsShell from './components/ReportsShell'
+import ErrorBoundary from './components/ErrorBoundary'
 import ClientRoster from './pages/ClientRoster'
 import ClientProfile from './pages/ClientProfile'
 import ClientWorkspace from './pages/ClientWorkspace'
@@ -14,6 +15,7 @@ import ForecastDrivers from './pages/ForecastDrivers'
 import ForecastReport from './pages/ForecastReport'
 import Targets from './pages/Targets'
 import Scoreboard from './pages/Scoreboard'
+import ReportCard from './pages/ReportCard'
 import ScenarioSandbox from './pages/ScenarioSandbox'
 import ActionPlan from './pages/ActionPlan'
 import ReportsActuals from './pages/ReportsActuals'
@@ -63,7 +65,7 @@ function ClientLayout({ clients, onClientUpdated, onClientDeleted, children }) {
   return (
     <>
       <Sidebar clients={clients} activeClientId={Number(id)} />
-      {children({ onClientUpdated, onClientDeleted })}
+      <ErrorBoundary>{children({ onClientUpdated, onClientDeleted })}</ErrorBoundary>
     </>
   )
 }
@@ -98,7 +100,7 @@ export default function App() {
           element={
             <>
               <Sidebar clients={clients} activeClientId={null} />
-              <ClientRoster />
+              <ErrorBoundary><ClientRoster /></ErrorBoundary>
             </>
           }
         />
@@ -133,6 +135,10 @@ export default function App() {
         <Route
           path="/clients/:id/reports/scoreboard/:year"
           element={<CL>{() => <ReportsShell><Scoreboard /></ReportsShell>}</CL>}
+        />
+        <Route
+          path="/clients/:id/reports/report-card/:year"
+          element={<CL>{() => <ReportsShell><ReportCard /></ReportsShell>}</CL>}
         />
         <Route
           path="/clients/:id/reports/action-plan"

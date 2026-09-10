@@ -285,7 +285,7 @@ body {
     </div>
     <div class="header-desc">Financial advisory workflow app — QB ingestion → analytical engine → client deliverables</div>
     <div class="header-meta">
-      <span>Updated: 2026-04-23 (Phase 5 built)</span>
+      <span>Updated: 2026-05-19 (session close — Scoreboard redesign + blank-screen fix shipped)</span>
       <span>Branch: claude/add-project-tracker-zGrFN</span>
       <span>Stack: React + Vite · FastAPI · SQLite · Electron</span>
     </div>
@@ -300,8 +300,7 @@ body {
     <span class="phase-pill done">✓ Ph4a Nav</span>
     <span class="phase-pill done">✓ Ph4b Scenarios</span>
     <span class="phase-pill done">✓ Ph5 Deliverables</span>
-    <span class="phase-pill done">✓ Ph6a SQLite</span>
-    <span class="phase-pill active">▸ Demo → Ph6b Electron</span>
+    <span class="phase-pill active">▸ Ph6 Electron</span>
   </div>
 
   <!-- BOARD -->
@@ -314,30 +313,46 @@ body {
       </div>
       <div class="col-body">
 
-        <div class="section-label">Current Gate — Active Priorities</div>
+        <div class="section-label">Active Priorities</div>
         <div class="priority-list">
+
+          <div class="priority-item">
+            <div class="priority-num">0</div>
+            <div class="priority-content">
+              <div class="priority-title">Validate blank-screen-on-422 fix end-to-end</div>
+              <div class="priority-note">Code shipped 2026-05-15 but the original failure mode (Confirm on <code>/mapping-review</code> triggers 422 → blank page) was not re-tested. First task next session: run a real Vetter Plumbing import and click Confirm. Page should now show readable error text in the existing error banner instead of unmounting the React tree. If still blank, debug.</div>
+            </div>
+          </div>
 
           <div class="priority-item">
             <div class="priority-num">1</div>
             <div class="priority-content">
-              <div class="priority-title">Demo Run-Through (GATE)</div>
-              <div class="priority-note">Full end-to-end demo before Electron packaging. Checklist in DEMO-CHECKLIST.md — covers import, all workspace tabs, scoreboard, reports, scenario sandbox, action plan, PDF/JSON export. Fix any bugs found. Demo sign-off unlocks Phase 6b.</div>
+              <div class="priority-title">Advisor-editable Scoreboard text fields</div>
+              <div class="priority-note">The new visual Scoreboard auto-generates headline, per-priority reason, and action items as placeholders. User flagged this as top functional backlog item. Add DB-backed fields (likely a <code>ScoreboardSummary</code> row keyed on (client, year) for headline + extend <code>ScoreboardEntry</code> with <code>priority_reason</code> and <code>action_item</code>). Surface inline-edit UI on <code>Scoreboard.jsx</code>; mirror changes in <code>_build_scoreboard_template_data</code> so the PDF reflects edits.</div>
             </div>
           </div>
 
           <div class="priority-item">
             <div class="priority-num">2</div>
             <div class="priority-content">
-              <div class="priority-title">Phase 6b — Electron Shell (gated on demo)</div>
-              <div class="priority-note">Wrap React + FastAPI in Electron shell using electron-builder. SQLite migration code is done (Phase 6a) — dev stays on PostgreSQL. Switch to SQLite path when packaging. Bundle Python venv inside the app package.</div>
+              <div class="priority-title">Phase 6 — Electron Packaging</div>
+              <div class="priority-note">Wrap React + FastAPI in Electron shell using electron-builder. Migrate database from PostgreSQL to SQLite (SQLAlchemy makes this a contained swap — only alembic.ini + DATABASE_URL need changing). Bundle Python venv inside the app package.</div>
             </div>
           </div>
 
           <div class="priority-item">
             <div class="priority-num">3</div>
             <div class="priority-content">
-              <div class="priority-title">Phase 6c — Code Signing + Distribution</div>
-              <div class="priority-note">macOS notarization (Apple Developer account required), electron-updater for automatic update delivery. Required before distributing to any client machine.</div>
+              <div class="priority-title">Phase 6 — Code Signing + Auto-Update</div>
+              <div class="priority-note">macOS notarization (Apple Developer account required), electron-updater for automatic update delivery. Windows signing TBD. Required before distributing to any client machine.</div>
+            </div>
+          </div>
+
+          <div class="priority-item">
+            <div class="priority-num">4</div>
+            <div class="priority-content">
+              <div class="priority-title">Engine Verification vs. Vetter Plumbing Jan 2026</div>
+              <div class="priority-note">Run the analytical engine against the Jan 2026 Vetter Plumbing workbook and verify all outputs match. Module 3 hard requirement — no module considered complete until verified. Overhead plug formula confirmed; net_profit_for_year handling confirmed. Systematic diff needed.</div>
             </div>
           </div>
 
@@ -348,13 +363,17 @@ body {
           <div class="backlog-item"><div class="backlog-bullet"></div><span>God Mode / Level 1–3 audit trail UI — calc_trace data already stored, hover/panel/fullscreen UI not built</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>Meeting Mode — quiet app-menu toggle, action plan review + live editor, "End Meeting" save</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>Advisor Context Layer — private per-client notes field (energy, pressures, goals beyond numbers)</span></div>
-          <div class="backlog-item"><div class="backlog-bullet"></div><span>DONE (6a): SQLite migration code — models, migrations, config all DB-agnostic. Dev stays on Postgres until Electron build.</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>Electron packaging — wrap React + FastAPI, SQLite migration from PostgreSQL, electron-builder</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>Code signing + auto-update — macOS notarization, electron-updater, distribution prep</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>QuickBooks API integration — OAuth 2.0 direct pull (Phase 3 enhancement, ingestion layer pre-abstracted)</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>Overhead line items UI — data model + engine support exists; no UI to add/edit named line items yet</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>Verify analytical engine against Vetter Plumbing Jan 2026 reference workbook (Module 3 requirement)</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>Per-client recurring task checklist — monthly workflow with customizable tasks that roll forward to next session (captured 2026-04-29)</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>DONE: Phase 4a Nav Restructure (WorkspaceShell, ReportsShell, two-space routing, sidebar)</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>DONE: Phase 4b Scenario Sandbox (ScenarioSandbox.jsx, 3-col, client view, POST /scenario/calculate)</span></div>
           <div class="backlog-item"><div class="backlog-bullet"></div><span>DONE: Phase 5 Deliverables — Action Plan editor (migration 021, CRUD API, ActionPlan.jsx), Reports Actuals (ReportsActuals.jsx), JSON export, PDF export via WeasyPrint</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>DONE: Scoreboard redesign (2026-05-15) — Concept 5 visual layout, Scoreboard ↔ Report Card split, bundled Fontsource fonts, Jinja2 PDF template at backend/app/templates/</span></div>
+          <div class="backlog-item"><div class="backlog-bullet"></div><span>CODE SHIPPED (validation pending): Blank-screen-on-422 fix (2026-05-15) — formatApiError() helper, all 4 setError sites converted, top-level ErrorBoundary wraps routes. Original failure scenario not yet retriggered; first task next session is to run import + Confirm to verify the page stays mounted.</span></div>
         </div>
 
       </div>
@@ -373,109 +392,46 @@ body {
 {
   "project": "ORDOBOOK",
   "description": "Financial advisory workflow app — QB ingestion → analytical engine → client deliverables",
-  "updated": "2026-04-28",
+  "updated": "2026-09-09",
   "columns": [
     {
       "name": "ORDOBook",
       "sub": "React · FastAPI · SQLite · Local-first desktop",
       "priorities": [
         {
-          "title": "Demo Run-Through (GATE)",
-          "note": "Full end-to-end demo before packaging. DEMO-CHECKLIST.md covers all screens. Fix bugs found. Demo sign-off unlocks Phase 6b."
+          "title": "Validate blank-screen-on-422 fix end-to-end",
+          "note": "Code shipped 2026-05-15 but failure mode not retriggered. First task next session: real Vetter Plumbing import + Confirm on /mapping-review. Page should now show error text instead of going blank."
         },
         {
-          "title": "Phase 6b — Electron Shell (gated on demo)",
-          "note": "Wrap React + FastAPI in Electron. SQLite code done (Phase 6a), dev on Postgres. Switch at packaging time. Bundle Python venv."
+          "title": "Advisor-editable Scoreboard text fields",
+          "note": "Visual Scoreboard auto-generates headline, per-priority reason, and action items. User flagged as top functional backlog item. Add DB-backed fields (ScoreboardSummary row for headline; extend ScoreboardEntry with priority_reason + action_item). Surface inline-edit UI on Scoreboard.jsx; mirror in _build_scoreboard_template_data for PDF."
         },
         {
-          "title": "Phase 6c — Code Signing + Distribution",
-          "note": "macOS notarization, electron-updater for auto-updates. Required before distributing to any client machine."
+          "title": "Phase 6 — Electron Packaging",
+          "note": "Wrap React + FastAPI in Electron shell. Migrate DB from PostgreSQL to SQLite. Bundle Python venv. electron-builder config."
+        },
+        {
+          "title": "Phase 6 — Code Signing + Auto-Update",
+          "note": "macOS notarization (Apple Developer account required), electron-updater for auto-updates. Required before distributing."
+        },
+        {
+          "title": "Engine Verification vs. Vetter Plumbing Jan 2026",
+          "note": "Systematic diff of analytical engine outputs against the reference workbook. Module 3 hard requirement."
         }
       ],
       "backlog": [
+        "Product 2 (cloud tier) — anonymized advisory engine: OrdoBook exports a de-identified client profile locally (pseudonymized name, ages rounded to 5, dollars to nearest 1k), uploads it with a P&L to a cloud LLM that simulates the return, projects current tax liability, and surfaces the top 2 highest-impact planning moves. Chat front end so an owner can run their own scenarios. Results re-match to the real client on load back into desktop OrdoBook. Encryption keys stay on the local machine — the cloud is told only which scheme to use, so shared-server data isn't usefully identifying. Sellable to firms off one processor function.",
         "God Mode / Level 1–3 audit trail UI (calc_trace stored, hover/panel/fullscreen UI not built)",
         "Meeting Mode — app-menu toggle, action plan review + live editor",
         "Advisor Context Layer — private per-client notes field",
         "QuickBooks API integration — OAuth 2.0 direct pull (Phase 3+)",
-        "Overhead line items UI (engine support exists, no UI yet)"
+        "Overhead line items UI (engine support exists, no UI yet)",
+        "Per-client recurring task checklist — monthly workflow with customizable tasks that roll forward to next session",
+        "DONE: Phase 4a Nav Restructure (WorkspaceShell, ReportsShell, two-space routing, sidebar)",
+        "DONE: Phase 4b Scenario Sandbox (ScenarioSandbox.jsx, 3-col, client view, POST /scenario/calculate)",
+        "DONE: Phase 5 Deliverables — Action Plan (migration 021, CRUD API, ActionPlan.jsx), Reports Actuals, JSON export, PDF export (WeasyPrint)"
       ],
-      "shipped": [
-        {
-          "date": "2026-04-23",
-          "what": "Phase 6a: Made all models and migrations DB-agnostic by replacing postgresql.JSONB with sqlalchemy.JSON, enabling SQLite as the production target while dev stays on PostgreSQL.",
-          "tags": ["python", "sqlite", "architecture", "database"],
-          "learned": "SQLite is Python stdlib — removing psycopg2 meaningfully simplifies the dependency tree for a desktop app bundle."
-        },
-        {
-          "date": "2026-04-23",
-          "what": "Phase 5: Shipped Action Plan editor (editable-in-place, auto-save, private notes), Reports Actuals view, and JSON + PDF export endpoints (WeasyPrint).",
-          "tags": ["python", "react", "pdf", "action-plan"],
-          "learned": "WeasyPrint requires C system libs (Cairo/Pango), so a lazy-import with a graceful 503 fallback is the right pattern for optional native dependencies."
-        },
-        {
-          "date": "2026-04-09",
-          "what": "Phase 4b: Built Scenario Sandbox — 3-column annual driver comparison with ephemeral state (no DB writes), quarterly breakdown toggle, and client view mode.",
-          "tags": ["react", "python", "scenarios", "ux"],
-          "learned": "Keeping scenarios fully ephemeral (React state only) was the right call — it keeps the core data model clean and removes any risk of overwriting committed forecasts."
-        },
-        {
-          "date": "2026-04-07",
-          "what": "Phase 4a: Restructured navigation into two spaces — Workspace (analyst density) and Reports (client-presentation clean) — with WorkspaceShell and ReportsShell tab wrappers.",
-          "tags": ["react", "ux", "navigation", "architecture"],
-          "learned": "Reading the source before planning revealed both shells were already built in a prior session, saving a full rebuild."
-        },
-        {
-          "date": "2026-04-02",
-          "what": "Phase 4: Shipped annual Targets page with driver-computed fields and Scoreboard with green/yellow/red grading, manual overrides, and a max-3-red advisory priority cap.",
-          "tags": ["react", "python", "scoring", "ux"],
-          "learned": "The max-3-red cap is the key product insight: clients can only meaningfully act on 3 things at once, so the tool enforces that constraint."
-        },
-        {
-          "date": "2026-03-30",
-          "what": "Phase 3d: Built Projected Balance Sheet — migration 018, engine computes projected cash/AR/inventory/AP/equity from DSO/DIO/DPO drivers month by month.",
-          "tags": ["python", "financials", "engine", "react"],
-          "learned": "Projected equity = Total Assets − Total Liabilities, not from QB's equity_before_net_profit line, which is unreliable mid-year."
-        },
-        {
-          "date": "2026-03-24",
-          "what": "Polished Forecast Drivers UX and 12-Month Forecast Report, and added a one-click start.sh launcher script (Postgres + uvicorn + Vite + Chrome).",
-          "tags": ["react", "ux", "devtools", "python"]
-        },
-        {
-          "date": "2026-03-18",
-          "what": "Built Actuals History list page — browses all imported periods for a client with summary stats and navigation to detail view.",
-          "tags": ["react", "financials", "ux"]
-        },
-        {
-          "date": "2026-03-14",
-          "what": "Phase 3c: Added cash flow drivers (DSO/DIO/DPO/owner draws) to the forecast engine and shipped audit trail Level 1 — hover popovers showing the top-level formula for any calculated value.",
-          "tags": ["python", "financials", "engine", "ux"],
-          "learned": "Overhead is a plug — total_expenses minus payroll, marketing, and depreciation — never a direct sum of accounts, matching the reference workbook definition."
-        },
-        {
-          "date": "2026-03-13",
-          "what": "Shipped the 12-Month Forecast Report page — combined actuals and forecast in a single scrollable table with color-coded source type indicators.",
-          "tags": ["react", "financials", "ux"]
-        },
-        {
-          "date": "2026-03-09",
-          "what": "Phase 3a: Built the analytical engine scaffold (revenue model, payroll, overhead) and the Forecast Drivers input page with per-month driver fields.",
-          "tags": ["python", "engine", "react", "financials"],
-          "learned": "Monthly driver dicts must use string keys ('1'–'12') not integer keys because JSON object keys are always strings — a subtle bug that surfaces only at serialization boundaries."
-        },
-        {
-          "date": "2026-03-05",
-          "what": "Phase 2: Built QB .xlsx ingestion pipeline — Balance Sheet and P&L parser, per-client account mapping with MappingReview confirm/override UI, actuals stored in PostgreSQL.",
-          "tags": ["python", "parsing", "react", "ux"],
-          "learned": "QuickBooks exports have ghost columns and inconsistent date headers across versions — parser hardening is an ongoing investment, not a one-time fix."
-        },
-        {
-          "date": "2026-03-04",
-          "what": "Phase 1: Bootstrapped the project — client profiles, SQLAlchemy schema, FastAPI backend, React/Vite frontend, Alembic migrations, and three HTML mockups establishing the visual language.",
-          "tags": ["founding", "architecture", "python", "react"],
-          "learned": "Designing in HTML mockups before touching React saved several layout mistakes — the visual language was locked before any component was written."
-        }
-      ]
+      "shipped": []
     }
   ]
 }
