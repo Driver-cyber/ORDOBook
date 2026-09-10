@@ -1,6 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getForecastView, createDrivers, updateDrivers, calculateForecast } from '../api/forecast'
+
+// How many committed edits the Undo dropdown keeps (session memory only).
+const UNDO_LIMIT = 20
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -75,7 +78,7 @@ const inputStyle = {
 
 // ── Editable input cell (per-month) ──────────────────────────────────────────
 
-function EditCell({ value, onChange, step = 1, placeholder = '0' }) {
+function EditCell({ value, onChange, onCommit, step = 1, placeholder = '0' }) {
   const [local, setLocal] = useState(String(value ?? ''))
   useEffect(() => setLocal(String(value ?? '')), [value])
 
@@ -89,7 +92,8 @@ function EditCell({ value, onChange, step = 1, placeholder = '0' }) {
         value={local}
         onChange={e => { setLocal(e.target.value); onChange(e.target.value) }}
         onFocus={e => { e.currentTarget.style.borderColor = S.gold; e.currentTarget.select() }}
-        onBlur={e => e.currentTarget.style.borderColor = S.border}
+        onBlur={e => { e.currentTarget.style.borderColor = S.border; if (onCommit) onCommit() }}
+        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
         className="w-full text-right font-mono text-[12px] px-1.5 py-1 rounded outline-none"
         style={inputStyle}
       />
@@ -128,16 +132,16 @@ function AutofillBtn({ onFill }) {
 // ── Driver row — per-month editable cells, with autofill ─────────────────────
 // actualsMonths: Set of month numbers that have real actuals (shown dimmed, still editable)
 
-function DriverRow({ label, monthInts, actualsMonths = new Set(), getValue, getDisplay, onChange, onAutofill, ytd }) {
+function DriverRow({ label, monthInts, actualsMonths = new Set(), getValue, getDisplay, onChange, onCommit, onAutofill, ytd }) {
   // Find the first non-actuals month for autofill source
   const firstForecastMonth = monthInts.find(m => !actualsMonths.has(m))
 
   const handleAutofill = () => {
     if (firstForecastMonth === undefined) return
     const sourceVal = getValue(firstForecastMonth)
-    monthInts.forEach(m => {
-      if (!actualsMonths.has(m)) onChange(m, String(sourceVal))
-    })
+    // Handled by the parent so the whole-row fill is a single undoable action
+    // and still skips months that have confirmed actuals.
+    if (onAutofill) onAutofill(sourceVal, label)
   }
 
   return (
@@ -149,7 +153,7 @@ function DriverRow({ label, monthInts, actualsMonths = new Set(), getValue, getD
       {monthInts.map(m =>
         actualsMonths.has(m)
           ? <ActualsCell key={m} display={getDisplay ? getDisplay(m) : '—'} />
-          : <EditCell key={m} value={getValue(m)} onChange={v => onChange(m, v)} />
+          : <EditCell key={m} value={getValue(m)} onChange={v => onChange(m, v)} onCommit={() => onCommit && onCommit(m, label)} />
       )}
       <td className="text-right px-2 py-1.5 font-mono text-[12px]"
           style={{ color: S.textMuted }}>
@@ -247,7 +251,15 @@ export default function ForecastDrivers() {
   const [config, setConfig] = useState(null)
   const [periods, setPeriods] = useState([])
   const [draft, setDraft] = useState(null)
-  const [dirty, setDirty] = useState(false)
+  // Autosave + undo. Edits commit on blur/Enter/Tab and each commit both saves
+  // and recalculates (the drivers PUT recalculates server-side). committedRef
+  // is the last-persisted config; undoStack holds one entry per commit at
+  // field (12-month dict) granularity so an autofill is a single step.
+  const [undoStack, setUndoStack] = useState([])
+  const [undoOpen, setUndoOpen] = useState(false)
+  const [saveStatus, setSaveStatus] = useState('idle') // idle | saving | saved | error
+  const committedRef = useRef({})
+  const seqRef = useRef(0)
   const [saving, setSaving] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState(null)
@@ -262,17 +274,17 @@ export default function ForecastDrivers() {
     setLoading(true); setError(null)
     try {
       const data = await getForecastView(clientId, fiscalYear)
-      setConfig(data.config); setDraft(data.config); setPeriods(data.periods)
+      adopt(data.config, data.periods)
     } catch (e) {
       if (e.message.includes('404') || e.message.includes('not found')) {
         try {
           const newConfig = await createDrivers(clientId, fiscalYear, {})
-          setConfig(newConfig); setDraft(newConfig)
+          adopt(newConfig, [])
           // Auto-run calculation so any existing actuals populate immediately
           const calculated = await calculateForecast(clientId, fiscalYear).catch(() => null)
           if (calculated) {
             const fresh = await getForecastView(clientId, fiscalYear)
-            setConfig(fresh.config); setDraft(fresh.config); setPeriods(fresh.periods)
+            adopt(fresh.config, fresh.periods)
           } else {
             setPeriods([])
           }
@@ -283,19 +295,91 @@ export default function ForecastDrivers() {
 
   useEffect(() => { load() }, [load])
 
-  // Update a per-month JSONB field
+  // Server config -> local state, resetting the undo baseline. Used on load
+  // and after Sync Actuals (a deliberate reset from imported data).
+  function adopt(cfg, prds) {
+    setConfig(cfg); setDraft(cfg); setPeriods(prds)
+    committedRef.current = JSON.parse(JSON.stringify(cfg))
+    setUndoStack([]); setUndoOpen(false)
+  }
+
+  // Live edit: keeps the cell showing what's typed. Not a commit.
   const setMonthField = (field, month, rawVal, scale = 1) => {
     const val = (Number(rawVal) || 0) * scale
     setDraft(prev => ({ ...prev, [field]: { ...(prev[field] || {}), [String(month)]: val } }))
-    setDirty(true)
   }
 
-  // Autofill a per-month field — set all months to a given value
-  const autofillField = (field, val) => {
-    const filled = {}
-    for (let m = 1; m <= 12; m++) filled[String(m)] = val
-    setDraft(prev => ({ ...prev, [field]: filled }))
-    setDirty(true)
+  const fmtV = (v, scale) => scale === 100 ? fmt(v ?? 0) : String(v ?? 0)
+  const sameDict = (a = {}, b = {}) => {
+    for (let m = 1; m <= 12; m++) if (Number(a[m] || 0) !== Number(b[m] || 0)) return false
+    return true
+  }
+
+  // Save + recalculate. Only the computed rows are refreshed from the response;
+  // the draft is left alone so a save landing mid-typing can't wipe the next
+  // cell, and a sequence counter drops stale responses on fast Tab-through.
+  async function persist(nextDraft) {
+    const seq = ++seqRef.current
+    setSaving(true); setSaveStatus('saving'); setError(null)
+    try {
+      await updateDrivers(clientId, fiscalYear, nextDraft)
+      const view = await getForecastView(clientId, fiscalYear)
+      if (seq !== seqRef.current) return
+      setConfig(view.config); setPeriods(view.periods)
+      setSaveStatus('saved'); setTimeout(() => setSaveStatus(st => st === 'saved' ? 'idle' : st), 1200)
+    } catch (e) {
+      if (seq === seqRef.current) { setSaveStatus('error'); setError(e.message) }
+    } finally {
+      if (seq === seqRef.current) setSaving(false)
+    }
+  }
+
+  function pushUndo(entry) {
+    setUndoStack(stack => [{ ...entry, at: Date.now() }, ...stack].slice(0, UNDO_LIMIT))
+  }
+
+  // One cell committed (blur / Enter / Tab). One undo entry per commit.
+  function commitMonthField(field, month, label, scale = 1) {
+    const prev = committedRef.current[field] || {}
+    const next = draft[field] || {}
+    if (sameDict(prev, next)) return
+    committedRef.current[field] = { ...next }
+    pushUndo({
+      field,
+      label: `${label} · ${MONTHS[month - 1]}: ${fmtV(prev[month], scale)} → ${fmtV(next[month], scale)}`,
+      prev: { ...prev },
+    })
+    persist(draft)
+  }
+
+  // Row autofill: copy the first forecast month across the remaining forecast
+  // months, skipping confirmed actuals. One undo entry for the whole row.
+  const autofillField = (field, val, label, scale = 1) => {
+    const filled = { ...(draft[field] || {}) }
+    for (let m = 1; m <= 12; m++) if (!actualsMonths.has(m)) filled[String(m)] = (Number(val) || 0) * scale
+    const prev = committedRef.current[field] || {}
+    if (sameDict(prev, filled)) return
+    const nextDraft = { ...draft, [field]: filled }
+    setDraft(nextDraft)
+    committedRef.current[field] = { ...filled }
+    pushUndo({ field, label: `${label} · fill row → ${fmtV(filled[String(1)], scale)}`, prev: { ...prev } })
+    persist(nextDraft)
+  }
+
+  // Undo the newest `count` entries — picking an item in the list undoes it and
+  // everything above it, like Excel. Restores the whole field dict per entry.
+  function undo(count = 1) {
+    const entries = undoStack.slice(0, count)
+    if (entries.length === 0) return
+    const nextDraft = { ...draft }
+    for (const e of entries) {
+      nextDraft[e.field] = { ...e.prev }
+      committedRef.current[e.field] = { ...e.prev }
+    }
+    setDraft(nextDraft)
+    setUndoStack(stack => stack.slice(count))
+    setUndoOpen(false)
+    persist(nextDraft)
   }
 
   const handleSyncActuals = async () => {
@@ -303,21 +387,9 @@ export default function ForecastDrivers() {
     try {
       await calculateForecast(clientId, fiscalYear)
       const updated = await getForecastView(clientId, fiscalYear)
-      setConfig(updated.config); setDraft(updated.config); setPeriods(updated.periods)
-      setDirty(false)
+      adopt(updated.config, updated.periods)
     } catch (e) { setError(e.message) }
     finally { setSyncing(false) }
-  }
-
-  const handleRecalculate = async () => {
-    setSaving(true); setError(null)
-    try {
-      await updateDrivers(clientId, fiscalYear, draft)
-      const updated = await getForecastView(clientId, fiscalYear)
-      setConfig(updated.config); setDraft(updated.config); setPeriods(updated.periods)
-      setDirty(false)
-    } catch (e) { setError(e.message) }
-    finally { setSaving(false) }
   }
 
   if (loading) {
@@ -357,9 +429,11 @@ export default function ForecastDrivers() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {dirty && (
-            <span className="text-[11px] font-mono" style={{ color: S.gold }}>Unsaved changes</span>
-          )}
+          <span className="font-mono text-[11px] min-w-[72px] text-right" style={{ color: saveStatus === 'error' ? '#b04040' : S.textMuted }}>
+            {saveStatus === 'saving' && 'saving…'}
+            {saveStatus === 'saved' && 'saved ✓'}
+            {saveStatus === 'error' && 'save failed'}
+          </span>
           <button
             onClick={() => navigate(`/clients/${id}/reports/forecast/${year}`)}
             className="px-4 py-1.5 rounded text-[12px] font-medium border transition-colors"
@@ -376,14 +450,58 @@ export default function ForecastDrivers() {
           >
             {syncing ? 'Syncing…' : '↻ Sync Actuals'}
           </button>
-          <button
-            onClick={handleRecalculate}
-            disabled={saving || syncing}
-            className="px-4 py-1.5 rounded text-[12px] font-medium transition-opacity"
-            style={{ background: S.gold, color: '#1a1918', opacity: (saving || syncing) ? 0.6 : 1 }}
-          >
-            {saving ? 'Saving…' : 'Recalculate'}
-          </button>
+          {/* Edits save and recalculate on blur/Enter/Tab, so there's no
+              Recalculate button. Undo reverts the last committed edit; the caret
+              lists recent edits and picking one undoes it and everything newer. */}
+          <div className="relative flex items-center">
+            <button
+              type="button"
+              onClick={() => undo(1)}
+              disabled={undoStack.length === 0 || saving || syncing}
+              title={undoStack[0] ? `Undo: ${undoStack[0].label}` : 'Nothing to undo'}
+              className="px-3 py-1.5 rounded-l text-[12px] font-medium border transition-opacity"
+              style={{ borderColor: S.border, color: S.textSecondary, background: S.surface, opacity: (undoStack.length === 0 || saving || syncing) ? 0.5 : 1 }}
+            >
+              ↶ Undo
+            </button>
+            <button
+              type="button"
+              onClick={() => setUndoOpen(o => !o)}
+              disabled={undoStack.length === 0}
+              aria-label="Show recent edits"
+              className="px-2 py-1.5 rounded-r text-[11px] border border-l-0 transition-opacity"
+              style={{ borderColor: S.border, color: S.textMuted, background: S.surface, opacity: undoStack.length === 0 ? 0.5 : 1 }}
+            >
+              ▾
+            </button>
+            {undoOpen && undoStack.length > 0 && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setUndoOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 z-40 w-96 rounded-lg overflow-hidden"
+                     style={{ background: S.surface, border: `1px solid ${S.border}`, boxShadow: '0 12px 32px rgba(0,0,0,0.12)' }}>
+                  <div className="px-3 py-2 font-mono text-[10px] uppercase tracking-widest"
+                       style={{ color: S.textMuted, borderBottom: `1px solid ${S.border}` }}>
+                    Recent edits — click to undo through
+                  </div>
+                  <ul className="max-h-72 overflow-y-auto">
+                    {undoStack.map((e, i) => (
+                      <li key={e.at + e.field}>
+                        <button
+                          type="button"
+                          onClick={() => undo(i + 1)}
+                          title={i === 0 ? 'Undo this edit' : `Undo this and the ${i} newer edit${i > 1 ? 's' : ''}`}
+                          className="w-full text-left px-3 py-2 text-[12px] transition-colors hover:bg-[rgba(0,0,0,0.03)]"
+                          style={{ color: S.text, borderBottom: `1px solid ${S.border}` }}
+                        >
+                          {e.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -448,7 +566,8 @@ export default function ForecastDrivers() {
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => dv('small_job_counts', m)}
               onChange={(m, v) => setMonthField('small_job_counts', m, v)}
-              onAutofill={val => autofillField('small_job_counts', val)}
+              onCommit={(m, lbl) => commitMonthField('small_job_counts', m, lbl, 1)}
+              onAutofill={(val, lbl) => autofillField('small_job_counts', val, lbl, 1)}
               ytd={monthInts.reduce((s, m) => s + dv('small_job_counts', m), 0)}
             />
             <DriverRow
@@ -457,7 +576,8 @@ export default function ForecastDrivers() {
               getValue={m => Math.round(dv('small_job_avg_value_monthly', m) / 100)}
               getDisplay={m => fmt(dv('small_job_avg_value_monthly', m))}
               onChange={(m, v) => setMonthField('small_job_avg_value_monthly', m, v, 100)}
-              onAutofill={val => autofillField('small_job_avg_value_monthly', val * 100)}
+              onCommit={(m, lbl) => commitMonthField('small_job_avg_value_monthly', m, lbl, 100)}
+              onAutofill={(val, lbl) => autofillField('small_job_avg_value_monthly', val, lbl, 100)}
             />
 
             <DriverRow
@@ -465,7 +585,8 @@ export default function ForecastDrivers() {
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => dv('medium_job_counts', m)}
               onChange={(m, v) => setMonthField('medium_job_counts', m, v)}
-              onAutofill={val => autofillField('medium_job_counts', val)}
+              onCommit={(m, lbl) => commitMonthField('medium_job_counts', m, lbl, 1)}
+              onAutofill={(val, lbl) => autofillField('medium_job_counts', val, lbl, 1)}
               ytd={monthInts.reduce((s, m) => s + dv('medium_job_counts', m), 0)}
             />
             <DriverRow
@@ -474,7 +595,8 @@ export default function ForecastDrivers() {
               getValue={m => Math.round(dv('medium_job_avg_value_monthly', m) / 100)}
               getDisplay={m => fmt(dv('medium_job_avg_value_monthly', m))}
               onChange={(m, v) => setMonthField('medium_job_avg_value_monthly', m, v, 100)}
-              onAutofill={val => autofillField('medium_job_avg_value_monthly', val * 100)}
+              onCommit={(m, lbl) => commitMonthField('medium_job_avg_value_monthly', m, lbl, 100)}
+              onAutofill={(val, lbl) => autofillField('medium_job_avg_value_monthly', val, lbl, 100)}
             />
 
             <DriverRow
@@ -482,7 +604,8 @@ export default function ForecastDrivers() {
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => dv('large_job_counts', m)}
               onChange={(m, v) => setMonthField('large_job_counts', m, v)}
-              onAutofill={val => autofillField('large_job_counts', val)}
+              onCommit={(m, lbl) => commitMonthField('large_job_counts', m, lbl, 1)}
+              onAutofill={(val, lbl) => autofillField('large_job_counts', val, lbl, 1)}
               ytd={monthInts.reduce((s, m) => s + dv('large_job_counts', m), 0)}
             />
             <DriverRow
@@ -491,7 +614,8 @@ export default function ForecastDrivers() {
               getValue={m => Math.round(dv('large_job_avg_value_monthly', m) / 100)}
               getDisplay={m => fmt(dv('large_job_avg_value_monthly', m))}
               onChange={(m, v) => setMonthField('large_job_avg_value_monthly', m, v, 100)}
-              onAutofill={val => autofillField('large_job_avg_value_monthly', val * 100)}
+              onCommit={(m, lbl) => commitMonthField('large_job_avg_value_monthly', m, lbl, 100)}
+              onAutofill={(val, lbl) => autofillField('large_job_avg_value_monthly', val, lbl, 100)}
             />
 
             {/* Small + Medium + Large, summed by the engine as total_job_count */}
@@ -505,11 +629,9 @@ export default function ForecastDrivers() {
               <AutofillBtn onFill={() => {
                 const firstForecast = monthInts.find(m => !actualsMonths.has(m))
                 if (firstForecast === undefined) return
-                const val = dvFloat('cos_pct_monthly', firstForecast)
-                const filled = {}
-                monthInts.forEach(m => { if (!actualsMonths.has(m)) filled[String(m)] = Number(val) || 0 })
-                setDraft(prev => ({ ...prev, cos_pct_monthly: { ...(prev.cos_pct_monthly || {}), ...filled } }))
-                setDirty(true)
+                // Same fill-from-first-forecast-month behaviour, now committed as
+                // one undoable action like every other row.
+                autofillField('cos_pct_monthly', dvFloat('cos_pct_monthly', firstForecast), 'COS %', 1)
               }} />
               <td className="px-3 py-1.5 text-[12px]" style={{ color: S.textSecondary }}>
                 COS %
@@ -525,7 +647,8 @@ export default function ForecastDrivers() {
                         value={dvFloat('cos_pct_monthly', m)}
                         onChange={e => setMonthField('cos_pct_monthly', m, e.target.value, 1)}
                         onFocus={e => { e.currentTarget.style.borderColor = S.gold; e.currentTarget.select() }}
-                        onBlur={e => e.currentTarget.style.borderColor = S.border}
+                        onBlur={e => { e.currentTarget.style.borderColor = S.border; commitMonthField('cos_pct_monthly', m, 'COS %', 1) }}
+                        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
                         className="w-full text-right font-mono text-[12px] px-1.5 py-1 rounded outline-none"
                         style={inputStyle}
                       />
@@ -549,7 +672,8 @@ export default function ForecastDrivers() {
               getValue={m => Math.round(dv('cost_per_pay_run_monthly', m) / 100) || Math.round((draft?.cost_per_pay_run ?? 0) / 100)}
               getDisplay={m => fmt(dv('cost_per_pay_run_monthly', m) || draft?.cost_per_pay_run || 0)}
               onChange={(m, v) => setMonthField('cost_per_pay_run_monthly', m, v, 100)}
-              onAutofill={val => autofillField('cost_per_pay_run_monthly', val * 100)}
+              onCommit={(m, lbl) => commitMonthField('cost_per_pay_run_monthly', m, lbl, 100)}
+              onAutofill={(val, lbl) => autofillField('cost_per_pay_run_monthly', val, lbl, 100)}
             />
 
             <DriverRow
@@ -557,7 +681,8 @@ export default function ForecastDrivers() {
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => dv('pay_runs_per_month', m)}
               onChange={(m, v) => setMonthField('pay_runs_per_month', m, v)}
-              onAutofill={val => autofillField('pay_runs_per_month', val)}
+              onCommit={(m, lbl) => commitMonthField('pay_runs_per_month', m, lbl, 1)}
+              onAutofill={(val, lbl) => autofillField('pay_runs_per_month', val, lbl, 1)}
               ytd={monthInts.reduce((s, m) => s + dv('pay_runs_per_month', m), 0)}
             />
             <DriverRow
@@ -566,7 +691,8 @@ export default function ForecastDrivers() {
               getValue={m => Math.round(dv('payroll_one_off', m) / 100)}
               getDisplay={m => fmt(dv('payroll_one_off', m))}
               onChange={(m, v) => setMonthField('payroll_one_off', m, v, 100)}
-              onAutofill={val => autofillField('payroll_one_off', val * 100)}
+              onCommit={(m, lbl) => commitMonthField('payroll_one_off', m, lbl, 100)}
+              onAutofill={(val, lbl) => autofillField('payroll_one_off', val, lbl, 100)}
             />
             <CalcRow label="Total Payroll" periods={orderedPeriods} field="payroll_expenses" highlight />
 
@@ -579,7 +705,8 @@ export default function ForecastDrivers() {
               getValue={m => Math.round(dv('marketing_monthly', m) / 100)}
               getDisplay={m => fmt(dv('marketing_monthly', m))}
               onChange={(m, v) => setMonthField('marketing_monthly', m, v, 100)}
-              onAutofill={val => autofillField('marketing_monthly', val * 100)}
+              onCommit={(m, lbl) => commitMonthField('marketing_monthly', m, lbl, 100)}
+              onAutofill={(val, lbl) => autofillField('marketing_monthly', val, lbl, 100)}
             />
             <DriverRow
               label="Depreciation & Amort. ($)"
@@ -587,7 +714,8 @@ export default function ForecastDrivers() {
               getValue={m => Math.round(dv('depreciation_monthly', m) / 100)}
               getDisplay={m => fmt(dv('depreciation_monthly', m))}
               onChange={(m, v) => setMonthField('depreciation_monthly', m, v, 100)}
-              onAutofill={val => autofillField('depreciation_monthly', val * 100)}
+              onCommit={(m, lbl) => commitMonthField('depreciation_monthly', m, lbl, 100)}
+              onAutofill={(val, lbl) => autofillField('depreciation_monthly', val, lbl, 100)}
             />
             <DriverRow
               label="Other Overhead ($)"
@@ -595,7 +723,8 @@ export default function ForecastDrivers() {
               getValue={m => Math.round(dv('other_overhead_monthly', m) / 100)}
               getDisplay={m => fmt(dv('other_overhead_monthly', m))}
               onChange={(m, v) => setMonthField('other_overhead_monthly', m, v, 100)}
-              onAutofill={val => autofillField('other_overhead_monthly', val * 100)}
+              onCommit={(m, lbl) => commitMonthField('other_overhead_monthly', m, lbl, 100)}
+              onAutofill={(val, lbl) => autofillField('other_overhead_monthly', val, lbl, 100)}
             />
             <CalcRow
               label="Total Other Expenses"
@@ -613,7 +742,8 @@ export default function ForecastDrivers() {
               getValue={m => Math.round(dv('other_income_expense_monthly', m) / 100)}
               getDisplay={m => fmt(dv('other_income_expense_monthly', m))}
               onChange={(m, v) => setMonthField('other_income_expense_monthly', m, v, 100)}
-              onAutofill={val => autofillField('other_income_expense_monthly', val * 100)}
+              onCommit={(m, lbl) => commitMonthField('other_income_expense_monthly', m, lbl, 100)}
+              onAutofill={(val, lbl) => autofillField('other_income_expense_monthly', val, lbl, 100)}
             />
 
             {/* ══ P&L SUMMARY ═══════════════════════════════════════════════════ */}
@@ -639,7 +769,8 @@ export default function ForecastDrivers() {
                 return (days !== undefined && days !== null) ? `${days} days` : '—'
               }}
               onChange={(m, v) => setMonthField('dso_monthly', m, v)}
-              onAutofill={val => autofillField('dso_monthly', val)}
+              onCommit={(m, lbl) => commitMonthField('dso_monthly', m, lbl, 1)}
+              onAutofill={(val, lbl) => autofillField('dso_monthly', val, lbl, 1)}
             />
             <DriverRow
               label="DIO — Days Inventory Outstanding"
@@ -650,7 +781,8 @@ export default function ForecastDrivers() {
                 return (days !== undefined && days !== null) ? `${days} days` : '—'
               }}
               onChange={(m, v) => setMonthField('dio_monthly', m, v)}
-              onAutofill={val => autofillField('dio_monthly', val)}
+              onCommit={(m, lbl) => commitMonthField('dio_monthly', m, lbl, 1)}
+              onAutofill={(val, lbl) => autofillField('dio_monthly', val, lbl, 1)}
             />
             <DriverRow
               label="DPO — Days Payable Outstanding"
@@ -661,7 +793,8 @@ export default function ForecastDrivers() {
                 return (days !== undefined && days !== null) ? `${days} days` : '—'
               }}
               onChange={(m, v) => setMonthField('dpo_monthly', m, v)}
-              onAutofill={val => autofillField('dpo_monthly', val)}
+              onCommit={(m, lbl) => commitMonthField('dpo_monthly', m, lbl, 1)}
+              onAutofill={(val, lbl) => autofillField('dpo_monthly', val, lbl, 1)}
             />
             <DriverRow
               label="Owner Distributions ($)"
@@ -669,7 +802,8 @@ export default function ForecastDrivers() {
               getValue={m => Math.round(dv('owner_distributions', m) / 100)}
               getDisplay={m => fmt(periodByMonth[m]?.owner_distributions ?? 0)}
               onChange={(m, v) => setMonthField('owner_distributions', m, v, 100)}
-              onAutofill={val => autofillField('owner_distributions', val * 100)}
+              onCommit={(m, lbl) => commitMonthField('owner_distributions', m, lbl, 100)}
+              onAutofill={(val, lbl) => autofillField('owner_distributions', val, lbl, 100)}
             />
             <DriverRow
               label="Tax Savings Reserve ($)"
@@ -677,7 +811,8 @@ export default function ForecastDrivers() {
               getValue={m => Math.round(dv('owner_tax_savings', m) / 100)}
               getDisplay={m => fmt(periodByMonth[m]?.owner_tax_savings ?? 0)}
               onChange={(m, v) => setMonthField('owner_tax_savings', m, v, 100)}
-              onAutofill={val => autofillField('owner_tax_savings', val * 100)}
+              onCommit={(m, lbl) => commitMonthField('owner_tax_savings', m, lbl, 100)}
+              onAutofill={(val, lbl) => autofillField('owner_tax_savings', val, lbl, 100)}
             />
 
             <SubHeader label="Investing & Financing" />
@@ -687,7 +822,8 @@ export default function ForecastDrivers() {
               getValue={m => Math.round(dv('capex_monthly', m) / 100)}
               getDisplay={m => fmt(dv('capex_monthly', m))}
               onChange={(m, v) => setMonthField('capex_monthly', m, v, 100)}
-              onAutofill={val => autofillField('capex_monthly', val * 100)}
+              onCommit={(m, lbl) => commitMonthField('capex_monthly', m, lbl, 100)}
+              onAutofill={(val, lbl) => autofillField('capex_monthly', val, lbl, 100)}
             />
             <DriverRow
               label="Other Current Assets Δ ($)"
@@ -695,7 +831,8 @@ export default function ForecastDrivers() {
               getValue={m => Math.round(dv('other_current_assets_change_monthly', m) / 100)}
               getDisplay={m => fmt(dv('other_current_assets_change_monthly', m))}
               onChange={(m, v) => setMonthField('other_current_assets_change_monthly', m, v, 100)}
-              onAutofill={val => autofillField('other_current_assets_change_monthly', val * 100)}
+              onCommit={(m, lbl) => commitMonthField('other_current_assets_change_monthly', m, lbl, 100)}
+              onAutofill={(val, lbl) => autofillField('other_current_assets_change_monthly', val, lbl, 100)}
             />
             <DriverRow
               label="Current Debt Change ($)"
@@ -703,7 +840,8 @@ export default function ForecastDrivers() {
               getValue={m => Math.round(dv('current_debt_change_monthly', m) / 100)}
               getDisplay={m => fmt(dv('current_debt_change_monthly', m))}
               onChange={(m, v) => setMonthField('current_debt_change_monthly', m, v, 100)}
-              onAutofill={val => autofillField('current_debt_change_monthly', val * 100)}
+              onCommit={(m, lbl) => commitMonthField('current_debt_change_monthly', m, lbl, 100)}
+              onAutofill={(val, lbl) => autofillField('current_debt_change_monthly', val, lbl, 100)}
             />
             <DriverRow
               label="Long-Term Debt Change ($)"
@@ -711,7 +849,8 @@ export default function ForecastDrivers() {
               getValue={m => Math.round(dv('long_term_debt_change_monthly', m) / 100)}
               getDisplay={m => fmt(dv('long_term_debt_change_monthly', m))}
               onChange={(m, v) => setMonthField('long_term_debt_change_monthly', m, v, 100)}
-              onAutofill={val => autofillField('long_term_debt_change_monthly', val * 100)}
+              onCommit={(m, lbl) => commitMonthField('long_term_debt_change_monthly', m, lbl, 100)}
+              onAutofill={(val, lbl) => autofillField('long_term_debt_change_monthly', val, lbl, 100)}
             />
 
             <CalcRow label="Net Cash Flow" periods={orderedPeriods} field="net_cash_flow" highlight />
