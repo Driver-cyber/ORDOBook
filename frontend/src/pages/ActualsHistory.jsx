@@ -14,6 +14,9 @@ const S = {
   textMuted: '#9a9590',
   gold: '#c8a96e',
   red: '#c05a5a',
+  rowLine: 'rgba(222,218,212,0.55)',
+  band: '#f7f5f2',
+  calcBg: '#faf9f7',
 }
 
 export function fmt(cents) {
@@ -26,34 +29,32 @@ export function fmt(cents) {
 
 // The label column pins left and the month header pins top; the corner cell
 // does both and sits above each. Backgrounds are opaque so rows slide under.
-const stickyLeft = { position: 'sticky', left: 0, background: S.bg, zIndex: 1 }
-const stickyTop = { position: 'sticky', top: 0, background: S.bg, zIndex: 3, boxShadow: `inset 0 -1px 0 ${S.border}` }
+const stickyLeft = { position: 'sticky', left: 0, zIndex: 1 }
+const stickyTop = { position: 'sticky', top: 0, background: S.surface, zIndex: 3, boxShadow: `inset 0 -1px 0 ${S.border}` }
 const stickyCorner = { ...stickyTop, left: 0, zIndex: 4 }
 
 function SectionHeader({ label, colCount }) {
   return (
-    <tr>
-      <td colSpan={colCount + 1} className="px-3 pt-6 pb-1">
-        <div className="font-mono text-[10px] uppercase tracking-[0.15em]"
-             style={{ color: S.textMuted }}>
+    <tr style={{ background: S.band, borderBottom: `1px solid ${S.rowLine}` }}>
+      <td colSpan={colCount + 1} className="px-3 py-2">
+        <span className="font-mono text-[10px] uppercase tracking-[0.15em]" style={{ color: S.textMuted }}>
           {label}
-        </div>
-        <div style={{ borderBottom: `1px solid ${S.border}`, marginTop: 4 }} />
+        </span>
       </td>
     </tr>
   )
 }
 
 function DataRow({ label, values, highlight = false, muted = false, indent = false, isText = false }) {
-  const color = highlight ? S.gold : muted ? S.textMuted : S.textSecondary
+  const color = highlight ? S.text : muted ? S.textMuted : S.textSecondary
   const weight = highlight ? 'font-semibold' : 'font-normal'
-  const topBorder = highlight ? `1px solid ${S.border}` : 'none'
+  const rowBg = highlight ? S.calcBg : S.surface
 
   return (
-    <tr style={{ borderTop: topBorder }}>
+    <tr style={{ borderBottom: `1px solid ${S.rowLine}`, background: rowBg }}>
       <td
         className={`px-3 py-2 text-[12px] ${weight} ${indent ? 'pl-7' : ''}`}
-        style={{ color, width: 210, ...stickyLeft }}
+        style={{ color: highlight ? S.textSecondary : color, width: 210, background: rowBg, ...stickyLeft }}
       >
         {label}
       </td>
@@ -113,7 +114,8 @@ export function ActualsGrid({ periods, onOpenMonth }) {
   const n = periods.length
 
   return (
-    <table className="border-collapse">
+    <div className="rounded-xl inline-block min-w-full" style={{ background: S.surface, border: `1px solid ${S.border}` }}>
+    <table className="border-collapse w-full">
       <thead>
         <tr>
           <th className="text-left px-3 py-2" style={{ width: 210, ...stickyCorner }} />
@@ -213,5 +215,6 @@ export function ActualsGrid({ periods, onOpenMonth }) {
 
       </tbody>
     </table>
+    </div>
   )
 }

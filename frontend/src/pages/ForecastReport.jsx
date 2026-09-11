@@ -13,7 +13,10 @@ const S = {
   textSecondary: '#5a5751',
   textMuted: '#9a9590',
   gold: '#c8a96e',
-  actualsText: '#b0aba5',
+  actualsText: '#6f6a64',
+  rowLine: 'rgba(222,218,212,0.55)',
+  band: '#f7f5f2',
+  calcBg: '#faf9f7',
 }
 
 // ── Derived formula descriptions ─────────────────────────────────────────────
@@ -72,29 +75,32 @@ const fmtPct = (num, denom) => {
 
 function SectionHeader({ label }) {
   return (
-    <tr>
-      <td colSpan={14} className="px-3 pt-6 pb-1">
-        <div className="font-mono text-[10px] uppercase tracking-[0.15em]"
-             style={{ color: S.textMuted }}>
+    <tr style={{ background: S.band, borderBottom: `1px solid ${S.rowLine}` }}>
+      <td colSpan={14} className="px-3 py-2">
+        <span className="font-mono text-[10px] uppercase tracking-[0.15em]" style={{ color: S.textMuted }}>
           {label}
-        </div>
-        <div style={{ borderBottom: `1px solid ${S.border}`, marginTop: 4 }} />
+        </span>
       </td>
     </tr>
   )
 }
 
+// Month header cells pin to the top of the grid's scroll box.
+const stickyTh = {
+  position: 'sticky', top: 0, zIndex: 5,
+  background: S.surface, boxShadow: `inset 0 -1px 0 ${S.border}`,
+}
+
 // ── A single data row ─────────────────────────────────────────────────────────
 
 function DataRow({ label, values, ytd, highlight = false, muted = false, indent = false }) {
-  const color = highlight ? S.gold : muted ? S.textMuted : S.textSecondary
+  const color = highlight ? S.text : muted ? S.textMuted : S.textSecondary
   const weight = highlight ? 'font-semibold' : 'font-normal'
-  const topBorder = highlight ? `1px solid ${S.border}` : 'none'
 
   return (
-    <tr style={{ borderTop: topBorder }}>
+    <tr style={{ borderBottom: `1px solid ${S.rowLine}`, background: highlight ? S.calcBg : 'transparent' }}>
       <td className={`px-3 py-2 text-[12px] ${weight} ${indent ? 'pl-7' : ''}`}
-          style={{ color, width: 185 }}>
+          style={{ color: highlight ? S.textSecondary : color, width: 185 }}>
         {label}
       </td>
       {values.map((v, i) => (
@@ -107,7 +113,7 @@ function DataRow({ label, values, ytd, highlight = false, muted = false, indent 
         </td>
       ))}
       <td className={`text-right px-2 py-2 font-mono text-[12px] ${weight}`}
-          style={{ color: highlight ? S.gold : S.textMuted }}>
+          style={{ color: highlight ? S.text : S.textMuted }}>
         {ytd ?? '—'}
       </td>
     </tr>
@@ -118,10 +124,10 @@ function DataRow({ label, values, ytd, highlight = false, muted = false, indent 
 
 function SubHeader({ label }) {
   return (
-    <tr>
-      <td colSpan={14} className="px-3 pt-3 pb-0.5">
+    <tr style={{ borderBottom: `1px solid ${S.rowLine}` }}>
+      <td colSpan={14} className="px-3 pt-3 pb-1">
         <span className="font-mono text-[9px] uppercase tracking-[0.14em]"
-              style={{ color: S.textMuted, opacity: 0.7 }}>
+              style={{ color: S.textMuted }}>
           {label}
         </span>
       </td>
@@ -246,7 +252,7 @@ export default function ForecastReport() {
   }
 
   return (
-    <main className="flex-1 overflow-auto" style={{ background: S.bg }}>
+    <main className="flex-1 flex flex-col overflow-hidden" style={{ background: S.bg }}>
 
       {/* Header */}
       <div className="px-8 pt-8 pb-4 flex items-center justify-between">
@@ -267,17 +273,19 @@ export default function ForecastReport() {
         </button>
       </div>
 
-      <div className="px-8 pb-16 overflow-x-auto scroll-visible">
+      <div className="flex-1 min-h-0 px-8 pb-16 overflow-auto scroll-visible">
+        <div className="rounded-xl" style={{ background: S.surface, border: `1px solid ${S.border}` }}>
         <table className="w-full border-collapse" style={{ minWidth: 960 }}>
 
-          {/* Column headers */}
+          {/* Column headers — sticky cells, see stickyTh */}
           <thead>
-            <tr style={{ borderBottom: `1px solid ${S.border}` }}>
+            <tr>
               <th className="text-left px-3 py-2 text-[11px] font-mono uppercase tracking-[0.1em]"
-                  style={{ color: S.textMuted, width: 185 }} />
+                  style={{ ...stickyTh, color: S.textMuted, width: 185 }} />
               {MONTHS.map((m, i) => (
                 <th key={m} className="text-right px-2 py-2 text-[11px] font-mono"
                     style={{
+                      ...stickyTh,
                       color: actualsMonths.has(i + 1) ? S.actualsText : S.textSecondary,
                       minWidth: 58,
                     }}>
@@ -288,7 +296,7 @@ export default function ForecastReport() {
                 </th>
               ))}
               <th className="text-right px-2 py-2 text-[11px] font-mono"
-                  style={{ color: S.textMuted }}>
+                  style={{ ...stickyTh, color: S.textMuted }}>
                 YTD
               </th>
             </tr>
@@ -397,6 +405,7 @@ export default function ForecastReport() {
 
           </tbody>
         </table>
+        </div>
       </div>
     </main>
   )

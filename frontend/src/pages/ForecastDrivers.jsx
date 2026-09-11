@@ -26,15 +26,18 @@ const S = {
   textMuted: '#9a9590',
   gold: '#c8a96e',
   goldDim: '#a07a3a',
-  actualsText: '#b0aba5',
+  actualsText: '#6f6a64',   // confirmed actuals: a shade quieter than forecast, still legible
   actualsBg: 'transparent',
+  rowLine: 'rgba(222,218,212,0.55)',  // hairline between rows, as on the month detail cards
+  band: '#f7f5f2',                    // section header band
+  calcBg: '#faf9f7',                  // calculated / total rows
 }
 
 // Month header cells pin to the top of the grid's scroll box. Opaque so rows
 // slide under them; the inset shadow stands in for the row's bottom border.
 const stickyTh = {
   position: 'sticky', top: 0, zIndex: 5,
-  background: S.bg, boxShadow: `inset 0 -1px 0 ${S.border}`,
+  background: S.surface, boxShadow: `inset 0 -1px 0 ${S.border}`,
 }
 
 // ── Static formula descriptions for derived fields ────────────────────────────
@@ -250,7 +253,7 @@ function DriverRow({ label, info, monthInts, actualsMonths = new Set(), getValue
   }
 
   return (
-    <tr>
+    <tr style={{ borderBottom: `1px solid ${S.rowLine}` }}>
       <AutofillBtn onFill={handleAutofill} />
       <td className="px-3 py-1.5 text-[12px]" style={{ color: S.textSecondary, width: 210 }}>
         <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -279,7 +282,7 @@ function CalcRow({ label, periods, field, fields, highlight = false, sublabel, f
     ? fields.reduce((s, f) => s + (p?.[f] ?? 0), 0)
     : (p?.[field] ?? 0)
   const total = (periods || []).reduce((s, p) => s + getVal(p), 0)
-  const color = highlight ? S.gold : S.textSecondary
+  const color = highlight ? S.text : S.textSecondary
   // Display-only % of that month's revenue; the YTD cell is Σ value / Σ revenue.
   const isPct = mode === 'pct'
   const totalRev = (periods || []).reduce((s, p) => s + (p?.revenue ?? 0), 0)
@@ -305,9 +308,9 @@ function CalcRow({ label, periods, field, fields, highlight = false, sublabel, f
   }
 
   return (
-    <tr style={{ borderTop: `1px solid ${S.border}` }}>
+    <tr style={{ borderBottom: `1px solid ${S.rowLine}`, background: highlight ? S.calcBg : 'transparent' }}>
       <td /> {/* autofill column spacer */}
-      <td className="px-3 py-2 text-[12px] font-semibold" style={{ color, width: 210 }}>
+      <td className="px-3 py-2 text-[12px] font-semibold" style={{ color: highlight ? S.textSecondary : color, width: 210 }}>
         <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
           <span>{label}</span>
           {onToggleMode && <span className="shrink-0"><ModeToggle mode={mode} onChange={onToggleMode} /></span>}
@@ -336,10 +339,10 @@ const fmtCount = (n) => (n === null || n === undefined) ? '—' : Number(n).toLo
 
 function SubHeader({ label }) {
   return (
-    <tr>
-      <td colSpan={15} className="px-3 pt-3 pb-0.5">
+    <tr style={{ borderBottom: `1px solid ${S.rowLine}` }}>
+      <td colSpan={15} className="px-3 pt-3 pb-1">
         <span className="font-mono text-[9px] uppercase tracking-[0.14em]"
-              style={{ color: '#9a9590', opacity: 0.7 }}>
+              style={{ color: S.textMuted }}>
           {label}
         </span>
       </td>
@@ -351,13 +354,11 @@ function SubHeader({ label }) {
 
 function SectionHeader({ label }) {
   return (
-    <tr>
-      <td colSpan={15} className="px-3 pt-6 pb-1">
-        <div className="font-mono text-[10px] uppercase tracking-[0.15em]"
-             style={{ color: S.textMuted }}>
+    <tr style={{ background: S.band, borderBottom: `1px solid ${S.rowLine}` }}>
+      <td colSpan={15} className="px-3 py-2">
+        <span className="font-mono text-[10px] uppercase tracking-[0.15em]" style={{ color: S.textMuted }}>
           {label}
-        </div>
-        <div style={{ borderBottom: `1px solid ${S.border}`, marginTop: 4 }} />
+        </span>
       </td>
     </tr>
   )
@@ -769,6 +770,9 @@ export default function ForecastDrivers() {
       {/* The grid is its own scroll box (both axes) so the month header can pin to
           its top while the page title and buttons stay put above it. */}
       <div className="flex-1 min-h-0 px-8 pb-16 overflow-auto scroll-visible">
+        {/* White card, spreadsheet-style rows. No overflow:hidden here — that would
+            make the card the sticky header's scroll box instead of this div. */}
+        <div className="rounded-xl" style={{ background: S.surface, border: `1px solid ${S.border}` }}>
         <table
           className="w-full border-collapse"
           style={{ minWidth: 980 }}
@@ -887,7 +891,7 @@ export default function ForecastDrivers() {
             {/* ══ COST OF SALES ═════════════════════════════════════════════════ */}
             <SectionHeader label="Cost of Sales" />
 
-            <tr>
+            <tr style={{ borderBottom: `1px solid ${S.rowLine}` }}>
               <AutofillBtn onFill={() => {
                 const firstForecast = monthInts.find(m => !actualsMonths.has(m))
                 if (firstForecast === undefined) return
@@ -1149,6 +1153,7 @@ export default function ForecastDrivers() {
 
           </tbody>
         </table>
+        </div>
       </div>
     </main>
   )
