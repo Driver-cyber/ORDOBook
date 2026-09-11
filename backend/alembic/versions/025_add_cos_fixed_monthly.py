@@ -24,7 +24,10 @@ def upgrade() -> None:
     cols = [c['name'] for c in sa.inspect(conn).get_columns('forecast_configs')]
     if 'cos_fixed_monthly' not in cols:
         op.add_column('forecast_configs',
-            sa.Column('cos_fixed_monthly', sa.JSON(), nullable=False, server_default="'{}'"))
+            # sa.text() so the default is emitted verbatim as '{}'. A plain string is
+            # re-quoted by the dialect ('''{}''') and Postgres rejects it as JSON.
+            sa.Column('cos_fixed_monthly', sa.JSON(), nullable=False,
+                      server_default=sa.text("'{}'")))
 
 
 def downgrade() -> None:
