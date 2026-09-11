@@ -38,6 +38,10 @@ git checkout origin/claude/add-project-tracker-zGrFN -- $(git diff --name-only <
 5. **Engine verification vs. the Vetter Jan-2026 workbook** — a systematic diff remains a Module 3
    hard requirement. `backend/scripts/verify_targets.py` now covers the Targets derivation; the
    monthly forecast engine still needs its equivalent.
+   Include in that pass: **actuals months do not derive owner draws or capex** (the Forecast
+   cash-flow rows show "—" there). Owner activity ≈ Δ equity_before_net_profit (year boundary
+   caveat); capex ≈ Δ net fixed assets + depreciation (disposals caveat). Decide, then the
+   actuals-month Net Cash Flow can tie to Δ cash.
 
 ## Where We Are (2026-09-10)
 

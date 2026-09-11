@@ -183,10 +183,10 @@ function DriverRow({ label, monthInts, actualsMonths = new Set(), getValue, getD
   return (
     <tr>
       <AutofillBtn onFill={handleAutofill} />
-      <td className="px-3 py-1.5 text-[12px]" style={{ color: S.textSecondary, width: 185 }}>
-        <span className="inline-flex items-center gap-2">
-          {label}
-          {onToggleMode && <ModeToggle mode={mode} onChange={onToggleMode} />}
+      <td className="px-3 py-1.5 text-[12px]" style={{ color: S.textSecondary, width: 210 }}>
+        <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span>{label}</span>
+          {onToggleMode && <span className="shrink-0"><ModeToggle mode={mode} onChange={onToggleMode} /></span>}
         </span>
       </td>
       {monthInts.map(m =>
@@ -237,10 +237,10 @@ function CalcRow({ label, periods, field, fields, highlight = false, sublabel, f
   return (
     <tr style={{ borderTop: `1px solid ${S.border}` }}>
       <td /> {/* autofill column spacer */}
-      <td className="px-3 py-2 text-[12px] font-semibold" style={{ color, width: 185 }}>
-        <span className="inline-flex items-center gap-2">
-          {label}
-          {onToggleMode && <ModeToggle mode={mode} onChange={onToggleMode} />}
+      <td className="px-3 py-2 text-[12px] font-semibold" style={{ color, width: 210 }}>
+        <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span>{label}</span>
+          {onToggleMode && <span className="shrink-0"><ModeToggle mode={mode} onChange={onToggleMode} /></span>}
         </span>
         {sublabel && <span className="block text-[10px] font-normal" style={{ color: S.textMuted }}>{sublabel}</span>}
       </td>
@@ -552,6 +552,19 @@ export default function ForecastDrivers() {
     const pct = pctOfRev(cents, m)
     return pct === null ? '—' : `${pct.toFixed(1)}%`
   }
+  // Actuals months on the cash-flow driver rows: the engine derives the balance
+  // sheet deltas (other current assets, current debt, long-term debt) from the
+  // imported statements and stores them on the period — show those, under the
+  // row's $/% mode, not the driver's (meaningless) value. Capex and owner draws
+  // are NOT derived for actuals months yet (see NEXT-SESSION), so they read "—".
+  const periodDisplay = (f, periodField, m) => {
+    const p = periodByMonth[m]
+    if (!p || p[periodField] === null || p[periodField] === undefined) return '—'
+    const cents = p[periodField]
+    if (modeOf(f) !== 'pct') return fmt(cents)
+    const pct = pctOfRev(cents, m)
+    return pct === null ? '—' : `${pct.toFixed(1)}%`
+  }
   // COS is STORED as a % of revenue. In $ mode we show/enter the dollars it
   // resolves to at that month's revenue.
   // A month with a fixed $ entry is PINNED: it shows that amount (or the % it
@@ -710,7 +723,7 @@ export default function ForecastDrivers() {
             <tr style={{ borderBottom: `1px solid ${S.border}` }}>
               <th style={{ width: 22 }} /> {/* autofill button column */}
               <th className="text-left px-3 py-2 text-[11px] font-mono uppercase tracking-[0.1em]"
-                  style={{ color: S.textMuted, width: 185 }} />
+                  style={{ color: S.textMuted, width: 210 }} />
               {MONTHS.map((m, i) => (
                 <th key={m} className="text-right px-2 py-2 text-[11px] font-mono"
                     style={{
@@ -992,7 +1005,7 @@ export default function ForecastDrivers() {
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('owner_distributions', m)}
               mode={modeOf('owner_distributions')} onToggleMode={md => setMode('owner_distributions', md)}
-              getDisplay={m => viewDisplay('owner_distributions', m)}
+              getDisplay={m => actualsMonths.has(m) ? '—' : viewDisplay('owner_distributions', m)}
               onChange={(m, v) => setMonthField('owner_distributions', m, v, 100)}
               onCommit={(m, lbl) => commitMonthField('owner_distributions', m, lbl, 100)}
               onAutofill={(val, lbl) => autofillField('owner_distributions', val, lbl, 100)}
@@ -1004,7 +1017,7 @@ export default function ForecastDrivers() {
               compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('capex_monthly', m)}
-              getDisplay={m => viewDisplay('capex_monthly', m)}
+              getDisplay={m => actualsMonths.has(m) ? '—' : viewDisplay('capex_monthly', m)}
               mode={modeOf('capex_monthly')} onToggleMode={md => setMode('capex_monthly', md)}
               onChange={(m, v) => setMonthField('capex_monthly', m, v, 100)}
               onCommit={(m, lbl) => commitMonthField('capex_monthly', m, lbl, 100)}
@@ -1015,7 +1028,7 @@ export default function ForecastDrivers() {
               compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('other_current_assets_change_monthly', m)}
-              getDisplay={m => viewDisplay('other_current_assets_change_monthly', m)}
+              getDisplay={m => periodDisplay('other_current_assets_change_monthly', 'other_current_assets_change', m)}
               mode={modeOf('other_current_assets_change_monthly')} onToggleMode={md => setMode('other_current_assets_change_monthly', md)}
               onChange={(m, v) => setMonthField('other_current_assets_change_monthly', m, v, 100)}
               onCommit={(m, lbl) => commitMonthField('other_current_assets_change_monthly', m, lbl, 100)}
@@ -1026,7 +1039,7 @@ export default function ForecastDrivers() {
               compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('current_debt_change_monthly', m)}
-              getDisplay={m => viewDisplay('current_debt_change_monthly', m)}
+              getDisplay={m => periodDisplay('current_debt_change_monthly', 'current_debt_change', m)}
               mode={modeOf('current_debt_change_monthly')} onToggleMode={md => setMode('current_debt_change_monthly', md)}
               onChange={(m, v) => setMonthField('current_debt_change_monthly', m, v, 100)}
               onCommit={(m, lbl) => commitMonthField('current_debt_change_monthly', m, lbl, 100)}
@@ -1037,7 +1050,7 @@ export default function ForecastDrivers() {
               compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('long_term_debt_change_monthly', m)}
-              getDisplay={m => viewDisplay('long_term_debt_change_monthly', m)}
+              getDisplay={m => periodDisplay('long_term_debt_change_monthly', 'long_term_debt_change', m)}
               mode={modeOf('long_term_debt_change_monthly')} onToggleMode={md => setMode('long_term_debt_change_monthly', md)}
               onChange={(m, v) => setMonthField('long_term_debt_change_monthly', m, v, 100)}
               onCommit={(m, lbl) => commitMonthField('long_term_debt_change_monthly', m, lbl, 100)}
