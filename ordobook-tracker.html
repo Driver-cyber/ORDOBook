@@ -399,6 +399,10 @@ body {
       "sub": "React · FastAPI · SQLite · Local-first desktop",
       "priorities": [
         {
+          "title": "Owner distributions as a BS mapping category (plan approved 2026-09-10)",
+          "note": "Equity section currently swallows distributions. Add signed 'Owner Investments / (Distributions)' category, store the YTD balance on monthly_actuals (migration 026), fold into total equity everywhere, derive monthly owner activity in the forecast actuals branch (Δ balance), read Targets prior-year owner draws from the Dec balance. Then remap + re-upload BS exports. Full step list in NEXT-SESSION item 0."
+        },
+        {
           "title": "Batch 4 — Actuals year grid, sidebar, scrollbar, driver tooltips",
           "note": "Workspace→Actuals defaults to the Actuals History 12-month grid with a year selector and a List View button; collapsible sidebar; always-visible horizontal scrollbar on overflow; clickable definition/sign-convention tooltips on every cash-flow driver (write after Red Team #3/#4); Actuals job-count edit joins autosave. Notes 8/4, 9, 13, 12."
         },
@@ -439,6 +443,25 @@ body {
         "Parking: Scenario Sandbox 'Owner Draws' label/sign alignment with the signed convention"
       ],
       "shipped": [
+        {
+          "date": "2026-09-10",
+          "what": "Migration 025 fixed for Postgres (sa.text default); launcher clears Chrome profile locks, stop script closes the window",
+          "tags": [
+            "fix",
+            "migration",
+            "tooling"
+          ],
+          "learned": "SQLite-only migration tests missed a Postgres JSON-default failure that blocked startup."
+        },
+        {
+          "date": "2026-09-10",
+          "what": "Forecast: money cells rest compact / edit full; spinners hidden; cash-flow rows show derived actuals; toggle no longer clips",
+          "tags": [
+            "ux",
+            "frontend"
+          ],
+          "learned": "Chrome's number spinner was eating a third of each 58px cell — the 'truncated number' was the spinner."
+        },
         {
           "date": "2026-09-10",
           "what": "COS $ entry pins the month; % releases it (migration 025, calculate_cost_of_sales)",

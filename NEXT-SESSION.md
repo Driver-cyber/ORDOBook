@@ -1,6 +1,7 @@
 # NEXT SESSION — Boot Checklist
 > Last updated: 2026-09-10 (session close) | Live test cycle on real 2024–2026 data → Batches 1–3 built and
-> tested → Red Team (6 items, all resolved). 28 commits. Next: Batch 4, then Batch 5 (data-model change).
+> tested → Red Team (6 items, all resolved) → evening fixes (025 on Postgres, launcher, Forecast cells).
+> Next: owner-distributions mapping (approved plan, item 0), then Batch 4, then Batch 5.
 
 ---
 
@@ -20,6 +21,38 @@ git checkout origin/claude/add-project-tracker-zGrFN -- $(git diff --name-only <
 ```
 
 ## Top priorities
+
+0. **Owner distributions as a Balance Sheet mapping category — APPROVED 2026-09-10, build first.**
+   The equity section maps every account to "Equity (excl. Net Profit)", so distributions vanish
+   into it and never reach cash flow. QB shows them as a running, signed, YTD balance in equity
+   (draws negative, contributions positive; resets at fiscal year start) — the same shape as
+   `net_profit_for_year`. Plan, as agreed:
+   1. New category `owner_distributions` in the Equity group of `frontend/src/lib/categories.js`
+      and `backend/app/parsers/auto_mapper.py` (VALID set + `_BS_SUBSECTION_MAP` stays equity;
+      keyword overrides: distribution, draw, contribution, owner investment, shareholder/partner
+      distribution). Label "Owner Investments / (Distributions)". ONE signed category, not two.
+   2. `MonthlyActuals.owner_distributions` BigInteger cents, signed YTD balance as QB shows it —
+      migration 026 (`server_default=sa.text('0')`, compile against the Postgres dialect!),
+      schema `ActualsOut`, both branches of the ingestion commit.
+   3. Total equity = equity_before_net_profit + net_profit_for_year + owner_distributions
+      everywhere: `targets.py` (`_aggregate_actuals` latest_bs, `_ending_balances`,
+      `get_targets` prior_opening), `ActualsHistory.jsx`, `ActualsDetail.jsx`,
+      `ReportsActuals.jsx` (add an "Owner Investments / (Distributions)" row under Equity).
+   4. `engine/forecast.py::_period_from_actuals`: month's owner activity = balance − prior
+      month's balance (January = the balance). Period `owner_distributions` /
+      `owner_total_draws` = the DRAW amount (positive, matching the forecast-branch sign),
+      subtracted in that month's `net_cash`. The prior balance must reach the engine — the
+      router builds `actuals_by_month` from `a.__dict__`; pass the prior month's balance in.
+      Forecast page: Owner Distributions actuals cells then show `fmt(period.owner_distributions)`
+      instead of "—".
+   5. Targets prior-year `owner_draws` = December `owner_distributions` balance (signed), no
+      longer backed out of the equity roll-forward (keep that as a cross-check in
+      `verify_targets.py` — they should agree when the books are clean).
+   6. Verify: direction test (a 95,000 draw in an actuals month lowers that month's net cash by
+      95,000 and equity by 95,000), `audit_schema.py`, Postgres-dialect compile of 026.
+   **After it lands:** the advisor remaps the distributions account in Review Mapping, then
+   re-uploads the Balance Sheet exports — stored monthly totals are computed at import time and
+   there is no re-apply-mapping path yet (candidate for Batch 4 if re-importing gets old).
 
 1. **Batch 4 — views & layout.** Workspace → Actuals defaults to the **Actuals History year grid**
    (12 months per screen, year selector, "List View" button beside Review Mapping); **collapsible
