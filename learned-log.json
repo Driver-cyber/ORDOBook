@@ -52,5 +52,17 @@
     "project": "ordobook",
     "tag": "ux",
     "lesson": "When one upload shape is wrong (two Balance Sheets, no P&L) the screen looks plausible. Say it — a warning beats a screen the user has to notice is sparse."
+  },
+  {
+    "date": "2026-09-10",
+    "project": "ordobook",
+    "tag": "testing",
+    "lesson": "Migration tests on SQLite do not prove Postgres. SQLite accepted a doubly-quoted JSON default that Postgres rejected, and auto-migrate then blocked the backend from starting. Compile new migrations against the Postgres dialect (a one-line check) and use sa.text() for literal server defaults."
+  },
+  {
+    "date": "2026-09-10",
+    "project": "ordobook",
+    "tag": "infra",
+    "lesson": "Auto-migrate on launch turns a bad migration into 'the app will not start'. The launcher's failure message must point at the backend log, and the log must be the first thing asked for."
   }
 ]

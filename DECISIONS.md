@@ -831,6 +831,13 @@ value; the advisor also prefers that undo on one screen can never touch work don
 - Never put backticks in a `git commit -m "…"` string; bash command-substitutes them.
 - Verify a data migration on a seeded database, with bound parameters — a `:100` inside a JSON
   literal in `sa.text()` is a bind parameter, and a test that inserts nothing "passes".
+- **Compile every new migration against the Postgres dialect before pushing.** The migration
+  test suite runs on SQLite, which accepted `DEFAULT '''{}'''`; Postgres rejected it as JSON and
+  the backend could not start on the dev DB. Use `sa.text("'{}'")` for literal defaults, and
+  render `AddColumn(...).compile(dialect=postgresql.dialect())` as a cheap check.
+- The dev Chrome app window is a separate Chrome instance on a private profile. The stop script
+  must close it (a lingering instance or stale Singleton lock makes the next launch open no
+  window at all).
 
 ---
 

@@ -198,6 +198,7 @@ then Phase 6 (Electron + SQLite).
 - **COS:** % of revenue unless a month is pinned with a $ entry (`cos_fixed_monthly`); a % entry releases the pin.
 - **Grades:** favourable-variance thresholds in integer math (`_compute_grade`); never ratio.
 - **Commits:** gate on a script that exits non-zero, `set -e`; no backticks in `-m` strings.
+- **Migrations:** literal server defaults via `sa.text()`; compile against the Postgres dialect before pushing — SQLite-only tests missed a Postgres failure that blocked startup (025).
 
 ## Tracker Reminder
 At session end: update `ordobook-tracker.html` — move completed items to backlog, pull next
