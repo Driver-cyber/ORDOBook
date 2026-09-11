@@ -17,10 +17,12 @@ load_dotenv()
 # Alembic's ledger always matches reality and new columns land without a manual
 # 'alembic upgrade head'. ORDOBOOK_AUTO_MIGRATE=0 opts out.
 auto_migrate_if_enabled()
+print("[ordobook] migrations: at head", flush=True)
 
 # Bootstrap a fresh dev DB from the models. In the packaged app the migration
 # above has already built the schema, so this is a no-op.
 Base.metadata.create_all(bind=engine)
+print("[ordobook] schema ready — starting API", flush=True)
 
 app = FastAPI(title="ORDOBOOK API", version="0.1.0")
 

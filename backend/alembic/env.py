@@ -37,6 +37,14 @@ def run_migrations_online() -> None:
     connectable = engine_from_config(config.get_section(config.config_ini_section, {}),
                                      prefix="sqlalchemy.", poolclass=pool.NullPool)
     with connectable.connect() as connection:
+        if connection.dialect.name == "postgresql":
+            # ALTER TABLE needs an exclusive lock. If a leftover session (a stale
+            # uvicorn worker, an open psql, a GUI client) still holds even a read
+            # lock on that table, the ALTER waits forever — and because migrations
+            # run at app import, the backend never answers its health check and
+            # the launcher just sits there. Fail fast and loud instead.
+            from sqlalchemy import text
+            connection.execute(text("SET lock_timeout = '15s'"))
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
