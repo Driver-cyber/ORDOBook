@@ -884,6 +884,16 @@ cards; a spreadsheet-like surface is what the eye expects for a 13-column money 
 - The dev Chrome app window is a separate Chrome instance on a private profile. The stop script
   must close it (a lingering instance or stale Singleton lock makes the next launch open no
   window at all).
+- **A migration that alters a table waits on any session holding a lock on it** — a `uvicorn
+  --reload` worker that outlived the port holder, or an idle-in-transaction connection. Because
+  migrations run at app import, the backend never answers health and the launcher sits at
+  "Starting backend" with a log ending at the last "Running upgrade" line (2026-09-11, 028).
+  Now: `lock_timeout=15s` as a libpq connect option in `alembic/env.py`, progress lines from
+  `main.py`, and the stop script kills stray workers and ends stuck sessions.
+- **Never `connection.execute()` anything in `alembic/env.py` before `begin_transaction()`.**
+  SQLAlchemy 2 auto-begins a transaction; Alembic reuses it without owning it, and the whole
+  migration rolls back on connection close — silently, with "Running upgrade" still logged.
+  Session settings go in `connect_args`.
 
 ---
 

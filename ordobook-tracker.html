@@ -444,6 +444,16 @@ body {
       "shipped": [
         {
           "date": "2026-09-11",
+          "what": "Launch hardening: migrations fail fast on a held table lock (libpq lock_timeout), startup progress lines, stop script clears stray uvicorn workers and stuck DB sessions",
+          "tags": [
+            "fix",
+            "infra",
+            "migration"
+          ],
+          "learned": "Executing anything on the Alembic connection before begin_transaction() auto-begins a transaction Alembic doesn't own — the migration then rolls back silently at close. Session settings belong in connect_args."
+        },
+        {
+          "date": "2026-09-11",
           "what": "Scoreboard: click-to-edit headline, priority reason and action item on the sheet (migration 028); PDF prefers the advisor's wording",
           "tags": [
             "feature",
