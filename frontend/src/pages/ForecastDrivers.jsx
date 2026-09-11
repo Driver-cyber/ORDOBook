@@ -75,6 +75,68 @@ function Tooltip({ content, children }) {
   )
 }
 
+// ── Click-to-open definition for a driver ─────────────────────────────────────
+// A small ⓘ beside the label. Click opens a card with what the driver means and
+// which way its sign moves cash; click anywhere else (or Esc) closes it.
+
+function InfoTip({ title, text }) {
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
+  return (
+    <span className="relative inline-flex shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-label={`What is ${title}?`}
+        aria-expanded={open}
+        className="w-4 h-4 rounded-full font-mono text-[9px] flex items-center justify-center transition-colors"
+        style={{ color: open ? '#1a1918' : S.textMuted, background: open ? S.gold : 'transparent', border: `1px solid ${open ? S.gold : S.border}` }}
+      >
+        i
+      </button>
+      {open && (
+        <>
+          <span className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <span
+            className="absolute z-40 left-0 top-full mt-1.5 w-72 rounded-lg px-3 py-2.5 text-left font-sans text-[11px] leading-relaxed whitespace-normal"
+            style={{ background: S.surface, color: S.textSecondary, border: `1px solid ${S.border}`, boxShadow: '0 12px 32px rgba(0,0,0,0.12)' }}
+          >
+            <span className="block font-semibold mb-1" style={{ color: S.text }}>{title}</span>
+            {text}
+          </span>
+        </>
+      )}
+    </span>
+  )
+}
+
+// Definitions + sign conventions for the cash-flow drivers. The wording matches
+// the engine: draws are entered positive and subtracted; debt changes are entered
+// as cash (borrowing positive); asset changes as the balance movement.
+const DRIVER_INFO = {
+  dso: { title: 'DSO — Days Sales Outstanding',
+    text: 'How many days of revenue are sitting in Accounts Receivable. The month\'s AR balance is projected as Revenue × DSO ÷ 30. AR going up ties cash up; AR coming down releases it. Actuals months show the days implied by the imported balance.' },
+  dio: { title: 'DIO — Days Inventory Outstanding',
+    text: 'How many days of Cost of Sales are held as inventory. The balance is projected as COS × DIO ÷ 30. More inventory uses cash; less releases it. Actuals months show the days implied by the imported balance.' },
+  dpo: { title: 'DPO — Days Payable Outstanding',
+    text: 'How many days of Cost of Sales are owed to suppliers. Accounts Payable is projected as COS × DPO ÷ 30. A larger AP balance keeps cash in the business; paying suppliers faster uses it. Actuals months show the days implied by the imported balance.' },
+  owner: { title: 'Owner Distributions',
+    text: 'Cash paid out to the owner in the month. Enter draws as a positive number — it is subtracted from Net Cash Flow. Enter money the owner puts in as a negative number. Actuals months derive it from the month-over-month change in the mapped "Owner Investments / (Distributions)" balance.' },
+  capex: { title: 'Capital Expenditures',
+    text: 'Purchases of fixed assets. Positive = a purchase: cash out, added to Fixed Assets on the projected balance sheet. Negative = a sale or disposal. Actuals months derive it as the change in net fixed assets plus that month\'s depreciation.' },
+  oca: { title: 'Other Current Assets Δ',
+    text: 'Change in other current assets (deposits, prepaids, etc.). Positive = the balance grows, which uses cash. Negative = the balance shrinks, which releases cash. Actuals months use the change in the imported balance.' },
+  currentDebt: { title: 'Current Debt Change',
+    text: 'Change in credit cards and other current liabilities, entered as cash. Positive = new borrowing, cash in. Negative = repayment, cash out. Actuals months use the change in the imported balance.' },
+  ltd: { title: 'Long-Term Debt Change',
+    text: 'Change in long-term debt, entered as cash. Positive = new loan proceeds, cash in. Negative = principal repayment, cash out. Actuals months use the change in the imported balance.' },
+}
+
 // ── Shared input style ────────────────────────────────────────────────────────
 
 const inputStyle = {
@@ -175,7 +237,7 @@ function ModeToggle({ mode = 'dollar', onChange }) {
 }
 
 // compact: money rows — editable cells rest on the same compact figure as actuals cells.
-function DriverRow({ label, monthInts, actualsMonths = new Set(), getValue, getDisplay, onChange, onCommit, onAutofill, ytd, mode, onToggleMode, compact = false }) {
+function DriverRow({ label, info, monthInts, actualsMonths = new Set(), getValue, getDisplay, onChange, onCommit, onAutofill, ytd, mode, onToggleMode, compact = false }) {
   // Find the first non-actuals month for autofill source
   const firstForecastMonth = monthInts.find(m => !actualsMonths.has(m))
 
@@ -193,6 +255,7 @@ function DriverRow({ label, monthInts, actualsMonths = new Set(), getValue, getD
       <td className="px-3 py-1.5 text-[12px]" style={{ color: S.textSecondary, width: 210 }}>
         <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
           <span>{label}</span>
+          {info && <InfoTip title={info.title} text={info.text} />}
           {onToggleMode && <span className="shrink-0"><ModeToggle mode={mode} onChange={onToggleMode} /></span>}
         </span>
       </td>
@@ -976,7 +1039,7 @@ export default function ForecastDrivers() {
 
             <SubHeader label="Working Capital" />
             <DriverRow
-              label="DSO — Days Sales Outstanding"
+              label="DSO — Days Sales Outstanding" info={DRIVER_INFO.dso}
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => dv('dso_monthly', m)}
               getDisplay={m => {
@@ -988,7 +1051,7 @@ export default function ForecastDrivers() {
               onAutofill={(val, lbl) => autofillField('dso_monthly', val, lbl, 1)}
             />
             <DriverRow
-              label="DIO — Days Inventory Outstanding"
+              label="DIO — Days Inventory Outstanding" info={DRIVER_INFO.dio}
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => dv('dio_monthly', m)}
               getDisplay={m => {
@@ -1000,7 +1063,7 @@ export default function ForecastDrivers() {
               onAutofill={(val, lbl) => autofillField('dio_monthly', val, lbl, 1)}
             />
             <DriverRow
-              label="DPO — Days Payable Outstanding"
+              label="DPO — Days Payable Outstanding" info={DRIVER_INFO.dpo}
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => dv('dpo_monthly', m)}
               getDisplay={m => {
@@ -1012,7 +1075,7 @@ export default function ForecastDrivers() {
               onAutofill={(val, lbl) => autofillField('dpo_monthly', val, lbl, 1)}
             />
             <DriverRow
-              label="Owner Distributions ($)"
+              label="Owner Distributions ($)" info={DRIVER_INFO.owner}
               compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('owner_distributions', m)}
@@ -1025,7 +1088,7 @@ export default function ForecastDrivers() {
 
             <SubHeader label="Investing & Financing" />
             <DriverRow
-              label="Capital Expenditures ($)"
+              label="Capital Expenditures ($)" info={DRIVER_INFO.capex}
               compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('capex_monthly', m)}
@@ -1036,7 +1099,7 @@ export default function ForecastDrivers() {
               onAutofill={(val, lbl) => autofillField('capex_monthly', val, lbl, 100)}
             />
             <DriverRow
-              label="Other Current Assets Δ ($)"
+              label="Other Current Assets Δ ($)" info={DRIVER_INFO.oca}
               compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('other_current_assets_change_monthly', m)}
@@ -1047,7 +1110,7 @@ export default function ForecastDrivers() {
               onAutofill={(val, lbl) => autofillField('other_current_assets_change_monthly', val, lbl, 100)}
             />
             <DriverRow
-              label="Current Debt Change ($)"
+              label="Current Debt Change ($)" info={DRIVER_INFO.currentDebt}
               compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('current_debt_change_monthly', m)}
@@ -1058,7 +1121,7 @@ export default function ForecastDrivers() {
               onAutofill={(val, lbl) => autofillField('current_debt_change_monthly', val, lbl, 100)}
             />
             <DriverRow
-              label="Long-Term Debt Change ($)"
+              label="Long-Term Debt Change ($)" info={DRIVER_INFO.ltd}
               compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('long_term_debt_change_monthly', m)}

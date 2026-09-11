@@ -267,7 +267,7 @@ export default function ForecastReport() {
         </button>
       </div>
 
-      <div className="px-8 pb-16 overflow-x-auto">
+      <div className="px-8 pb-16 overflow-x-auto scroll-visible">
         <table className="w-full border-collapse" style={{ minWidth: 960 }}>
 
           {/* Column headers */}

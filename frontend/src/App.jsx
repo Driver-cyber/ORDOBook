@@ -10,7 +10,6 @@ import ClientWorkspace from './pages/ClientWorkspace'
 import UploadPage from './pages/UploadPage'
 import MappingReview from './pages/MappingReview'
 import ActualsDetail from './pages/ActualsDetail'
-import ActualsHistory from './pages/ActualsHistory'
 import ForecastDrivers from './pages/ForecastDrivers'
 import ForecastReport from './pages/ForecastReport'
 import Targets from './pages/Targets'
@@ -161,7 +160,8 @@ export default function App() {
         />
         <Route path="/clients/:id/upload"           element={<CL>{() => <UploadPage />}</CL>} />
         <Route path="/clients/:id/mapping-review"   element={<CL>{() => <MappingReview />}</CL>} />
-        <Route path="/clients/:id/actuals/history"  element={<CL>{() => <ActualsHistory />}</CL>} />
+        {/* The year grid now IS the Workspace → Actuals tab */}
+        <Route path="/clients/:id/actuals/history"  element={<CL>{() => <ToWorkspace />}</CL>} />
         <Route path="/clients/:id/actuals/:year/:month" element={<CL>{() => <ActualsDetail />}</CL>} />
 
         {/* ── Old route redirects (bookmarks / cached links) ── */}

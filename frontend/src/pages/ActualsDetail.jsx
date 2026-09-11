@@ -50,9 +50,9 @@ export default function ActualsDetail() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [editingJobs, setEditingJobs] = useState(false)
   const [jobCount, setJobCount] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [jobsStatus, setJobsStatus] = useState(null)   // 'saving' | 'saved' | 'error'
 
   useEffect(() => {
     getActualsDetail(id, year, month)
@@ -64,7 +64,7 @@ export default function ActualsDetail() {
   const handleConfirm = async () => {
     setSaving(true)
     try {
-      await updateActuals(id, year, month, { status: 'confirmed', job_count: jobCount })
+      await updateActuals(id, year, month, { status: 'confirmed', job_count: Math.max(0, parseInt(jobCount) || 0) })
       // Auto-sync forecast — silently skip if no forecast config exists yet
       await calculateForecast(id, Number(year)).catch(() => {})
       navigate(`/clients/${id}`)
@@ -72,14 +72,21 @@ export default function ActualsDetail() {
     setSaving(false)
   }
 
-  const handleSaveJobs = async () => {
-    setSaving(true)
+  // Job count autosaves on blur / Enter, like the driver grids. Nothing is sent
+  // when the value hasn't changed.
+  const commitJobs = async () => {
+    const next = Math.max(0, parseInt(jobCount) || 0)
+    setJobCount(next)
+    if (next === data.job_count) return
+    setJobsStatus('saving')
     try {
-      const updated = await updateActuals(id, year, month, { job_count: jobCount })
+      const updated = await updateActuals(id, year, month, { job_count: next })
       setData(updated)
-      setEditingJobs(false)
-    } catch {}
-    setSaving(false)
+      setJobsStatus('saved')
+      setTimeout(() => setJobsStatus(s => (s === 'saved' ? null : s)), 1500)
+    } catch {
+      setJobsStatus('error')
+    }
   }
 
   if (loading) return <div className="flex-1 flex items-center justify-center text-text-muted text-sm">Loading…</div>
@@ -171,25 +178,26 @@ export default function ActualsDetail() {
             <div className="px-5 py-4 border-b border-border flex items-center justify-between">
               <h2 className="font-display font-semibold text-sm text-text-primary">Income Statement</h2>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] text-text-muted">
-                  {editingJobs ? '' : `${data.job_count} jobs`}
+                <span className="font-mono text-[10px]"
+                      style={{ color: jobsStatus === 'error' ? '#b04040' : '#9a9590' }}>
+                  {jobsStatus === 'saving' && 'saving…'}
+                  {jobsStatus === 'saved' && 'saved ✓'}
+                  {jobsStatus === 'error' && 'save failed'}
                 </span>
-                {editingJobs ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      value={jobCount}
-                      onChange={e => setJobCount(parseInt(e.target.value) || 0)}
-                      className="w-16 bg-surface2 border border-accent rounded px-2 py-0.5 text-[12px] font-mono text-text-primary focus:outline-none"
-                      autoFocus
-                    />
-                    <button onClick={handleSaveJobs} disabled={saving} className="text-[11px] text-accent hover:text-[#d4b87a]">save</button>
-                    <button onClick={() => setEditingJobs(false)} className="text-[11px] text-text-muted hover:text-text-secondary">cancel</button>
-                  </div>
-                ) : (
-                  <button onClick={() => setEditingJobs(true)} className="font-mono text-[10px] text-text-muted hover:text-accent transition-colors">edit</button>
-                )}
+                <label className="flex items-center gap-1.5 font-mono text-[10px] text-text-muted">
+                  <input
+                    type="number"
+                    min="0"
+                    value={jobCount}
+                    onChange={e => setJobCount(e.target.value)}
+                    onFocus={e => e.currentTarget.select()}
+                    onBlur={commitJobs}
+                    onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+                    className="w-16 bg-surface border border-border rounded px-2 py-0.5 text-[12px] font-mono text-text-primary text-right focus:outline-none focus:border-accent no-spin"
+                    title="Jobs completed this month — saves when you click away"
+                  />
+                  jobs
+                </label>
               </div>
             </div>
             <SectionHeader label="Revenue" />

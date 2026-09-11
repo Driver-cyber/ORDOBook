@@ -15,14 +15,25 @@ const S = {
   textMuted: '#9a9590',
 }
 
+// Collapsed = icon rail. The choice sticks per browser; the sidebar remounts on
+// every route change, so it has to be read back from storage each time.
+const COLLAPSE_KEY = 'ordobook.sidebar'
+const readCollapsed = () => { try { return localStorage.getItem(COLLAPSE_KEY) === 'collapsed' } catch { return false } }
+const storeCollapsed = (c) => { try { localStorage.setItem(COLLAPSE_KEY, c ? 'collapsed' : 'open') } catch {} }
+
 export default function Sidebar({ clients, activeClientId }) {
   const navigate = useNavigate()
   const activeClient = clients?.find(c => c.id === activeClientId)
   const inWorkspace  = useMatch(`/clients/${activeClientId}/workspace/*`)
   const inReports    = useMatch(`/clients/${activeClientId}/reports/*`)
   const inScenarios  = useMatch(`/clients/${activeClientId}/scenarios`)
+  const inUpload     = useMatch(`/clients/${activeClientId}/upload`)
+  const inProfile    = useMatch(`/clients/${activeClientId}/profile`)
   const [periods, setPeriods] = useState([])
   const [collapsedYears, setCollapsedYears] = useState(new Set())
+  const [collapsed, setCollapsed] = useState(readCollapsed)
+
+  const toggleCollapsed = () => setCollapsed(c => { storeCollapsed(!c); return !c })
 
   useEffect(() => {
     if (!activeClientId) { setPeriods([]); return }
@@ -52,20 +63,30 @@ export default function Sidebar({ clients, activeClientId }) {
     })
   }
 
+  const clientNav = activeClient ? [
+    { icon: '⊞', label: 'Workspace',          to: `/clients/${activeClientId}/workspace`, active: !!inWorkspace },
+    { icon: '▤', label: 'Reports',            to: `/clients/${activeClientId}/reports/scoreboard/${new Date().getFullYear()}`, active: !!inReports },
+    { icon: '⟁', label: 'Scenarios',          to: `/clients/${activeClientId}/scenarios`, active: !!inScenarios },
+    { icon: '↑', label: 'Import Data',        to: `/clients/${activeClientId}/upload`, active: !!inUpload },
+    { icon: '◎', label: 'Profile & Settings', to: `/clients/${activeClientId}/profile`, active: !!inProfile },
+  ] : []
+
+  const width = collapsed ? 56 : 220
+
   return (
     <aside
-      className="w-[220px] min-w-[220px] flex flex-col h-full"
-      style={{ background: S.bg, borderRight: `1px solid ${S.border}` }}
+      className="flex flex-col h-full transition-[width] duration-150"
+      style={{ width, minWidth: width, background: S.bg, borderRight: `1px solid ${S.border}` }}
     >
       {/* Logo */}
-      <div className="px-3 py-5 flex items-center justify-center" style={{ borderBottom: `1px solid ${S.border}` }}>
-        <button onClick={() => navigate('/')} className="block w-full">
-          <img src={logo} alt="ORDOBOOK" className="h-12 w-auto object-contain mx-auto" />
+      <div className={`${collapsed ? 'px-2' : 'px-3'} py-5 flex items-center justify-center`} style={{ borderBottom: `1px solid ${S.border}` }}>
+        <button onClick={() => navigate('/')} className="block w-full" title="Client Roster">
+          <img src={logo} alt="ORDOBOOK" className={`${collapsed ? 'h-6' : 'h-12'} w-auto object-contain mx-auto`} />
         </button>
       </div>
 
       {/* Client context */}
-      {activeClient && (
+      {activeClient && !collapsed && (
         <div className="px-4 py-3" style={{ borderBottom: `1px solid ${S.border}`, background: 'rgba(200,169,110,0.04)' }}>
           <button
             onClick={() => navigate('/')}
@@ -87,91 +108,70 @@ export default function Sidebar({ clients, activeClientId }) {
           )}
         </div>
       )}
+      {activeClient && collapsed && (
+        <div className="py-3 flex justify-center" style={{ borderBottom: `1px solid ${S.border}` }}
+             title={activeClient.name}>
+          <button
+            onClick={() => navigate('/')}
+            className="w-8 h-8 rounded-full font-display font-semibold text-[12px] flex items-center justify-center"
+            style={{ background: 'rgba(200,169,110,0.15)', color: '#a07a3a' }}
+            title={`${activeClient.name} — click for all clients`}
+          >
+            {activeClient.name.trim().charAt(0).toUpperCase()}
+          </button>
+        </div>
+      )}
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto p-3">
+      <nav className={`flex-1 overflow-y-auto ${collapsed ? 'p-2' : 'p-3'}`}>
         {!activeClient ? (
           <>
-            <p className="font-mono text-[9px] uppercase tracking-[0.15em] px-2 mb-1.5" style={{ color: S.textMuted }}>
-              Navigation
-            </p>
+            {!collapsed && (
+              <p className="font-mono text-[9px] uppercase tracking-[0.15em] px-2 mb-1.5" style={{ color: S.textMuted }}>
+                Navigation
+              </p>
+            )}
             <NavLink
               to="/"
-              className={({ isActive }) =>
-                `flex items-center gap-2 px-2 py-1.5 rounded-md text-[13px] transition-colors ${isActive ? '' : ''}`
-              }
+              title="Client Roster"
+              className={`flex items-center gap-2 ${collapsed ? 'justify-center px-0' : 'px-2'} py-1.5 rounded-md text-[13px] transition-colors`}
               style={({ isActive }) => ({
                 background: isActive ? 'rgba(200,169,110,0.1)' : 'transparent',
                 color: isActive ? '#c8a96e' : S.textSecondary,
               })}
-              onMouseEnter={e => { if (!e.currentTarget.dataset.active) e.currentTarget.style.color = S.textPrimary }}
-              onMouseLeave={e => { if (!e.currentTarget.dataset.active) e.currentTarget.style.color = S.textSecondary }}
             >
-              <span>⊞</span> Client Roster
+              <span>⊞</span> {!collapsed && 'Client Roster'}
             </NavLink>
           </>
         ) : (
           <>
-            <p className="font-mono text-[9px] uppercase tracking-[0.15em] px-2 mb-1.5" style={{ color: S.textMuted }}>
-              Client
-            </p>
+            {!collapsed && (
+              <p className="font-mono text-[9px] uppercase tracking-[0.15em] px-2 mb-1.5" style={{ color: S.textMuted }}>
+                Client
+              </p>
+            )}
 
-            {[
-              {
-                icon: '⊞', label: 'Workspace',
-                to: `/clients/${activeClientId}/workspace`,
-                active: !!inWorkspace,
-              },
-              {
-                icon: '▤', label: 'Reports',
-                to: `/clients/${activeClientId}/reports/scoreboard/${new Date().getFullYear()}`,
-                active: !!inReports,
-              },
-              {
-                icon: '⟁', label: 'Scenarios',
-                to: `/clients/${activeClientId}/scenarios`,
-                active: !!inScenarios,
-              },
-              {
-                icon: '↑', label: 'Import Data',
-                to: `/clients/${activeClientId}/upload`,
-                active: false,
-              },
-              {
-                icon: '◎', label: 'Profile & Settings',
-                to: `/clients/${activeClientId}/profile`,
-                active: false,
-              },
-            ].map(({ to, icon, label, active }) => (
+            {clientNav.map(({ to, icon, label, active }) => (
               <NavLink
                 key={label}
                 to={to}
                 end={false}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] transition-colors"
+                title={label}
+                className={`flex items-center gap-2 ${collapsed ? 'justify-center px-0' : 'px-2'} py-1.5 rounded-md text-[12px] transition-colors`}
                 style={() => ({
                   background: active ? 'rgba(200,169,110,0.1)' : 'transparent',
                   color: active ? '#c8a96e' : S.textSecondary,
                 })}
               >
-                <span>{icon}</span> {label}
+                <span className={collapsed ? 'text-[15px]' : ''}>{icon}</span> {!collapsed && label}
               </NavLink>
             ))}
 
-            {years.length > 0 && (
+            {years.length > 0 && !collapsed && (
               <>
                 <p className="font-mono text-[9px] uppercase tracking-[0.15em] px-2 mb-1.5 mt-4" style={{ color: S.textMuted }}>
                   Periods
                 </p>
-                <NavLink
-                  to={`/clients/${activeClientId}/actuals/history`}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[12px] transition-colors"
-                  style={({ isActive }) => ({
-                    background: isActive ? 'rgba(200,169,110,0.1)' : 'transparent',
-                    color: isActive ? '#c8a96e' : S.textSecondary,
-                  })}
-                >
-                  <span>▤</span> Actuals History
-                </NavLink>
                 {years.map(year => (
                   <div key={year}>
                     <button
@@ -208,11 +208,24 @@ export default function Sidebar({ clients, activeClientId }) {
         )}
       </nav>
 
-      {/* Footer */}
-      <div className="px-4 py-3" style={{ borderTop: `1px solid ${S.border}` }}>
-        <span className="font-mono text-[9px] tracking-[0.1em]" style={{ color: S.textMuted }}>
-          ORDOBOOK v0.1
-        </span>
+      {/* Footer: version + collapse toggle */}
+      <div className={`${collapsed ? 'px-2 justify-center' : 'px-4 justify-between'} py-3 flex items-center`} style={{ borderTop: `1px solid ${S.border}` }}>
+        {!collapsed && (
+          <span className="font-mono text-[9px] tracking-[0.1em]" style={{ color: S.textMuted }}>
+            ORDOBOOK v0.1
+          </span>
+        )}
+        <button
+          onClick={toggleCollapsed}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="w-6 h-6 rounded text-[11px] flex items-center justify-center transition-colors"
+          style={{ color: S.textMuted, border: `1px solid ${S.border}` }}
+          onMouseEnter={e => { e.currentTarget.style.color = S.textPrimary }}
+          onMouseLeave={e => { e.currentTarget.style.color = S.textMuted }}
+        >
+          {collapsed ? '»' : '«'}
+        </button>
       </div>
     </aside>
   )
