@@ -44,6 +44,29 @@ export async function setGradeOverride(clientId, year, payload) {
   return res.json()
 }
 
+// Client-facing wording on the visual Scoreboard. Empty string clears a field
+// back to the auto-generated text. Separate from the grade route so autosaving
+// text never touches a grade.
+export async function saveScoreboardHeadline(clientId, year, headline) {
+  const res = await fetch(`${BASE}/${clientId}/scoreboard/${year}/text`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ headline: headline ?? '' }),
+  })
+  if (!res.ok) throw new Error('Failed to save headline')
+  return res.json()
+}
+
+export async function saveMetricText(clientId, year, metricKey, fields) {
+  const res = await fetch(`${BASE}/${clientId}/scoreboard/${year}/metric-text`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ metric_key: metricKey, ...fields }),
+  })
+  if (!res.ok) throw new Error('Failed to save text')
+  return res.json()
+}
+
 export async function recalculateGrades(clientId, year) {
   const res = await fetch(`${BASE}/${clientId}/scoreboard/${year}/recalculate`, {
     method: 'POST',

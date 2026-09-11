@@ -291,6 +291,8 @@ def _build_scoreboard_template_data(client: Client, year: int, raw: dict) -> dic
             "var_pct": m["variance_pct"],
             "type": "money" if is_cents else m["type"],
             "notes": m.get("notes"),
+            "priority_reason": m.get("priority_reason"),
+            "action_item": m.get("action_item"),
             "is_top_priority": m["is_top_priority"],
             "value": _fmt_value(conv(m["ytd_actual"]), "money" if is_cents else m["type"]),
             "var": _fmt_var(m["variance_pct"]),
@@ -330,8 +332,9 @@ def _build_scoreboard_template_data(client: Client, year: int, raw: dict) -> dic
         priorities.append({
             "key": m["key"],
             "label": m["label"],
-            "reason": _auto_reason(m, m["label"], m["type"], m["var_pct"], m["notes"]),
-            "action": _ACTIONS_BY_KEY.get(m["key"], m["label"]),
+            # Advisor wording wins; the auto text is the placeholder until it's written.
+            "reason": m["priority_reason"] or _auto_reason(m, m["label"], m["type"], m["var_pct"], m["notes"]),
+            "action": m["action_item"] or _ACTIONS_BY_KEY.get(m["key"], m["label"]),
         })
         if len(priorities) >= 3:
             break
@@ -357,7 +360,7 @@ def _build_scoreboard_template_data(client: Client, year: int, raw: dict) -> dic
         "prepared_date": today.strftime("%B %-d, %Y"),
         "overall": {
             "grade": raw.get("overall_grade"),
-            "headline": _auto_headline(counts["red"], counts["yellow"], counts["green"]),
+            "headline": raw.get("headline") or _auto_headline(counts["red"], counts["yellow"], counts["green"]),
             "counts": counts,
         },
         "heroes": heroes,

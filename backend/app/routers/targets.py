@@ -4,13 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.targets import ClientTarget, ScoreboardEntry
+from app.models.targets import ClientTarget, ScoreboardEntry, ScoreboardPage
 from app.models.forecast_period import ForecastPeriod
 from app.models.monthly_actuals import MonthlyActuals
 from app.engine.targets import compute_target_derived, COMPUTED_KEYS
 from app.schemas.targets import (
     TargetsUpsertRequest, TargetsResponse, TargetOut, TargetNoteUpdate,
     ScoreboardResponse, GradeOverrideRequest,
+    MetricTextUpdate, ScoreboardTextUpdate,
 )
 
 router = APIRouter(prefix="/api/clients", tags=["targets"])
@@ -476,6 +477,8 @@ def get_scoreboard(client_id: int, year: int, db: Session = Depends(get_db)):
         grade_is_override = entry.grade_is_override if entry else False
         is_top_priority = entry.is_top_priority if entry else False
         notes = entry.notes if entry else None
+        priority_reason = entry.priority_reason if entry else None
+        action_item = entry.action_item if entry else None
 
         if entry and grade_is_override:
             grade = entry.grade
@@ -508,6 +511,8 @@ def get_scoreboard(client_id: int, year: int, db: Session = Depends(get_db)):
             "is_top_priority": is_top_priority,
             "notes": notes,
             "has_target": has_target,
+            "priority_reason": priority_reason,
+            "action_item": action_item,
         })
 
     overall_grade = None
@@ -524,6 +529,10 @@ def get_scoreboard(client_id: int, year: int, db: Session = Depends(get_db)):
         if s in sections_data
     ]
 
+    page = db.query(ScoreboardPage).filter(
+        ScoreboardPage.client_id == client_id, ScoreboardPage.fiscal_year == year,
+    ).first()
+
     return ScoreboardResponse(
         fiscal_year=year,
         months_elapsed=months_elapsed,
@@ -532,7 +541,45 @@ def get_scoreboard(client_id: int, year: int, db: Session = Depends(get_db)):
         yellow_count=yellow_count,
         green_count=green_count,
         sections=sections,
+        headline=page.headline if page else None,
     )
+
+
+@router.patch("/{client_id}/scoreboard/{year}/text")
+def set_scoreboard_text(client_id: int, year: int, body: ScoreboardTextUpdate,
+                        db: Session = Depends(get_db)):
+    """Advisor headline for the year's Scoreboard. Empty clears it (auto wording returns)."""
+    page = db.query(ScoreboardPage).filter(
+        ScoreboardPage.client_id == client_id, ScoreboardPage.fiscal_year == year,
+    ).first()
+    if page is None:
+        page = ScoreboardPage(client_id=client_id, fiscal_year=year)
+        db.add(page)
+    if body.headline is not None:
+        page.headline = body.headline.strip() or None
+    db.commit()
+    return {"status": "ok", "headline": page.headline}
+
+
+@router.patch("/{client_id}/scoreboard/{year}/metric-text")
+def set_metric_text(client_id: int, year: int, body: MetricTextUpdate,
+                    db: Session = Depends(get_db)):
+    """Client-facing reason / action item for one metric. Separate from the grade
+    route so autosaving text never touches a grade or its override flag. Empty
+    string clears a field back to the auto wording."""
+    entry = db.query(ScoreboardEntry).filter(
+        ScoreboardEntry.client_id == client_id,
+        ScoreboardEntry.fiscal_year == year,
+        ScoreboardEntry.metric_key == body.metric_key,
+    ).first()
+    if entry is None:
+        entry = ScoreboardEntry(client_id=client_id, fiscal_year=year, metric_key=body.metric_key)
+        db.add(entry)
+    for field in ("priority_reason", "action_item"):
+        if field in body.model_fields_set:
+            setattr(entry, field, (getattr(body, field) or "").strip() or None)
+    db.commit()
+    return {"status": "ok", "priority_reason": entry.priority_reason, "action_item": entry.action_item}
 
 
 @router.put("/{client_id}/scoreboard/{year}/grade")

@@ -43,6 +43,10 @@ class ScoreboardEntry(Base):
     is_top_priority = Column(Boolean, nullable=False, default=False)
     # Private per-metric advisor note — never appears in any client-facing export
     notes = Column(Text, nullable=True)
+    # Client-facing text on the visual Scoreboard / PDF for a top priority.
+    # NULL = use the auto-generated wording. These DO export (they're the deliverable).
+    priority_reason = Column(Text, nullable=True)
+    action_item = Column(Text, nullable=True)
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
@@ -51,4 +55,23 @@ class ScoreboardEntry(Base):
     __table_args__ = (
         UniqueConstraint("client_id", "fiscal_year", "metric_key",
                          name="uq_scoreboard_entry"),
+    )
+
+
+class ScoreboardPage(Base):
+    """Per-client, per-year text on the Scoreboard that isn't tied to one metric.
+    headline NULL = the auto-generated line from the grade counts."""
+    __tablename__ = "scoreboard_pages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(Integer, ForeignKey("clients.id", ondelete="CASCADE"), nullable=False)
+    fiscal_year = Column(Integer, nullable=False)
+    headline = Column(Text, nullable=True)
+
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
+                        onupdate=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        UniqueConstraint("client_id", "fiscal_year", name="uq_scoreboard_page"),
     )

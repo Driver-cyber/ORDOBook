@@ -64,6 +64,21 @@ class ScoreboardMetricOut(BaseModel):
     is_top_priority: bool
     notes: Optional[str]
     has_target: bool
+    # Advisor-written client-facing text (None = auto wording is used)
+    priority_reason: Optional[str] = None
+    action_item: Optional[str] = None
+
+
+class MetricTextUpdate(BaseModel):
+    """Set or clear the client-facing wording for one metric. A field left unset
+    is untouched; an empty string clears it back to the auto wording."""
+    metric_key: str
+    priority_reason: Optional[str] = None
+    action_item: Optional[str] = None
+
+
+class ScoreboardTextUpdate(BaseModel):
+    headline: Optional[str] = None   # empty string clears back to auto
 
 
 class ScoreboardSectionOut(BaseModel):
@@ -79,3 +94,4 @@ class ScoreboardResponse(BaseModel):
     yellow_count: int
     green_count: int
     sections: List[ScoreboardSectionOut]
+    headline: Optional[str] = None   # advisor override; None = auto

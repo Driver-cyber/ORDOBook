@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getClient } from '../api/clients'
-import { getScoreboard, recalculateGrades } from '../api/targets'
+import { getScoreboard, recalculateGrades, saveScoreboardHeadline, saveMetricText } from '../api/targets'
 import { downloadPdf } from '../api/exports'
 
 // ─── Formatters (mirror design's data.jsx) ─────────────────────────────────
@@ -26,7 +26,7 @@ function fmtVar(pct) {
   return `${sign}${pct.toFixed(1)}%`
 }
 
-// ─── Auto-generated text (placeholders until DB-backed advisor fields land) ─
+// ─── Auto-generated text — the placeholder until the advisor writes their own ─
 
 const ACTIONS_BY_KEY = {
   dso_days: 'Call top 5 AR accounts',
@@ -96,6 +96,8 @@ function formatScoreboardData(raw, clientName, year) {
       type: isCents ? 'money' : m.type,
       note: m.notes || null,
       is_top_priority: m.is_top_priority,
+      priority_reason: m.priority_reason || null,
+      action_item: m.action_item || null,
     }
   }
 
@@ -114,7 +116,13 @@ function formatScoreboardData(raw, clientName, year) {
   const priorities = allMetrics
     .filter(m => m.is_top_priority)
     .slice(0, 3)
-    .map(m => ({ key: m.key, label: m.label, reason: autoReason(m) }))
+    .map(m => ({
+      key: m.key, label: m.label,
+      reason: m.priority_reason || autoReason(m),
+      reasonIsCustom: !!m.priority_reason,
+      action: m.action_item || ACTIONS_BY_KEY[m.key] || m.label,
+      actionIsCustom: !!m.action_item,
+    }))
 
   const today = new Date()
   const preparedDate = `${MONTH_NAMES[today.getMonth()]} ${today.getDate()}, ${today.getFullYear()}`
@@ -127,7 +135,8 @@ function formatScoreboardData(raw, clientName, year) {
     prepared_date: preparedDate,
     overall: {
       grade: raw.overall_grade,
-      headline: autoHeadline(counts),
+      headline: raw.headline || autoHeadline(counts),
+      headlineIsCustom: !!raw.headline,
       counts,
     },
     priorities,
@@ -135,7 +144,56 @@ function formatScoreboardData(raw, clientName, year) {
   }
 }
 
-// ─── Concept 5 layout — pure presentational ────────────────────────────────
+// ─── Click-to-edit text that keeps the sheet's typography ───────────────────
+// Shows exactly what prints. Click to edit; blur or Enter saves; Escape cancels.
+// Clearing the text (or the ↺) returns to the auto wording.
+
+function EditableText({ value, isCustom, onSave, className = '', title = 'Click to edit' }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+  useEffect(() => { if (!editing) setDraft(value) }, [value, editing])
+
+  const commit = () => {
+    setEditing(false)
+    const next = draft.trim()
+    if (next === value.trim()) return
+    onSave(next)   // '' → cleared → auto wording returns
+  }
+
+  if (editing) {
+    return (
+      <textarea
+        autoFocus
+        rows={2}
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onFocus={e => e.currentTarget.select()}
+        onBlur={commit}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.blur() }
+          if (e.key === 'Escape') { setDraft(value); setEditing(false) }
+        }}
+        className={`${className} sb-edit-input`}
+        style={{ width: '100%', resize: 'none', outline: 'none', background: 'rgba(200,169,110,0.10)',
+                 border: '1px solid rgba(200,169,110,0.6)', borderRadius: 4, padding: '2px 4px',
+                 font: 'inherit', color: 'inherit', lineHeight: 'inherit', display: 'block' }}
+      />
+    )
+  }
+  return (
+    <span className={`${className} sb-editable${isCustom ? ' sb-editable-custom' : ''}`}
+          title={isCustom ? `${title} · advisor-written (↺ resets to auto)` : `${title} · auto-generated`}
+          onClick={() => setEditing(true)}>
+      {value}
+      {isCustom && (
+        <button type="button" className="sb-reset" title="Reset to auto wording"
+                onClick={e => { e.stopPropagation(); onSave('') }}>↺</button>
+      )}
+    </span>
+  )
+}
+
+// ─── Concept 5 layout — presentational, with the three advisor text fields ──
 
 function dotColor(grade) {
   return ({ green: 'var(--green)', yellow: 'var(--yellow)', red: 'var(--red)' })[grade] || 'var(--ink-3)'
@@ -144,7 +202,7 @@ function gradeShort(grade) {
   return (grade && grade[0]) || 'y'
 }
 
-function ScoreboardPage({ data }) {
+function ScoreboardPage({ data, onSaveHeadline, onSaveMetricText }) {
   const allMetrics = data.sections.flatMap(s => s.metrics)
   const heroes = HERO_KEYS.map(k => allMetrics.find(m => m.key === k)).filter(Boolean)
   const priorityKeys = new Set(data.priorities.map(p => p.key))
@@ -171,7 +229,10 @@ function ScoreboardPage({ data }) {
           <h1 className="c5-h1">{data.client}</h1>
           <span className="c5-period">{data.period}</span>
         </div>
-        <p className="c5-desc">{data.overall.headline}</p>
+        <p className="c5-desc">
+          <EditableText value={data.overall.headline} isCustom={data.overall.headlineIsCustom}
+                        onSave={onSaveHeadline} title="Headline" />
+        </p>
       </div>
 
       {/* 2. Hero tiles */}
@@ -205,7 +266,10 @@ function ScoreboardPage({ data }) {
                 <li key={p.key}>
                   <span className="c5-pri-n num">{String(i + 1).padStart(2, '0')}</span>
                   <span className="c5-pri-label">{p.label}</span>
-                  <span className="c5-pri-reason">{p.reason}</span>
+                  <span className="c5-pri-reason">
+                    <EditableText value={p.reason} isCustom={p.reasonIsCustom} title="Why it matters"
+                                  onSave={v => onSaveMetricText(p.key, { priority_reason: v })} />
+                  </span>
                 </li>
               ))}
             </ol>
@@ -216,7 +280,10 @@ function ScoreboardPage({ data }) {
               {data.priorities.map(p => (
                 <li key={p.key}>
                   <span className="c5-check" />
-                  <span>{ACTIONS_BY_KEY[p.key] || p.label}</span>
+                  <span>
+                    <EditableText value={p.action} isCustom={p.actionIsCustom} title="Action item"
+                                  onSave={v => onSaveMetricText(p.key, { action_item: v })} />
+                  </span>
                 </li>
               ))}
             </ul>
@@ -321,6 +388,28 @@ export default function Scoreboard() {
     finally { setRecalculating(false) }
   }
 
+  // Text edits update the loaded data in place — no reload flicker on the sheet.
+  const handleSaveHeadline = async (text) => {
+    try {
+      const r = await saveScoreboardHeadline(id, year, text)
+      setData(d => d ? { ...d, headline: r.headline } : d)
+    } catch (e) { alert(e.message) }
+  }
+  const handleSaveMetricText = async (metricKey, fields) => {
+    try {
+      const r = await saveMetricText(id, year, metricKey, fields)
+      setData(d => d ? {
+        ...d,
+        sections: d.sections.map(s => ({
+          ...s,
+          metrics: s.metrics.map(m => m.key === metricKey
+            ? { ...m, priority_reason: r.priority_reason, action_item: r.action_item }
+            : m),
+        })),
+      } : d)
+    } catch (e) { alert(e.message) }
+  }
+
   const handleExportPdf = async () => {
     setExporting(true)
     try { await downloadPdf(id, 'scoreboard', year) }
@@ -346,7 +435,7 @@ export default function Scoreboard() {
             <span className="text-text-muted text-sm">/</span>
             <h1 className="font-display font-bold text-xl text-text-primary">Scoreboard</h1>
           </div>
-          <p className="text-text-muted text-[12px] mt-0.5">At-a-glance — color blocks for the headline conversation</p>
+          <p className="text-text-muted text-[12px] mt-0.5">At-a-glance — click the headline, a priority's reason, or an action item to write your own; it prints as shown</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 bg-surface border border-border rounded-lg p-1">
@@ -398,7 +487,7 @@ export default function Scoreboard() {
             <p className="text-text-muted text-[12px]">Import actuals and set targets to generate the Scoreboard.</p>
           </div>
         ) : (
-          <ScoreboardPage data={formatted} />
+          <ScoreboardPage data={formatted} onSaveHeadline={handleSaveHeadline} onSaveMetricText={handleSaveMetricText} />
         )}
       </div>
     </div>
