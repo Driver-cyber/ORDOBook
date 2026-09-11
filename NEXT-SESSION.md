@@ -1,8 +1,9 @@
 # NEXT SESSION — Boot Checklist
 > Last updated: 2026-09-11 (evening) | Shipped today: owner-distributions mapping (026, verified
 > against manual calcs), capex derived for actuals months, pinned month headers, Batch 4, the
-> spreadsheet-card restyle, and Batch 5 (Action Plan → objectives with nested action items, 027).
-> Next: user tests Batch 5 + restyle on the Mac; then Scoreboard text fields / residual demo items.
+> spreadsheet-card restyle, Batch 5 (Action Plan → objectives with nested action items, 027), and
+> advisor-editable Scoreboard text (028). Combined smoke list for all of it is in SMOKE-TEST.md.
+> Next: user runs SMOKE-TEST.md on the Mac; then residual demo items → Phase 6b.
 
 ---
 
@@ -55,8 +56,10 @@ git checkout origin/claude/add-project-tracker-zGrFN -- $(git diff --name-only <
    (completion tracking is a Product 2 handoff field). Roster editable from the Action Plan header
    and Profile & Settings.
    **Untested on the Mac as of this write** — see the test list in the 2026-09-11 session notes.
-3. **Advisor-editable Scoreboard text fields** (carried from May). Headline / priority reason /
-   action items as DB-backed fields on the visual Scoreboard, mirrored into the PDF template.
+3. **Advisor-editable Scoreboard text — SHIPPED 2026-09-11 (migration 028).** Click the headline,
+   a priority's reason, or an action item on the sheet to write your own; blur/Enter saves, clearing
+   or ↺ returns to the auto wording. Stored on `scoreboard_entries` (reason, action) and a new
+   `scoreboard_pages` row (headline); the PDF adapter prefers the advisor text. Untested live.
 4. **Residual demo items** never exercised live: Reports → Actuals view, Scenario Sandbox, Client
    Profile, PDF + JSON exports. Then Phase 6b (Electron) is unblocked; 6c signing after.
 5. **Engine verification vs. the Vetter Jan-2026 workbook** — a systematic diff remains a Module 3

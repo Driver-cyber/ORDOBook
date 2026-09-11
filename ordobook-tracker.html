@@ -403,12 +403,8 @@ body {
           "note": "Code shipped 2026-09-11. On the Mac: pull, relaunch, map the draws/distributions account to 'Owner Investments / (Distributions)' in Review Mapping, re-upload Balance Sheet exports for the months to fill. Confirm the QB draws account resets at fiscal-year start (January is measured against 0); if it carries forward, switch January to measure against prior December."
         },
         {
-          "title": "Test on the Mac: Batch 5 Action Plan + grid restyle",
-          "note": "Shipped 2026-09-11 evening, untested live. Action Plan: existing items should appear as objectives with one action item each; add/reorder/delete objectives and action items; owner chips + roster; private note popover; JSON export shows steps[] at 1.1.0; PDF prints nested rows. Restyle: Forecast, Forecast Report, Actuals grid on white cards with hairline rows."
-        },
-        {
-          "title": "Advisor-editable Scoreboard text fields",
-          "note": "Headline / priority reason / action items as DB-backed fields on the visual Scoreboard; mirror into _build_scoreboard_template_data for the PDF. Carried from May."
+          "title": "Run SMOKE-TEST.md on the Mac (restyle, Batch 5, Scoreboard text + Batch 4 / 026 re-checks)",
+          "note": "Everything shipped 2026-09-11 evening is untested live. SMOKE-TEST.md at the repo root is the combined list, ordered by screen. Report anything off; fixes before moving to the residual demo items."
         },
         {
           "title": "Residual demo items → Phase 6b Electron",
@@ -439,12 +435,23 @@ body {
         "DONE: Batch 4 — Actuals year grid as Workspace default + List View, collapsible sidebar, pinned month headers, visible scrollbars, driver definitions, job-count autosave",
         "DONE: Batch 5 — Action Plan objectives → nested action items (migration 027), owner roster, exports 1.1.0",
         "DONE: Grid restyle — Forecast / Forecast Report / Actuals grid read like the month detail cards",
+        "DONE: Advisor-editable Scoreboard headline / priority reason / action item (migration 028), mirrored into the PDF",
         "Later: Action Plan completion tracking UI (completed_at already stored on steps) — Meeting Mode checkbox flow",
         "Parking: re-apply-mapping button (recompute stored monthly totals from raw_data without re-uploading)",
         "Parking: cross-screen undo stack (rejected for v1 — per-screen isolation preferred)",
         "Parking: Scenario Sandbox 'Owner Draws' label/sign alignment with the signed convention"
       ],
       "shipped": [
+        {
+          "date": "2026-09-11",
+          "what": "Scoreboard: click-to-edit headline, priority reason and action item on the sheet (migration 028); PDF prefers the advisor's wording",
+          "tags": [
+            "feature",
+            "migration",
+            "deliverable"
+          ],
+          "learned": "Edit the deliverable in the deliverable's own typography — a separate form for three sentences would have been a worse tool than clicking the sentence."
+        },
         {
           "date": "2026-09-11",
           "what": "Batch 5: Action Plan = objectives with nested action items (migration 027), owner chips + roster, JSON export 1.1.0 with steps[], nested PDF rows",

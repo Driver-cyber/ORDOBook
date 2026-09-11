@@ -854,6 +854,15 @@ owner / next_steps / due_date kept for 1.0 readers. Existing rows migrated lossl
 several people, several dates, under one goal. Mirrors the Scoreboard's "max 3 red priorities":
 a client can act on three things at once.
 
+### [2026-09-11] Scoreboard text is edited on the sheet, in place
+**Decision:** The headline, each top priority's reason, and its action item are click-to-edit on
+the visual Scoreboard, rendered in the sheet's own type so what you see is what prints. Stored on
+`scoreboard_entries.priority_reason` / `.action_item` and `scoreboard_pages.headline` (028); NULL
+means the auto-generated wording, and clearing a field restores it. The PDF adapter prefers the
+advisor text. These fields export; `scoreboard_entries.notes` stays private.
+**Reason:** Three sentences per client per month don't deserve a form. The advisor writes the
+conversation opener where the client will read it.
+
 ### [2026-09-11] Grids read like the month detail cards
 **Decision:** Forecast, Forecast Report and the Actuals year grid render in a white card with a
 hairline under every row, section headers as a faint band, totals in black on a faint band (not
