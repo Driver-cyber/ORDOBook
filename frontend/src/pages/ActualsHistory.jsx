@@ -86,7 +86,7 @@ function calcs(d) {
   const totalAssets = totalCurrentAssets + d.total_fixed_assets + d.total_other_long_term_assets
   const totalCurrentLiabilities = d.accounts_payable + d.other_current_liabilities
   const totalLiabilities = totalCurrentLiabilities + d.total_long_term_liabilities
-  const totalEquity = d.equity_before_net_profit + d.net_profit_for_year
+  const totalEquity = d.equity_before_net_profit + (d.owner_distributions ?? 0) + d.net_profit_for_year
   const totalLiabilitiesEquity = totalLiabilities + totalEquity
   const dso = d.revenue > 0 ? Math.round(d.accounts_receivable / d.revenue * 30) : 0
   const dio = d.cost_of_sales > 0 ? Math.round(d.inventory / d.cost_of_sales * 30) : 0
@@ -304,6 +304,7 @@ export default function ActualsHistory() {
             {/* ══ BALANCE SHEET — EQUITY ══════════════════════════════════════ */}
             <SectionHeader label="Equity" colCount={n} />
             <DataRow label="Equity (excl. Net Profit)"  values={periods.map(d => d.equity_before_net_profit)} />
+            <DataRow label="Owner Investments / (Distributions)" values={periods.map(d => d.owner_distributions ?? 0)} />
             <DataRow label="Net Profit for Year"         values={periods.map(d => d.net_profit_for_year)} />
             <DataRow label="Total Equity"                values={computed.map(c => c.totalEquity)}           highlight />
             <DataRow label="Total Liabilities & Equity"  values={computed.map(c => c.totalLiabilitiesEquity)} highlight />

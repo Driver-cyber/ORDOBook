@@ -84,7 +84,7 @@ def _aggregate_actuals(actuals: list, opening_bs=None) -> dict:
         "accounts_receivable": _latest.accounts_receivable or 0,
         "inventory": _latest.inventory or 0,
         "accounts_payable": _latest.accounts_payable or 0,
-        "equity": (_latest.equity_before_net_profit or 0) + (_latest.net_profit_for_year or 0),
+        "equity": _total_equity(_latest),
     }
     total_jobs = sum(a.job_count or 0 for a in actuals)
     total_revenue = sum(a.revenue or 0 for a in actuals)
@@ -118,8 +118,16 @@ def _aggregate_actuals(actuals: list, opening_bs=None) -> dict:
         # Equity roll-forward: opening + net profit + owner activity = closing, so
         # owner activity = closing − opening − net profit. Returned SIGNED to match
         # the "Investments or (Draws) by Owner" convention: draws negative,
-        # investments positive.
+        # investments positive. Fallback only — the mapped balance below wins.
         owner_draws = latest_bs["equity"] - (opening_bs.get("equity") or 0) - total_net_profit
+
+    # Mapped owner activity: QB's YTD equity line for draws / distributions /
+    # contributions, already signed. Like net_profit_for_year it is a running
+    # balance, so the year-end figure is the latest month that carries one.
+    # Zero everywhere means the account isn't mapped yet — keep the roll-forward.
+    actuals_with_od = [a for a in actuals if (a.owner_distributions or 0) != 0]
+    if actuals_with_od:
+        owner_draws = max(actuals_with_od, key=lambda a: a.month).owner_distributions or 0
 
     return {
         "revenue": total_revenue,
@@ -229,6 +237,17 @@ def _variance_pct(actual: int, prorated_target: int, higher_is_better: bool) -> 
     return round(raw if higher_is_better else -raw, 1)
 
 
+def _total_equity(rec) -> int:
+    """Total equity of a MonthlyActuals row: retained equity + owner activity + YTD net income.
+
+    Each piece is a QB equity line. owner_distributions is signed (draws negative),
+    so it adds; before the account is mapped it is 0 and the sum is unchanged.
+    """
+    return ((rec.equity_before_net_profit or 0)
+            + (rec.owner_distributions or 0)
+            + (rec.net_profit_for_year or 0))
+
+
 def _ending_balances(rec) -> dict:
     """Full balance sheet from a MonthlyActuals row (cents)."""
     return {
@@ -241,8 +260,8 @@ def _ending_balances(rec) -> dict:
         "accounts_payable": rec.accounts_payable or 0,
         "other_current_liabilities": rec.other_current_liabilities or 0,
         "total_long_term_liabilities": rec.total_long_term_liabilities or 0,
-        # Equity = retained equity + current year net income
-        "equity": (rec.equity_before_net_profit or 0) + (rec.net_profit_for_year or 0),
+        # Equity = retained equity + owner activity + current year net income
+        "equity": _total_equity(rec),
     }
 
 
@@ -308,8 +327,7 @@ def get_targets(client_id: int, year: int, db: Session = Depends(get_db)):
             "accounts_receivable": prior_open_dec.accounts_receivable or 0,
             "inventory": prior_open_dec.inventory or 0,
             "accounts_payable": prior_open_dec.accounts_payable or 0,
-            "equity": (prior_open_dec.equity_before_net_profit or 0)
-                      + (prior_open_dec.net_profit_for_year or 0),
+            "equity": _total_equity(prior_open_dec),
         }
 
     prior_ending = _prior_ending(client_id, year, db)

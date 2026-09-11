@@ -90,7 +90,7 @@ export default function ReportsActuals() {
   const totalAssets = d ? totalCurrentAssets + d.total_fixed_assets + d.total_other_long_term_assets : null
   const totalCurrentLiab = d ? d.accounts_payable + d.other_current_liabilities : null
   const totalLiab = d ? totalCurrentLiab + d.total_long_term_liabilities : null
-  const totalEquity = d ? d.equity_before_net_profit + d.net_profit_for_year : null
+  const totalEquity = d ? d.equity_before_net_profit + (d.owner_distributions ?? 0) + d.net_profit_for_year : null
   const totalLiabEquity = d ? totalLiab + totalEquity : null
 
   return (
@@ -190,6 +190,7 @@ export default function ReportsActuals() {
               <Row label="Total Liabilities" value={totalLiab} bold />
               <SectionHead label="Equity" />
               <Row label="Retained Equity" value={d.equity_before_net_profit} indent />
+              <Row label="Owner Investments / (Distributions)" value={d.owner_distributions ?? 0} indent />
               <Row label="Net Profit for Year" value={d.net_profit_for_year} indent />
               <Row label="Total Equity" value={totalEquity} bold />
               <Row label="Total Liabilities & Equity" value={totalLiabEquity} bold />

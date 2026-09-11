@@ -34,6 +34,10 @@ class MonthlyActuals(Base):
     other_current_liabilities = Column(BigInteger, nullable=False, default=0)
     total_long_term_liabilities = Column(BigInteger, nullable=False, default=0)
     equity_before_net_profit = Column(BigInteger, nullable=False, default=0)
+    # Signed YTD owner activity as QB shows it (draws negative, investments
+    # positive); resets each fiscal year like net_profit_for_year. Never sum
+    # across months — month activity = this balance minus last month's.
+    owner_distributions = Column(BigInteger, nullable=False, default=0)
     net_profit_for_year = Column(BigInteger, nullable=False, default=0)
 
     # Manually entered

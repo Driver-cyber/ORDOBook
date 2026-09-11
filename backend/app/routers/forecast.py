@@ -112,12 +112,23 @@ def _run_calculation(config: ForecastConfig, db: Session) -> list[ForecastPeriod
     else:
         prior_projected: dict | None = None
 
+    # QB's owner-activity equity line is a YTD balance that resets each fiscal
+    # year, so January measures against 0 and each later actuals month against
+    # the month before it. Not persisted on the period — only carried here.
+    owner_balance = 0
+
     periods = []
     for month in range(1, 13):
         actuals = actuals_by_month.get(month)
+        if prior_projected is not None:
+            prior_projected["owner_distributions_balance"] = owner_balance
+        elif actuals is not None:
+            prior_projected = {"owner_distributions_balance": owner_balance}
         period_data = build_forecast_period(
             month=month, config=config_dict, actuals=actuals, prior_projected=prior_projected
         )
+        if actuals is not None:
+            owner_balance = actuals.get("owner_distributions", 0) or 0
         # Carry forward projected balance sheet for next month's delta calculation
         prior_projected = {
             "projected_ar": period_data["projected_ar"],

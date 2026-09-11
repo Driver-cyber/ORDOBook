@@ -352,6 +352,7 @@ def confirm_import(
             existing_record.other_current_liabilities = cats.get("other_current_liabilities", 0)
             existing_record.total_long_term_liabilities = cats.get("total_long_term_liabilities", 0)
             existing_record.equity_before_net_profit = cats.get("equity_before_net_profit", 0)
+            existing_record.owner_distributions = cats.get("owner_distributions", 0)
             existing_record.net_profit_for_year = cats.get("net_profit_for_year", 0)
             existing_record.job_count = period.job_count
             existing_record.raw_data = raw_data
@@ -383,6 +384,7 @@ def confirm_import(
                 other_current_liabilities=cats.get("other_current_liabilities", 0),
                 total_long_term_liabilities=cats.get("total_long_term_liabilities", 0),
                 equity_before_net_profit=cats.get("equity_before_net_profit", 0),
+                owner_distributions=cats.get("owner_distributions", 0),
                 net_profit_for_year=cats.get("net_profit_for_year", 0),
                 job_count=period.job_count,
                 raw_data=raw_data,

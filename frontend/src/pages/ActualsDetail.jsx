@@ -97,7 +97,7 @@ export default function ActualsDetail() {
   const totalAssets = totalCurrentAssets + data.total_fixed_assets + data.total_other_long_term_assets
   const totalCurrentLiabilities = data.accounts_payable + data.other_current_liabilities
   const totalLiabilities = totalCurrentLiabilities + data.total_long_term_liabilities
-  const totalEquity = data.equity_before_net_profit + data.net_profit_for_year
+  const totalEquity = data.equity_before_net_profit + (data.owner_distributions ?? 0) + data.net_profit_for_year
   const totalLiabilitiesEquity = totalLiabilities + totalEquity
 
   return (
@@ -160,6 +160,7 @@ export default function ActualsDetail() {
             <Row label="Total Liabilities" value={totalLiabilities} calculated />
             <SectionHeader label="Equity" />
             <Row label="Equity (excl. Net Profit)" value={data.equity_before_net_profit} />
+            <Row label="Owner Investments / (Distributions)" value={data.owner_distributions ?? 0} />
             <Row label="Net Profit for Year" value={data.net_profit_for_year} />
             <Row label="Total Equity" value={totalEquity} calculated />
             <Row label="Total Liabilities & Equity" value={totalLiabilitiesEquity} calculated />

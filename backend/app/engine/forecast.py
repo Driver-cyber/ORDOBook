@@ -123,9 +123,21 @@ def _period_from_actuals(month: int, actuals: dict, prior_projected: dict | None
     # CapEx = 0 for actuals (can't isolate from depreciation in QB export)
     capex = 0
 
-    # Full cash flow: net_profit ± working capital ± investing ± financing
+    # Owner activity. The actuals column holds QB's signed YTD equity balance for
+    # draws / distributions / contributions (draws negative), which resets each
+    # fiscal year. This month's activity is the change in that balance; January
+    # measures against 0. Stored the way the forecast branch stores it: a
+    # positive draw amount that is subtracted from net cash (an investment is
+    # negative here and adds cash).
+    owner_balance = actuals.get("owner_distributions", 0) or 0
+    prior_owner_balance = prior.get("owner_distributions_balance", 0) or 0
+    owner_activity = owner_balance - prior_owner_balance   # signed, draws negative
+    distributions = -owner_activity                          # positive = cash out
+
+    # Full cash flow: net_profit − owner draws ± working capital ± investing ± financing
     net_cash = (
         net_profit
+        - distributions
         - ar_change
         - inventory_change
         + ap_change
@@ -162,11 +174,11 @@ def _period_from_actuals(month: int, actuals: dict, prior_projected: dict | None
         "net_profit": net_profit,
         "total_job_count": job_count,
         "blended_avg_job_value": blended_avg,
-        "owner_total_draws": 0,
+        "owner_total_draws": distributions,
         "projected_ar": ar,
         "projected_inventory": inventory_val,
         "projected_ap": ap,
-        "owner_distributions": 0,
+        "owner_distributions": distributions,
         "owner_tax_savings": 0,
         "net_cash_flow": net_cash,
         "dso_days": dso_days,
@@ -193,7 +205,15 @@ def _period_from_actuals(month: int, actuals: dict, prior_projected: dict | None
         "projected_equity": equity,
         "calc_trace": {
             "source": "monthly_actuals",
-            "note": "Values copied directly from confirmed actuals — no engine calculation applied.",
+            "note": "Values copied directly from confirmed actuals — balance-sheet deltas and owner activity derived from them.",
+            "owner_draws": {
+                "value": distributions,
+                "formula": "-(owner_distributions balance - prior month balance)",
+                "components": [
+                    {"label": "Owner activity balance (YTD, signed)", "value": owner_balance, "source": "actual"},
+                    {"label": "Prior month balance", "value": prior_owner_balance, "source": "actual"},
+                ],
+            },
         },
     }
 

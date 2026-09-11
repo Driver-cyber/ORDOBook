@@ -1005,7 +1005,7 @@ export default function ForecastDrivers() {
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('owner_distributions', m)}
               mode={modeOf('owner_distributions')} onToggleMode={md => setMode('owner_distributions', md)}
-              getDisplay={m => actualsMonths.has(m) ? '—' : viewDisplay('owner_distributions', m)}
+              getDisplay={m => actualsMonths.has(m) ? periodDisplay('owner_distributions', 'owner_distributions', m) : viewDisplay('owner_distributions', m)}
               onChange={(m, v) => setMonthField('owner_distributions', m, v, 100)}
               onCommit={(m, lbl) => commitMonthField('owner_distributions', m, lbl, 100)}
               onAutofill={(val, lbl) => autofillField('owner_distributions', val, lbl, 100)}

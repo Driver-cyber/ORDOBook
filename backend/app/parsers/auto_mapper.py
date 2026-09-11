@@ -28,6 +28,7 @@ VALID_CATEGORIES = frozenset([
     "other_current_liabilities",
     "total_long_term_liabilities",
     "equity_before_net_profit",
+    "owner_distributions",   # signed YTD owner activity: draws negative, investments positive
     "net_profit_for_year",
     # Special
     "excluded",
@@ -80,6 +81,14 @@ _KEYWORD_OVERRIDES = [
     (["advertising", "marketing"], "marketing_expenses"),
 ]
 
+# Owner activity accounts inside the Balance Sheet equity section. Only checked
+# there — "contribution" and "distribution" also appear in P&L account names
+# (retirement contributions, distribution costs) where they mean something else.
+_OWNER_ACTIVITY_KEYWORDS = [
+    "distribution", "draw", "contribution", "investment",
+    "shareholder", "partner", "member",
+]
+
 
 def _keyword_override(account_name: str, section: str) -> str | None:
     """Check keyword overrides. Returns category or None."""
@@ -90,6 +99,10 @@ def _keyword_override(account_name: str, section: str) -> str | None:
     #  so this only fires for the Balance Sheet equity section.)
     if section == "equity" and ("net income" in name_lower or "net profit" in name_lower):
         return "net_profit_for_year"
+
+    # Owner draws / distributions / contributions under equity → owner_distributions
+    if section == "equity" and any(kw in name_lower for kw in _OWNER_ACTIVITY_KEYWORDS):
+        return "owner_distributions"
 
     _BS_SECTIONS = {"assets", "liabilities", "liabilities_equity", "equity"}
 

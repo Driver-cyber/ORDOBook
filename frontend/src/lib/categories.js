@@ -45,6 +45,8 @@ export const CATEGORY_GROUPS = [
     label: 'Equity',
     items: [
       { value: 'equity_before_net_profit', label: 'Equity (excl. Net Profit)' },
+      // Signed YTD balance as QB shows it: draws negative, investments positive.
+      { value: 'owner_distributions',      label: 'Owner Investments / (Distributions)' },
       { value: 'net_profit_for_year',      label: 'Net Profit for Year (BS)' },
     ],
   },

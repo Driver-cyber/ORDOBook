@@ -47,6 +47,7 @@ class ActualsDetail(BaseModel):
     other_current_liabilities: int
     total_long_term_liabilities: int
     equity_before_net_profit: int
+    owner_distributions: int = 0  # signed YTD balance; 0 for records imported before v026
     net_profit_for_year: int
 
     job_count: int
