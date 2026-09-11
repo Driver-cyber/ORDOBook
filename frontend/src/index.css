@@ -30,6 +30,14 @@
   }
 }
 
+/* Wide grids: keep the scrollbars on screen instead of macOS's hide-until-scroll
+   overlay, so it's obvious there are more columns to the right. */
+.scroll-visible::-webkit-scrollbar { width: 10px; height: 10px; }
+.scroll-visible::-webkit-scrollbar-track { background: rgba(0,0,0,0.04); border-radius: 5px; }
+.scroll-visible::-webkit-scrollbar-thumb { background: #c8c3bc; border-radius: 5px; border: 2px solid transparent; background-clip: padding-box; }
+.scroll-visible::-webkit-scrollbar-thumb:hover { background: #a9a39b; background-clip: padding-box; }
+.scroll-visible { scrollbar-width: thin; scrollbar-color: #c8c3bc transparent; }
+
 /* Driver-grid inputs: no spinner arrows, the column is too narrow to spare them. */
 .no-spin::-webkit-outer-spin-button,
 .no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }

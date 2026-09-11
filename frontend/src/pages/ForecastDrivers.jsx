@@ -30,6 +30,13 @@ const S = {
   actualsBg: 'transparent',
 }
 
+// Month header cells pin to the top of the grid's scroll box. Opaque so rows
+// slide under them; the inset shadow stands in for the row's bottom border.
+const stickyTh = {
+  position: 'sticky', top: 0, zIndex: 5,
+  background: S.bg, boxShadow: `inset 0 -1px 0 ${S.border}`,
+}
+
 // ── Static formula descriptions for derived fields ────────────────────────────
 
 const DERIVED_FORMULAS = {
@@ -603,7 +610,7 @@ export default function ForecastDrivers() {
   }
 
   return (
-    <main className="flex-1 overflow-auto" style={{ background: S.bg }}>
+    <main className="flex-1 flex flex-col overflow-hidden" style={{ background: S.bg }}>
       {/* Header */}
       <div className="px-8 pt-8 pb-4 flex items-center justify-between">
         <div>
@@ -696,7 +703,9 @@ export default function ForecastDrivers() {
         </div>
       )}
 
-      <div className="px-8 pb-16 overflow-x-auto">
+      {/* The grid is its own scroll box (both axes) so the month header can pin to
+          its top while the page title and buttons stay put above it. */}
+      <div className="flex-1 min-h-0 px-8 pb-16 overflow-auto scroll-visible">
         <table
           className="w-full border-collapse"
           style={{ minWidth: 980 }}
@@ -720,13 +729,16 @@ export default function ForecastDrivers() {
           }}
         >
           <thead>
-            <tr style={{ borderBottom: `1px solid ${S.border}` }}>
-              <th style={{ width: 22 }} /> {/* autofill button column */}
+            {/* Sticky cells, not a sticky row: with border-collapse a row's border
+                doesn't travel, so the rule is drawn as an inset shadow on each cell. */}
+            <tr>
+              <th style={{ ...stickyTh, width: 22 }} /> {/* autofill button column */}
               <th className="text-left px-3 py-2 text-[11px] font-mono uppercase tracking-[0.1em]"
-                  style={{ color: S.textMuted, width: 210 }} />
+                  style={{ ...stickyTh, color: S.textMuted, width: 210 }} />
               {MONTHS.map((m, i) => (
                 <th key={m} className="text-right px-2 py-2 text-[11px] font-mono"
                     style={{
+                      ...stickyTh,
                       color: actualsMonths.has(i + 1) ? S.actualsText : S.textSecondary,
                       minWidth: 58,
                     }}>
@@ -736,7 +748,7 @@ export default function ForecastDrivers() {
                   )}
                 </th>
               ))}
-              <th className="text-right px-2 py-2 text-[11px] font-mono" style={{ color: S.textMuted }}>YTD</th>
+              <th className="text-right px-2 py-2 text-[11px] font-mono" style={{ ...stickyTh, color: S.textMuted }}>YTD</th>
             </tr>
           </thead>
 
@@ -1017,7 +1029,7 @@ export default function ForecastDrivers() {
               compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('capex_monthly', m)}
-              getDisplay={m => actualsMonths.has(m) ? '—' : viewDisplay('capex_monthly', m)}
+              getDisplay={m => actualsMonths.has(m) ? periodDisplay('capex_monthly', 'capex', m) : viewDisplay('capex_monthly', m)}
               mode={modeOf('capex_monthly')} onToggleMode={md => setMode('capex_monthly', md)}
               onChange={(m, v) => setMonthField('capex_monthly', m, v, 100)}
               onCommit={(m, lbl) => commitMonthField('capex_monthly', m, lbl, 100)}

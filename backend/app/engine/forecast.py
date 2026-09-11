@@ -120,8 +120,14 @@ def _period_from_actuals(month: int, actuals: dict, prior_projected: dict | None
     curr_debt_change = current_debt - prior.get("projected_current_debt", 0)
     lt_debt_change = lt_debt - prior.get("projected_long_term_debt", 0)
 
-    # CapEx = 0 for actuals (can't isolate from depreciation in QB export)
-    capex = 0
+    # CapEx from the balance sheet: fixed assets are carried net of accumulated
+    # depreciation, so Δ net fixed assets = purchases − depreciation, and
+    # purchases = Δ + this month's depreciation. Positive = cash out, matching
+    # the forecast branch; a disposal shows up as negative. Needs last month's
+    # balance — without one (first month, no prior December) it stays 0.
+    fixed_assets = actuals.get("total_fixed_assets", 0)
+    prior_fixed = prior.get("projected_fixed_assets")
+    capex = (fixed_assets - prior_fixed + depreciation) if prior_fixed is not None else 0
 
     # Owner activity. The actuals column holds QB's signed YTD equity balance for
     # draws / distributions / contributions (draws negative), which resets each
@@ -149,7 +155,6 @@ def _period_from_actuals(month: int, actuals: dict, prior_projected: dict | None
 
     # --- Phase 3d: balance sheet totals from actuals ---
     cash = actuals.get("cash", 0)
-    fixed_assets = actuals.get("total_fixed_assets", 0)
     other_lt_assets = actuals.get("total_other_long_term_assets", 0)
 
     total_ca = cash + ar + inventory_val + other_ca
@@ -212,6 +217,15 @@ def _period_from_actuals(month: int, actuals: dict, prior_projected: dict | None
                 "components": [
                     {"label": "Owner activity balance (YTD, signed)", "value": owner_balance, "source": "actual"},
                     {"label": "Prior month balance", "value": prior_owner_balance, "source": "actual"},
+                ],
+            },
+            "capex": {
+                "value": capex,
+                "formula": "net fixed assets - prior month net fixed assets + depreciation",
+                "components": [
+                    {"label": "Net fixed assets", "value": fixed_assets, "source": "actual"},
+                    {"label": "Prior month net fixed assets", "value": prior_fixed, "source": "actual"},
+                    {"label": "Depreciation & amortization", "value": depreciation, "source": "actual"},
                 ],
             },
         },
