@@ -14,6 +14,7 @@ class Client(Base):
     timezone = Column(String(100), default="America/Chicago")
     terminology_config = Column(JSON, default=dict)  # e.g. {"jobs": "Projects"}
     advisor_notes = Column(Text, nullable=True)  # Private, never exported
+    action_plan_owners = Column(JSON, nullable=False, default=list)  # roster for Action Plan owner chips
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
                         onupdate=lambda: datetime.now(timezone.utc))

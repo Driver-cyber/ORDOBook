@@ -10,6 +10,7 @@ class ClientBase(BaseModel):
     timezone: str = "America/Chicago"
     terminology_config: dict[str, Any] = Field(default_factory=dict)
     advisor_notes: Optional[str] = None
+    action_plan_owners: list[str] = Field(default_factory=list)  # names the Action Plan owner chips pick from
 
 
 class ClientCreate(ClientBase):
@@ -23,6 +24,7 @@ class ClientUpdate(BaseModel):
     timezone: Optional[str] = None
     terminology_config: Optional[dict[str, Any]] = None
     advisor_notes: Optional[str] = None
+    action_plan_owners: Optional[list[str]] = None
 
 
 class ClientResponse(ClientBase):

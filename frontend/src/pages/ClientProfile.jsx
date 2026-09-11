@@ -40,6 +40,7 @@ export default function ClientProfile({ onClientUpdated, onClientDeleted }) {
           timezone: data.timezone,
           advisor_notes: data.advisor_notes || '',
           terminology_config: data.terminology_config || {},
+          action_plan_owners: data.action_plan_owners || [],
         })
       })
       .catch(() => setError('Client not found'))
@@ -60,6 +61,7 @@ export default function ClientProfile({ onClientUpdated, onClientDeleted }) {
         fiscal_year_start_month: Number(form.fiscal_year_start_month),
         industry: form.industry || null,
         advisor_notes: form.advisor_notes || null,
+        action_plan_owners: (form.action_plan_owners || []).map(s => s.trim()).filter(Boolean),
       })
       setClient(updated)
       setDirty(false)
@@ -183,6 +185,26 @@ export default function ClientProfile({ onClientUpdated, onClientDeleted }) {
                 onChange={e => set('terminology_config', { ...form.terminology_config, jobs_label: e.target.value })}
                 placeholder="Jobs"
                 className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent transition-colors"
+              />
+            </Field>
+          </section>
+
+          {/* Action Plan owners */}
+          <section className="bg-surface border border-border rounded-xl p-6">
+            <h2 className="font-display font-semibold text-base text-text-primary mb-1">
+              Action Plan Owners
+            </h2>
+            <p className="text-text-muted text-[12px] mb-5">
+              The people action items can be assigned to. One name per line — the Action Plan's owner chips
+              pick from this list, and typing a new name there adds it here.
+            </p>
+            <Field label="Owners">
+              <textarea
+                value={(form.action_plan_owners || []).join('\n')}
+                onChange={e => set('action_plan_owners', e.target.value.split('\n'))}
+                rows={4}
+                placeholder={'Doug\nOffice manager'}
+                className="w-full bg-surface2 border border-border rounded-lg px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent transition-colors resize-none"
               />
             </Field>
           </section>

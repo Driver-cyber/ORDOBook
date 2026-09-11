@@ -1,24 +1,49 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Optional, List
 from pydantic import BaseModel
 
 
+# ── Steps (action items under an objective) ──────────────────────────────────
+
+class ActionPlanStepCreate(BaseModel):
+    text: str = ""
+    owners: List[str] = []
+    due_date: Optional[date] = None
+    sort_order: Optional[int] = None
+
+
+class ActionPlanStepUpdate(BaseModel):
+    text: Optional[str] = None
+    owners: Optional[List[str]] = None
+    due_date: Optional[date] = None
+    sort_order: Optional[int] = None
+    completed_at: Optional[datetime] = None
+
+
+class ActionPlanStepOut(BaseModel):
+    id: int
+    item_id: int
+    sort_order: int
+    text: str
+    owners: List[str]
+    due_date: Optional[date]
+    completed_at: Optional[datetime]
+
+    model_config = {"from_attributes": True}
+
+
+# ── Objectives ───────────────────────────────────────────────────────────────
+
 class ActionPlanItemCreate(BaseModel):
     objective: str = ""
     current_results: Optional[str] = None
-    next_steps: Optional[str] = None
-    owner: Optional[str] = None
-    due_date: Optional[date] = None
     notes: Optional[str] = None
-    sort_order: int = 0
+    sort_order: Optional[int] = None
 
 
 class ActionPlanItemUpdate(BaseModel):
     objective: Optional[str] = None
     current_results: Optional[str] = None
-    next_steps: Optional[str] = None
-    owner: Optional[str] = None
-    due_date: Optional[date] = None
     notes: Optional[str] = None
     sort_order: Optional[int] = None
 
@@ -30,10 +55,8 @@ class ActionPlanItemOut(BaseModel):
     sort_order: int
     objective: str
     current_results: Optional[str]
-    next_steps: Optional[str]
-    owner: Optional[str]
-    due_date: Optional[date]
     notes: Optional[str]
+    steps: List[ActionPlanStepOut] = []
 
     model_config = {"from_attributes": True}
 

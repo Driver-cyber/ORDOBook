@@ -105,21 +105,40 @@ def export_json(client_id: int, year: int, db: Session = Depends(get_db)):
             "grade_is_override": g.grade_is_override if g else False,
         })
 
-    action_plan_items = [
-        {
+    # 1.1: objectives carry nested action items (steps). `next_steps`, `owner`
+    # and `due_date` stay on the objective as a flattened summary of its steps
+    # so a 1.0 reader still gets something sensible.
+    action_plan_items = []
+    for item in action_items:
+        steps = [
+            {
+                "id": f"ap-{item.id:03d}-{s.id:03d}",
+                "text": s.text,
+                "owners": list(s.owners or []),
+                "due_date": s.due_date.isoformat() if s.due_date else None,
+                "completed_at": s.completed_at.isoformat() if s.completed_at else None,
+            }
+            for s in item.steps
+        ]
+        owners = []
+        for s in item.steps:
+            for o in (s.owners or []):
+                if o not in owners:
+                    owners.append(o)
+        due_dates = [s.due_date for s in item.steps if s.due_date]
+        action_plan_items.append({
             "id": f"ap-{item.id:03d}",
             "objective": item.objective,
             "current_results": item.current_results,
-            "next_steps": item.next_steps,
-            "owner": item.owner,
-            "due_date": item.due_date.isoformat() if item.due_date else None,
+            "next_steps": "; ".join(s.text for s in item.steps if s.text) or None,
+            "owner": ", ".join(owners) or None,
+            "due_date": max(due_dates).isoformat() if due_dates else None,
+            "steps": steps,
             # notes intentionally excluded — advisor-only
-        }
-        for item in action_items
-    ]
+        })
 
     payload = {
-        "ordobook_version": "1.0.0",
+        "ordobook_version": "1.1.0",  # 1.1: action_plan items gained steps[] (additive)
         "export_timestamp": datetime.now(timezone.utc).isoformat(),
         "client": {
             "id": str(client.id),
@@ -362,14 +381,24 @@ def _render_scoreboard_html(client: Client, year: int, db: Session) -> str:
 def _action_plan_html(client: Client, year: int, items) -> str:
     rows_html = ""
     for i, item in enumerate(items, 1):
-        due = item.due_date.strftime("%b %d, %Y") if item.due_date else "—"
+        # Objective row, then one indented row per action item.
         rows_html += f"""
-        <tr>
+        <tr class="objective">
           <td class="num" style="color:#888">{i}</td>
-          <td><strong>{item.objective or "—"}</strong></td>
-          <td>{item.current_results or "—"}</td>
-          <td>{item.next_steps or "—"}</td>
-          <td>{item.owner or "—"}</td>
+          <td colspan="2"><strong>{item.objective or "—"}</strong></td>
+          <td colspan="3">{item.current_results or "—"}</td>
+        </tr>"""
+        if not item.steps:
+            rows_html += """
+        <tr class="step"><td></td><td colspan="5" style="color:#aaa">No action items</td></tr>"""
+        for j, s in enumerate(item.steps, 1):
+            due = s.due_date.strftime("%b %d, %Y") if s.due_date else "—"
+            owners = ", ".join(s.owners or []) or "—"
+            rows_html += f"""
+        <tr class="step">
+          <td class="num" style="color:#bbb">{i}.{j}</td>
+          <td colspan="3" style="padding-left:18px">{s.text or "—"}</td>
+          <td>{owners}</td>
           <td>{due}</td>
         </tr>"""
 
@@ -383,16 +412,17 @@ def _action_plan_html(client: Client, year: int, items) -> str:
   th {{ text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: .08em;
         color: #888; padding: 6px 8px; border-bottom: 2px solid #ddd; }}
   td {{ padding: 8px 8px; border-bottom: 1px solid #eee; vertical-align: top; }}
-  .num {{ text-align: right; width: 28px; }}
-  tr:nth-child(even) {{ background: #fafafa; }}
+  .num {{ text-align: right; width: 34px; white-space: nowrap; }}
+  tr.objective td {{ background: #f7f5f2; border-top: 2px solid #e3dfd8; }}
+  tr.step td {{ font-size: 10.5px; }}
 </style>
 </head><body>
   <h1>Action Plan — {year}</h1>
   <div class="sub">{client.name}</div>
   <table>
     <thead><tr>
-      <th>#</th><th>Objective</th><th>Current Results</th>
-      <th>Next Steps</th><th>Owner</th><th>Due Date</th>
+      <th>#</th><th colspan="2">Objective / Action Items</th>
+      <th>Current Results</th><th>Owner</th><th>Due Date</th>
     </tr></thead>
     <tbody>{rows_html or '<tr><td colspan="6" style="color:#aaa;text-align:center;padding:20px">No action plan items</td></tr>'}</tbody>
   </table>
