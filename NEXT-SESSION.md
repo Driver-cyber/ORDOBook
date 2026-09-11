@@ -1,7 +1,8 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-09-11 | Owner-distributions mapping category shipped (migration 026, commit 26b901f).
-> Pending on the Mac: pull, remap the distributions account in Review Mapping, re-upload BS exports.
-> Next: Batch 4, then Batch 5.
+> Last updated: 2026-09-11 | Shipped: owner-distributions mapping (026), capex derived for actuals
+> months, pinned month headers, Batch 4 (year grid as Workspace default, collapsible sidebar, driver
+> definitions, job-count autosave). Pending on the Mac: remap distributions + re-upload BS exports.
+> Next: Batch 5 (Action Plan restructure — plan first).
 
 ---
 
@@ -37,12 +38,14 @@ git checkout origin/claude/add-project-tracker-zGrFN -- $(git diff --name-only <
    like Net Income does. If it carries forward instead, January's derived draw will be the
    whole cumulative balance — flag it and we switch January to measure against prior December.
 
-1. **Batch 4 — views & layout.** Workspace → Actuals defaults to the **Actuals History year grid**
-   (12 months per screen, year selector, "List View" button beside Review Mapping); **collapsible
-   sidebar**; **always-visible horizontal scrollbar** when content overflows; **clickable tooltips
-   on every cash-flow driver** (definition + sign convention — write them AFTER Red Team decisions
-   #3/#4, which changed what a couple should say); fold the Actuals job-count save/cancel into
-   autosave while that screen is rebuilt. (Notes 8/4, 9, 13, 12; Note 18 leftover.)
+1. **Batch 4 — SHIPPED 2026-09-11 (87b9f15).** Workspace → Actuals is the year grid (year
+   selector, Grid | List View toggle remembered per browser, month headers pinned and clickable,
+   Confirm All + Review Mapping in the top bar; `/actuals/history` redirects there). Sidebar
+   collapses to an icon rail (footer toggle, remembered). Every cash-flow driver on the Forecast has
+   a click-to-open definition with its sign convention (`DRIVER_INFO` in `ForecastDrivers.jsx`).
+   Job count on the Actuals detail autosaves on blur/Enter. Wide grids keep visible scrollbars
+   (`.scroll-visible`); the Forecast month header pins while scrolling.
+   Not done: a re-apply-mapping button (still re-upload to recompute stored totals).
 2. **Batch 5 — Action Plan restructure** (Note 6). Objectives as parent rows (≤3), action items as
    nested sub-rows (≤3 each) with their own owner(s) and due date, multi-owner chips, an owner
    roster editor, wrapping/auto-sizing text, and the advisor-notes popover rendered in front.
@@ -54,9 +57,10 @@ git checkout origin/claude/add-project-tracker-zGrFN -- $(git diff --name-only <
 5. **Engine verification vs. the Vetter Jan-2026 workbook** — a systematic diff remains a Module 3
    hard requirement. `backend/scripts/verify_targets.py` now covers the Targets derivation; the
    monthly forecast engine still needs its equivalent.
-   Include in that pass: **actuals months derive owner draws (026) but not capex** (the Forecast
-   Capex row shows "—" there). Capex ≈ Δ net fixed assets + depreciation (disposals caveat).
-   Decide, then the actuals-month Net Cash Flow can tie to Δ cash.
+   Include in that pass: actuals months now derive owner draws (Δ mapped balance) and capex
+   (Δ net fixed assets + depreciation; a disposal reads as negative capex). With every flow
+   derived, check whether the actuals-month Net Cash Flow ties to Δ cash — any residual is an
+   unmapped balance movement.
 
 ## Where We Are (2026-09-10)
 
@@ -72,6 +76,8 @@ git checkout origin/claude/add-project-tracker-zGrFN -- $(git diff --name-only <
   Hit **Recalculate** once to refresh stored grades.
 - **Mapping:** owner draws / distributions / contributions have their own signed Balance Sheet
   category (026); flows into total equity, the Forecast actuals months, and Targets prior year.
+- **Workspace (2026-09-11):** Actuals tab = year grid with List View toggle; sidebar collapses;
+  Forecast drivers carry definitions; capex derived for actuals months; month headers pinned.
 - **Infra:** auto-migrate on launch (dev too), migrations 021–026 idempotent, schema audit + targets
   + owner-draws direction tests in `backend/scripts/`, Dock launcher `.app`, branch merged with main.
 

@@ -403,10 +403,6 @@ body {
           "note": "Code shipped 2026-09-11. On the Mac: pull, relaunch, map the draws/distributions account to 'Owner Investments / (Distributions)' in Review Mapping, re-upload Balance Sheet exports for the months to fill. Confirm the QB draws account resets at fiscal-year start (January is measured against 0); if it carries forward, switch January to measure against prior December."
         },
         {
-          "title": "Batch 4 — Actuals year grid, sidebar, scrollbar, driver tooltips",
-          "note": "Workspace→Actuals defaults to the Actuals History 12-month grid with a year selector and a List View button; collapsible sidebar; always-visible horizontal scrollbar on overflow; clickable definition/sign-convention tooltips on every cash-flow driver (write after Red Team #3/#4); Actuals job-count edit joins autosave. Notes 8/4, 9, 13, 12."
-        },
-        {
           "title": "Batch 5 — Action Plan restructure (data-model change)",
           "note": "Objectives as parent rows (≤3) with nested action items (≤3 each) carrying their own owners + due date; multi-owner chips; owner roster editor; wrapping/auto-size text; notes popover in front. Migration + CRUD + UI. Plan first. Note 6."
         },
@@ -440,10 +436,29 @@ body {
         "DONE: Batch 3 autosave + undo on Targets and Forecast; Forecast auto-recalculates",
         "DONE: Red Team 2026-09-10 — six items (SSOT derivation, direction tests, COS pinning 025, integer grading, auto-migrate, undo scope)",
         "DONE: Owner distributions BS mapping category (migration 026) — signed YTD balance, total equity, forecast actuals-month draws, Targets prior year",
+        "DONE: Batch 4 — Actuals year grid as Workspace default + List View, collapsible sidebar, pinned month headers, visible scrollbars, driver definitions, job-count autosave",
+        "Parking: re-apply-mapping button (recompute stored monthly totals from raw_data without re-uploading)",
         "Parking: cross-screen undo stack (rejected for v1 — per-screen isolation preferred)",
         "Parking: Scenario Sandbox 'Owner Draws' label/sign alignment with the signed convention"
       ],
       "shipped": [
+        {
+          "date": "2026-09-11",
+          "what": "Batch 4: Workspace Actuals = year grid (Grid | List View, pinned clickable month headers), collapsible sidebar, cash-flow driver definitions, job-count autosave, visible scrollbars",
+          "tags": [
+            "ux",
+            "frontend"
+          ],
+          "learned": "Sticky table headers need the grid to be its own scroll box and the stickiness on the cells, not the row — a row's border doesn't travel under border-collapse."
+        },
+        {
+          "date": "2026-09-11",
+          "what": "Forecast: capex derived for actuals months (Δ net fixed assets + depreciation) with calc_trace; month header pinned while scrolling",
+          "tags": [
+            "engine",
+            "ux"
+          ]
+        },
         {
           "date": "2026-09-11",
           "what": "Owner distributions as a signed Balance Sheet mapping category (migration 026): total equity, forecast actuals-month draws from Δ balance, Targets prior-year owner draws, direction tests",
