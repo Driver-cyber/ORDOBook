@@ -1,7 +1,7 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-09-10 (session close) | Live test cycle on real 2024–2026 data → Batches 1–3 built and
-> tested → Red Team (6 items, all resolved) → evening fixes (025 on Postgres, launcher, Forecast cells).
-> Next: owner-distributions mapping (approved plan, item 0), then Batch 4, then Batch 5.
+> Last updated: 2026-09-11 | Owner-distributions mapping category shipped (migration 026, commit 26b901f).
+> Pending on the Mac: pull, remap the distributions account in Review Mapping, re-upload BS exports.
+> Next: Batch 4, then Batch 5.
 
 ---
 
@@ -22,37 +22,20 @@ git checkout origin/claude/add-project-tracker-zGrFN -- $(git diff --name-only <
 
 ## Top priorities
 
-0. **Owner distributions as a Balance Sheet mapping category — APPROVED 2026-09-10, build first.**
-   The equity section maps every account to "Equity (excl. Net Profit)", so distributions vanish
-   into it and never reach cash flow. QB shows them as a running, signed, YTD balance in equity
-   (draws negative, contributions positive; resets at fiscal year start) — the same shape as
-   `net_profit_for_year`. Plan, as agreed:
-   1. New category `owner_distributions` in the Equity group of `frontend/src/lib/categories.js`
-      and `backend/app/parsers/auto_mapper.py` (VALID set + `_BS_SUBSECTION_MAP` stays equity;
-      keyword overrides: distribution, draw, contribution, owner investment, shareholder/partner
-      distribution). Label "Owner Investments / (Distributions)". ONE signed category, not two.
-   2. `MonthlyActuals.owner_distributions` BigInteger cents, signed YTD balance as QB shows it —
-      migration 026 (`server_default=sa.text('0')`, compile against the Postgres dialect!),
-      schema `ActualsOut`, both branches of the ingestion commit.
-   3. Total equity = equity_before_net_profit + net_profit_for_year + owner_distributions
-      everywhere: `targets.py` (`_aggregate_actuals` latest_bs, `_ending_balances`,
-      `get_targets` prior_opening), `ActualsHistory.jsx`, `ActualsDetail.jsx`,
-      `ReportsActuals.jsx` (add an "Owner Investments / (Distributions)" row under Equity).
-   4. `engine/forecast.py::_period_from_actuals`: month's owner activity = balance − prior
-      month's balance (January = the balance). Period `owner_distributions` /
-      `owner_total_draws` = the DRAW amount (positive, matching the forecast-branch sign),
-      subtracted in that month's `net_cash`. The prior balance must reach the engine — the
-      router builds `actuals_by_month` from `a.__dict__`; pass the prior month's balance in.
-      Forecast page: Owner Distributions actuals cells then show `fmt(period.owner_distributions)`
-      instead of "—".
-   5. Targets prior-year `owner_draws` = December `owner_distributions` balance (signed), no
-      longer backed out of the equity roll-forward (keep that as a cross-check in
-      `verify_targets.py` — they should agree when the books are clean).
-   6. Verify: direction test (a 95,000 draw in an actuals month lowers that month's net cash by
-      95,000 and equity by 95,000), `audit_schema.py`, Postgres-dialect compile of 026.
-   **After it lands:** the advisor remaps the distributions account in Review Mapping, then
-   re-uploads the Balance Sheet exports — stored monthly totals are computed at import time and
+0. **Owner distributions mapping — SHIPPED 2026-09-11 (26b901f), data step still open.**
+   Category `owner_distributions` ("Owner Investments / (Distributions)", Equity group), column on
+   `monthly_actuals` (migration 026, signed YTD balance as QB shows it), total equity includes it
+   everywhere, engine actuals branch derives the month's draw as Δ balance (January against 0)
+   and subtracts it from net cash, Targets prior-year owner draws read the year-end balance
+   (equity roll-forward stays as the fallback while the account is unmapped).
+   `backend/scripts/verify_owner_draws.py` covers the directions. **Still to do on the Mac:**
+   pull, relaunch (026 applies itself), open Review Mapping for a BS import and map the
+   distributions / draws account(s) to the new category, then re-upload the Balance Sheet
+   exports for the months you want filled in — stored totals are computed at import time and
    there is no re-apply-mapping path yet (candidate for Batch 4 if re-importing gets old).
+   Assumption to confirm on real data: the QB draws account resets to 0 at fiscal-year start
+   like Net Income does. If it carries forward instead, January's derived draw will be the
+   whole cumulative balance — flag it and we switch January to measure against prior December.
 
 1. **Batch 4 — views & layout.** Workspace → Actuals defaults to the **Actuals History year grid**
    (12 months per screen, year selector, "List View" button beside Review Mapping); **collapsible
@@ -71,10 +54,9 @@ git checkout origin/claude/add-project-tracker-zGrFN -- $(git diff --name-only <
 5. **Engine verification vs. the Vetter Jan-2026 workbook** — a systematic diff remains a Module 3
    hard requirement. `backend/scripts/verify_targets.py` now covers the Targets derivation; the
    monthly forecast engine still needs its equivalent.
-   Include in that pass: **actuals months do not derive owner draws or capex** (the Forecast
-   cash-flow rows show "—" there). Owner activity ≈ Δ equity_before_net_profit (year boundary
-   caveat); capex ≈ Δ net fixed assets + depreciation (disposals caveat). Decide, then the
-   actuals-month Net Cash Flow can tie to Δ cash.
+   Include in that pass: **actuals months derive owner draws (026) but not capex** (the Forecast
+   Capex row shows "—" there). Capex ≈ Δ net fixed assets + depreciation (disposals caveat).
+   Decide, then the actuals-month Net Cash Flow can tie to Δ cash.
 
 ## Where We Are (2026-09-10)
 
@@ -88,8 +70,10 @@ git checkout origin/claude/add-project-tracker-zGrFN -- $(git diff --name-only <
   Total Payroll display toggle, Tax Savings Reserve retired (migration 023), COS $ pinning (025).
 - **Scoreboard:** grades on favourable variance (integer-exact); owner draws graded as signed cash.
   Hit **Recalculate** once to refresh stored grades.
-- **Infra:** auto-migrate on launch (dev too), migrations 021–025 idempotent, schema audit + targets
-  direction tests in `backend/scripts/`, Dock launcher `.app`, branch merged with main (0 behind).
+- **Mapping:** owner draws / distributions / contributions have their own signed Balance Sheet
+  category (026); flows into total equity, the Forecast actuals months, and Targets prior year.
+- **Infra:** auto-migrate on launch (dev too), migrations 021–026 idempotent, schema audit + targets
+  + owner-draws direction tests in `backend/scripts/`, Dock launcher `.app`, branch merged with main.
 
 ## Prior session — 2026-05-15 → 2026-05-19 (history)
 

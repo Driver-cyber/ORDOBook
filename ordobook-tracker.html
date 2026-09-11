@@ -392,15 +392,15 @@ body {
 {
   "project": "ORDOBOOK",
   "description": "Financial advisory workflow app — QB ingestion → analytical engine → client deliverables",
-  "updated": "2026-09-10",
+  "updated": "2026-09-11",
   "columns": [
     {
       "name": "ORDOBook",
       "sub": "React · FastAPI · SQLite · Local-first desktop",
       "priorities": [
         {
-          "title": "Owner distributions as a BS mapping category (plan approved 2026-09-10)",
-          "note": "Equity section currently swallows distributions. Add signed 'Owner Investments / (Distributions)' category, store the YTD balance on monthly_actuals (migration 026), fold into total equity everywhere, derive monthly owner activity in the forecast actuals branch (Δ balance), read Targets prior-year owner draws from the Dec balance. Then remap + re-upload BS exports. Full step list in NEXT-SESSION item 0."
+          "title": "Remap owner distributions + re-upload BS exports (data step after 026)",
+          "note": "Code shipped 2026-09-11. On the Mac: pull, relaunch, map the draws/distributions account to 'Owner Investments / (Distributions)' in Review Mapping, re-upload Balance Sheet exports for the months to fill. Confirm the QB draws account resets at fiscal-year start (January is measured against 0); if it carries forward, switch January to measure against prior December."
         },
         {
           "title": "Batch 4 — Actuals year grid, sidebar, scrollbar, driver tooltips",
@@ -439,10 +439,22 @@ body {
         "DONE: Batch 2 canonical order (categories.js) — dropdown groups, Category Totals, Actuals History/Detail",
         "DONE: Batch 3 autosave + undo on Targets and Forecast; Forecast auto-recalculates",
         "DONE: Red Team 2026-09-10 — six items (SSOT derivation, direction tests, COS pinning 025, integer grading, auto-migrate, undo scope)",
+        "DONE: Owner distributions BS mapping category (migration 026) — signed YTD balance, total equity, forecast actuals-month draws, Targets prior year",
         "Parking: cross-screen undo stack (rejected for v1 — per-screen isolation preferred)",
         "Parking: Scenario Sandbox 'Owner Draws' label/sign alignment with the signed convention"
       ],
       "shipped": [
+        {
+          "date": "2026-09-11",
+          "what": "Owner distributions as a signed Balance Sheet mapping category (migration 026): total equity, forecast actuals-month draws from Δ balance, Targets prior-year owner draws, direction tests",
+          "tags": [
+            "feature",
+            "migration",
+            "engine",
+            "finance"
+          ],
+          "learned": "A QB YTD equity line (draws, net income) is a balance, not a flow — store the balance, derive the month as the delta, and never sum it across months."
+        },
         {
           "date": "2026-09-10",
           "what": "Migration 025 fixed for Postgres (sa.text default); launcher clears Chrome profile locks, stop script closes the window",
