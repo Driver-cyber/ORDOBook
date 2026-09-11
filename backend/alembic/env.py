@@ -34,17 +34,23 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    connectable = engine_from_config(config.get_section(config.config_ini_section, {}),
-                                     prefix="sqlalchemy.", poolclass=pool.NullPool)
+    section = config.get_section(config.config_ini_section, {})
+    connect_args = {}
+    if str(section.get("sqlalchemy.url", "")).startswith("postgresql"):
+        # ALTER TABLE needs an exclusive lock. If a leftover session (a stale
+        # uvicorn worker, an open psql, a GUI client) still holds even a read
+        # lock on that table, the ALTER waits forever — and because migrations
+        # run at app import, the backend never answers its health check and the
+        # launcher just sits there. Fail fast and loud instead.
+        #
+        # Set it as a libpq connection option, NOT with connection.execute("SET
+        # ..."): executing anything on the connection before Alembic begins its
+        # transaction auto-begins one, Alembic then reuses it without owning it,
+        # and the whole migration is rolled back when the connection closes.
+        connect_args["options"] = "-c lock_timeout=15s"
+    connectable = engine_from_config(section, prefix="sqlalchemy.",
+                                     poolclass=pool.NullPool, connect_args=connect_args)
     with connectable.connect() as connection:
-        if connection.dialect.name == "postgresql":
-            # ALTER TABLE needs an exclusive lock. If a leftover session (a stale
-            # uvicorn worker, an open psql, a GUI client) still holds even a read
-            # lock on that table, the ALTER waits forever — and because migrations
-            # run at app import, the backend never answers its health check and
-            # the launcher just sits there. Fail fast and loud instead.
-            from sqlalchemy import text
-            connection.execute(text("SET lock_timeout = '15s'"))
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
