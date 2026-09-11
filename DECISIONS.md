@@ -13,14 +13,14 @@ Excel workbook process for a solo consulting practice. The immediate goal is to 
 monthly bookkeeping data ingestion from QuickBooks Online exports, run the analytical
 models, and produce the Scoreboard, 12-Month Forecast, and Action Plan deliverables.
 
-**Current Phase:** Live-use hardening (2026-09-10). Phases 1–6a complete; Phase 6b Electron shell
-scaffolded (inert). Migrations 001–025 applied; the app now migrates itself to head on every launch.
+**Current Phase:** Live-use hardening (2026-09-10 → 11). Phases 1–6a complete; Phase 6b Electron
+shell scaffolded (inert). Migrations 001–027 applied; the app migrates itself to head on every launch.
 Dev runs as a Dock app (`ORDOBOOK.app` → Chrome app-mode window over the Vite/uvicorn dev servers).
-The DEMO-CHECKLIST gate was substantially exercised by the 2026-09-10 live test cycle (import,
-Workspace Actuals/Forecast/Targets, Scoreboard); residual untested: Reports → Actuals view, Scenario
-Sandbox, Client Profile, PDF/JSON exports.
-**NEXT:** Batch 4 (Actuals year grid + List View, collapsible sidebar, persistent scrollbar, driver
-tooltips, Actuals job-count autosave) then Batch 5 (Action Plan restructure — data-model change).
+2026-09-11 shipped: owner distributions as a signed BS category (026, verified against the advisor's
+manual calcs), capex derived for actuals months, Batch 4 (year grid, sidebar, driver definitions),
+the spreadsheet-card restyle, and Batch 5 (Action Plan → objectives with nested action items, 027).
+Residual untested live: Batch 5 + restyle, Reports → Actuals view, Scenario Sandbox, PDF/JSON exports.
+**NEXT:** advisor-editable Scoreboard text fields; residual demo items → Phase 6b.
 
 **Current Vibe:** Deliberate. Plan before building. Verify before shipping. One module at a time.
 
@@ -824,6 +824,43 @@ and left new columns to a manual `alembic upgrade head`. The dev DB now migrates
 **Decision:** Kept. An accidental reload loses the *recovery*, not the data (edits are saved).
 **Reason:** Persisting the stack, and cross-screen stacking, were judged more complexity than
 value; the advisor also prefers that undo on one screen can never touch work done on another.
+
+### [2026-09-11] Owner distributions are a mapping category, stored as QB's signed YTD balance
+**Decision:** New Balance Sheet category `owner_distributions` ("Owner Investments / (Distributions)",
+migration 026). The column holds the signed YTD balance exactly as QB's equity section shows it
+(draws negative, investments positive, resets at fiscal-year start). Total equity = retained +
+owner line + YTD net income. The forecast engine's actuals branch derives the month's draw as the
+change in that balance (January against 0) and subtracts it from Net Cash Flow; Targets prior-year
+owner draws read the year-end balance, falling back to the equity roll-forward while unmapped.
+**Reason:** Everything in the equity section was landing in one bucket, so actuals months carried no
+owner activity and Net Cash Flow was wrong there. Storing the balance (not a flow) matches the
+source and keeps `net_profit_for_year`'s rule: never sum a YTD line across months.
+**Verified:** January and later months tie to the advisor's manual calculations on real data.
+
+### [2026-09-11] Capex for actuals months = Δ net fixed assets + depreciation
+**Decision:** Derived, with the balances in `calc_trace`; positive = purchase (the row's own sign),
+a disposal reads negative. Needs last month's balance; 0 without one.
+**Reason:** The row showed a dash and the advisor read it as rounding. With owner draws and capex
+both derived, the actuals-month Net Cash Flow can be checked against Δ cash.
+
+### [2026-09-11] Action Plan = objectives with nested action items (Batch 5)
+**Decision:** `action_plan_items` is the objective (objective, current results, private note);
+`action_plan_steps` (027) holds its action items, each with text, owners (list, from a per-client
+roster `clients.action_plan_owners`), due date, and a `completed_at` reserved for later completion
+tracking. Limits of 3 objectives × 3 action items are advisor-guided in the UI, not enforced by the
+API. JSON export bumped 1.0.0 → 1.1.0 (additive): `steps[]` per objective, with the flattened
+owner / next_steps / due_date kept for 1.0 readers. Existing rows migrated losslessly (one step each).
+**Reason:** One owner and one due date per objective didn't match how the plan is actually run —
+several people, several dates, under one goal. Mirrors the Scoreboard's "max 3 red priorities":
+a client can act on three things at once.
+
+### [2026-09-11] Grids read like the month detail cards
+**Decision:** Forecast, Forecast Report and the Actuals year grid render in a white card with a
+hairline under every row, section headers as a faint band, totals in black on a faint band (not
+gold), and confirmed-actuals cells one shade quieter than forecast cells. Gold stays for signals and
+actions. Month headers pin to the top of the grid's scroll box.
+**Reason:** The advisor found the tinted background + gold totals harder to read than the detail
+cards; a spreadsheet-like surface is what the eye expects for a 13-column money grid.
 
 ### Process lessons (retained)
 - Gate commits behind a single script that exits non-zero, with `set -e` — twice a failing test

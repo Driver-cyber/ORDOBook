@@ -1,8 +1,8 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-09-11 | Shipped: owner-distributions mapping (026), capex derived for actuals
-> months, pinned month headers, Batch 4 (year grid as Workspace default, collapsible sidebar, driver
-> definitions, job-count autosave). Pending on the Mac: remap distributions + re-upload BS exports.
-> Next: Batch 5 (Action Plan restructure — plan first).
+> Last updated: 2026-09-11 (evening) | Shipped today: owner-distributions mapping (026, verified
+> against manual calcs), capex derived for actuals months, pinned month headers, Batch 4, the
+> spreadsheet-card restyle, and Batch 5 (Action Plan → objectives with nested action items, 027).
+> Next: user tests Batch 5 + restyle on the Mac; then Scoreboard text fields / residual demo items.
 
 ---
 
@@ -46,10 +46,15 @@ git checkout origin/claude/add-project-tracker-zGrFN -- $(git diff --name-only <
    Job count on the Actuals detail autosaves on blur/Enter. Wide grids keep visible scrollbars
    (`.scroll-visible`); the Forecast month header pins while scrolling.
    Not done: a re-apply-mapping button (still re-upload to recompute stored totals).
-2. **Batch 5 — Action Plan restructure** (Note 6). Objectives as parent rows (≤3), action items as
-   nested sub-rows (≤3 each) with their own owner(s) and due date, multi-owner chips, an owner
-   roster editor, wrapping/auto-sizing text, and the advisor-notes popover rendered in front.
-   **Data-model change** — plan first, migration, then UI.
+2. **Batch 5 — SHIPPED 2026-09-11.** Action Plan = objectives (≤3, UI-guided) each with nested
+   action items (≤3) carrying their own owners (chips from the client's roster) and due date.
+   Migration 027: `action_plan_steps` table, legacy next_steps/owner/due_date copied into one step
+   per objective then dropped, `clients.action_plan_owners` roster. JSON export 1.1.0 (steps[]
+   added; flattened owner/next_steps/due_date kept on the objective for 1.0 readers). PDF prints
+   objective rows with indented action items. `completed_at` exists on steps but has no UI yet
+   (completion tracking is a Product 2 handoff field). Roster editable from the Action Plan header
+   and Profile & Settings.
+   **Untested on the Mac as of this write** — see the test list in the 2026-09-11 session notes.
 3. **Advisor-editable Scoreboard text fields** (carried from May). Headline / priority reason /
    action items as DB-backed fields on the visual Scoreboard, mirrored into the PDF template.
 4. **Residual demo items** never exercised live: Reports → Actuals view, Scenario Sandbox, Client
@@ -78,6 +83,8 @@ git checkout origin/claude/add-project-tracker-zGrFN -- $(git diff --name-only <
   category (026); flows into total equity, the Forecast actuals months, and Targets prior year.
 - **Workspace (2026-09-11):** Actuals tab = year grid with List View toggle; sidebar collapses;
   Forecast drivers carry definitions; capex derived for actuals months; month headers pinned.
+  Grids restyled to match the month detail cards (white card, hairline rows, black totals).
+- **Action Plan (2026-09-11):** objectives → action items (027); owner roster; exports at 1.1.0.
 - **Infra:** auto-migrate on launch (dev too), migrations 021–026 idempotent, schema audit + targets
   + owner-draws direction tests in `backend/scripts/`, Dock launcher `.app`, branch merged with main.
 

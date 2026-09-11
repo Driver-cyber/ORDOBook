@@ -403,8 +403,8 @@ body {
           "note": "Code shipped 2026-09-11. On the Mac: pull, relaunch, map the draws/distributions account to 'Owner Investments / (Distributions)' in Review Mapping, re-upload Balance Sheet exports for the months to fill. Confirm the QB draws account resets at fiscal-year start (January is measured against 0); if it carries forward, switch January to measure against prior December."
         },
         {
-          "title": "Batch 5 — Action Plan restructure (data-model change)",
-          "note": "Objectives as parent rows (≤3) with nested action items (≤3 each) carrying their own owners + due date; multi-owner chips; owner roster editor; wrapping/auto-size text; notes popover in front. Migration + CRUD + UI. Plan first. Note 6."
+          "title": "Test on the Mac: Batch 5 Action Plan + grid restyle",
+          "note": "Shipped 2026-09-11 evening, untested live. Action Plan: existing items should appear as objectives with one action item each; add/reorder/delete objectives and action items; owner chips + roster; private note popover; JSON export shows steps[] at 1.1.0; PDF prints nested rows. Restyle: Forecast, Forecast Report, Actuals grid on white cards with hairline rows."
         },
         {
           "title": "Advisor-editable Scoreboard text fields",
@@ -437,11 +437,32 @@ body {
         "DONE: Red Team 2026-09-10 — six items (SSOT derivation, direction tests, COS pinning 025, integer grading, auto-migrate, undo scope)",
         "DONE: Owner distributions BS mapping category (migration 026) — signed YTD balance, total equity, forecast actuals-month draws, Targets prior year",
         "DONE: Batch 4 — Actuals year grid as Workspace default + List View, collapsible sidebar, pinned month headers, visible scrollbars, driver definitions, job-count autosave",
+        "DONE: Batch 5 — Action Plan objectives → nested action items (migration 027), owner roster, exports 1.1.0",
+        "DONE: Grid restyle — Forecast / Forecast Report / Actuals grid read like the month detail cards",
+        "Later: Action Plan completion tracking UI (completed_at already stored on steps) — Meeting Mode checkbox flow",
         "Parking: re-apply-mapping button (recompute stored monthly totals from raw_data without re-uploading)",
         "Parking: cross-screen undo stack (rejected for v1 — per-screen isolation preferred)",
         "Parking: Scenario Sandbox 'Owner Draws' label/sign alignment with the signed convention"
       ],
       "shipped": [
+        {
+          "date": "2026-09-11",
+          "what": "Batch 5: Action Plan = objectives with nested action items (migration 027), owner chips + roster, JSON export 1.1.0 with steps[], nested PDF rows",
+          "tags": [
+            "feature",
+            "migration",
+            "data-model"
+          ],
+          "learned": "Keep the flattened 1.0 fields on the exported objective when nesting — an additive export bump costs nothing and an old reader keeps working."
+        },
+        {
+          "date": "2026-09-11",
+          "what": "Grids read like the month detail cards: white card, hairline rows, black totals on a faint band; actuals a shade quieter than forecast",
+          "tags": [
+            "ux",
+            "frontend"
+          ]
+        },
         {
           "date": "2026-09-11",
           "what": "Batch 4: Workspace Actuals = year grid (Grid | List View, pinned clickable month headers), collapsible sidebar, cash-flow driver definitions, job-count autosave, visible scrollbars",
