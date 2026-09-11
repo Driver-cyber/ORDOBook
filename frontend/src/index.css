@@ -29,3 +29,8 @@
     background: #c8c3bc;
   }
 }
+
+/* Driver-grid inputs: no spinner arrows, the column is too narrow to spare them. */
+.no-spin::-webkit-outer-spin-button,
+.no-spin::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.no-spin[type=number] { -moz-appearance: textfield; appearance: textfield; }

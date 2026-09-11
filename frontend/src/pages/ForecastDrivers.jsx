@@ -77,26 +77,43 @@ const inputStyle = {
 }
 
 // ── Editable input cell (per-month) ──────────────────────────────────────────
+// Money cells REST on the compact figure the totals use ($14.9k) and switch to
+// the full number the moment they take focus, so a five-digit entry never shows
+// as three digits in a narrow column. Rows without a `display` (job counts,
+// days) are plain numbers and never need the compact form.
 
-function EditCell({ value, onChange, onCommit, step = 1, placeholder = '0' }) {
+function DriverInput({ value, display, onChange, onCommit, step = 1, placeholder = '0' }) {
   const [local, setLocal] = useState(String(value ?? ''))
+  const [editing, setEditing] = useState(false)
+  const ref = useRef(null)
   useEffect(() => setLocal(String(value ?? '')), [value])
+  // Select the full number once the cell has switched into edit mode.
+  useEffect(() => { if (editing && ref.current) ref.current.select() }, [editing])
 
+  const resting = display !== undefined && !editing
+  return (
+    <input
+      ref={ref}
+      type={resting ? 'text' : 'number'}
+      readOnly={resting}
+      min="0"
+      step={step}
+      placeholder={placeholder}
+      value={resting ? display : local}
+      onChange={e => { if (resting) return; setLocal(e.target.value); onChange(e.target.value) }}
+      onFocus={e => { e.currentTarget.style.borderColor = S.gold; setEditing(true); if (display === undefined) e.currentTarget.select() }}
+      onBlur={e => { e.currentTarget.style.borderColor = S.border; setEditing(false); if (onCommit) onCommit() }}
+      onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
+      className="w-full text-right font-mono text-[12px] px-1.5 py-1 rounded outline-none no-spin"
+      style={inputStyle}
+    />
+  )
+}
+
+function EditCell(props) {
   return (
     <td className="px-1 py-1" style={{ minWidth: 58 }}>
-      <input
-        type="number"
-        min="0"
-        step={step}
-        placeholder={placeholder}
-        value={local}
-        onChange={e => { setLocal(e.target.value); onChange(e.target.value) }}
-        onFocus={e => { e.currentTarget.style.borderColor = S.gold; e.currentTarget.select() }}
-        onBlur={e => { e.currentTarget.style.borderColor = S.border; if (onCommit) onCommit() }}
-        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
-        className="w-full text-right font-mono text-[12px] px-1.5 py-1 rounded outline-none"
-        style={inputStyle}
-      />
+      <DriverInput {...props} />
     </td>
   )
 }
@@ -150,7 +167,8 @@ function ModeToggle({ mode = 'dollar', onChange }) {
   )
 }
 
-function DriverRow({ label, monthInts, actualsMonths = new Set(), getValue, getDisplay, onChange, onCommit, onAutofill, ytd, mode, onToggleMode }) {
+// compact: money rows — editable cells rest on the same compact figure as actuals cells.
+function DriverRow({ label, monthInts, actualsMonths = new Set(), getValue, getDisplay, onChange, onCommit, onAutofill, ytd, mode, onToggleMode, compact = false }) {
   // Find the first non-actuals month for autofill source
   const firstForecastMonth = monthInts.find(m => !actualsMonths.has(m))
 
@@ -174,7 +192,7 @@ function DriverRow({ label, monthInts, actualsMonths = new Set(), getValue, getD
       {monthInts.map(m =>
         actualsMonths.has(m)
           ? <ActualsCell key={m} display={getDisplay ? getDisplay(m) : '—'} />
-          : <EditCell key={m} value={getValue(m)} step={mode === 'pct' ? 0.1 : 1} onChange={v => onChange(m, v)} onCommit={() => onCommit && onCommit(m, label)} />
+          : <EditCell key={m} value={getValue(m)} display={compact && getDisplay ? getDisplay(m) : undefined} step={mode === 'pct' ? 0.1 : 1} onChange={v => onChange(m, v)} onCommit={() => onCommit && onCommit(m, label)} />
       )}
       <td className="text-right px-2 py-1.5 font-mono text-[12px]"
           style={{ color: S.textMuted }}>
@@ -532,7 +550,7 @@ export default function ForecastDrivers() {
     const cents = dv(f, m) || fallback
     if (modeOf(f) !== 'pct') return fmt(cents)
     const pct = pctOfRev(cents, m)
-    return pct === null ? '—' : fmtPct(pct)
+    return pct === null ? '—' : `${pct.toFixed(1)}%`
   }
   // COS is STORED as a % of revenue. In $ mode we show/enter the dollars it
   // resolves to at that month's revenue.
@@ -550,6 +568,14 @@ export default function ForecastDrivers() {
     }
     if (fx !== null) return Math.round(fx / 100)
     return Math.round(revAt(m) * (Number(dv('cos_pct_monthly', m)) || 0) / 100 / 100)
+  }
+  // Resting text for a forecast COS cell: the % it carries, or the $ it resolves to.
+  const cosRestDisplay = m => {
+    if (modeOf('cos_pct_monthly') === 'pct') {
+      const v = cosView(m)
+      return v === '' ? '—' : `${Number(v).toFixed(1)}%`
+    }
+    return fmt(cosView(m) * 100)
   }
   // COS commits touch two dicts (pct + fixed); compare both, presence-sensitive
   // for the fixed one because a pinned $0 is not the same as no pin.
@@ -717,6 +743,7 @@ export default function ForecastDrivers() {
             />
             <DriverRow
               label="Avg Value — Small ($)"
+              compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => Math.round(dv('small_job_avg_value_monthly', m) / 100)}
               getDisplay={m => fmt(dv('small_job_avg_value_monthly', m))}
@@ -736,6 +763,7 @@ export default function ForecastDrivers() {
             />
             <DriverRow
               label="Avg Value — Medium ($)"
+              compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => Math.round(dv('medium_job_avg_value_monthly', m) / 100)}
               getDisplay={m => fmt(dv('medium_job_avg_value_monthly', m))}
@@ -755,6 +783,7 @@ export default function ForecastDrivers() {
             />
             <DriverRow
               label="Avg Value — Large ($)"
+              compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => Math.round(dv('large_job_avg_value_monthly', m) / 100)}
               getDisplay={m => fmt(dv('large_job_avg_value_monthly', m))}
@@ -794,16 +823,13 @@ export default function ForecastDrivers() {
                         <span title="Pinned $ entry — does not move with revenue. Enter a % to release."
                               className="absolute left-1 top-0 font-mono text-[9px]" style={{ color: S.gold }}>$</span>
                       )}
-                      <input
-                        type="number" min="0" step={modeOf('cos_pct_monthly') === 'pct' ? 0.1 : 1}
+                      <DriverInput
+                        step={modeOf('cos_pct_monthly') === 'pct' ? 0.1 : 1}
                         placeholder={modeOf('cos_pct_monthly') === 'pct' ? '0.0' : '0'}
                         value={cosView(m)}
-                        onChange={e => setMonthField('cos_pct_monthly', m, e.target.value, 1)}
-                        onFocus={e => { e.currentTarget.style.borderColor = S.gold; e.currentTarget.select() }}
-                        onBlur={e => { e.currentTarget.style.borderColor = S.border; commitMonthField('cos_pct_monthly', m, 'COS', 1) }}
-                        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
-                        className="w-full text-right font-mono text-[12px] px-1.5 py-1 rounded outline-none"
-                        style={inputStyle}
+                        display={cosRestDisplay(m)}
+                        onChange={v => setMonthField('cos_pct_monthly', m, v, 1)}
+                        onCommit={() => commitMonthField('cos_pct_monthly', m, 'COS', 1)}
                       />
                     </td>
                   )
@@ -821,6 +847,7 @@ export default function ForecastDrivers() {
 
             <DriverRow
               label="Cost / Pay Run ($)"
+              compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('cost_per_pay_run_monthly', m, draft?.cost_per_pay_run ?? 0)}
               getDisplay={m => viewDisplay('cost_per_pay_run_monthly', m, draft?.cost_per_pay_run ?? 0)}
@@ -840,6 +867,7 @@ export default function ForecastDrivers() {
             />
             <DriverRow
               label="One-off / Irregular ($)"
+              compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('payroll_one_off', m)}
               getDisplay={m => viewDisplay('payroll_one_off', m)}
@@ -855,6 +883,7 @@ export default function ForecastDrivers() {
 
             <DriverRow
               label="Marketing / Advertising ($)"
+              compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('marketing_monthly', m)}
               getDisplay={m => viewDisplay('marketing_monthly', m)}
@@ -865,6 +894,7 @@ export default function ForecastDrivers() {
             />
             <DriverRow
               label="Depreciation & Amort. ($)"
+              compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('depreciation_monthly', m)}
               getDisplay={m => viewDisplay('depreciation_monthly', m)}
@@ -875,6 +905,7 @@ export default function ForecastDrivers() {
             />
             <DriverRow
               label="Other Overhead ($)"
+              compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('other_overhead_monthly', m)}
               getDisplay={m => viewDisplay('other_overhead_monthly', m)}
@@ -895,6 +926,7 @@ export default function ForecastDrivers() {
 
             <DriverRow
               label="Other Income / Expense ($)"
+              compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('other_income_expense_monthly', m)}
               getDisplay={m => viewDisplay('other_income_expense_monthly', m)}
@@ -956,10 +988,11 @@ export default function ForecastDrivers() {
             />
             <DriverRow
               label="Owner Distributions ($)"
+              compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('owner_distributions', m)}
               mode={modeOf('owner_distributions')} onToggleMode={md => setMode('owner_distributions', md)}
-              getDisplay={m => fmt(periodByMonth[m]?.owner_distributions ?? 0)}
+              getDisplay={m => viewDisplay('owner_distributions', m)}
               onChange={(m, v) => setMonthField('owner_distributions', m, v, 100)}
               onCommit={(m, lbl) => commitMonthField('owner_distributions', m, lbl, 100)}
               onAutofill={(val, lbl) => autofillField('owner_distributions', val, lbl, 100)}
@@ -968,6 +1001,7 @@ export default function ForecastDrivers() {
             <SubHeader label="Investing & Financing" />
             <DriverRow
               label="Capital Expenditures ($)"
+              compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('capex_monthly', m)}
               getDisplay={m => viewDisplay('capex_monthly', m)}
@@ -978,6 +1012,7 @@ export default function ForecastDrivers() {
             />
             <DriverRow
               label="Other Current Assets Δ ($)"
+              compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('other_current_assets_change_monthly', m)}
               getDisplay={m => viewDisplay('other_current_assets_change_monthly', m)}
@@ -988,6 +1023,7 @@ export default function ForecastDrivers() {
             />
             <DriverRow
               label="Current Debt Change ($)"
+              compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('current_debt_change_monthly', m)}
               getDisplay={m => viewDisplay('current_debt_change_monthly', m)}
@@ -998,6 +1034,7 @@ export default function ForecastDrivers() {
             />
             <DriverRow
               label="Long-Term Debt Change ($)"
+              compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('long_term_debt_change_monthly', m)}
               getDisplay={m => viewDisplay('long_term_debt_change_monthly', m)}
