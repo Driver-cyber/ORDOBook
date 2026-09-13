@@ -136,12 +136,10 @@ export function ActualsGrid({ periods, onOpenMonth }) {
                     '{String(p.fiscal_year).slice(2)}
                   </span>
                 </span>
-                <span
-                  className="font-mono text-[9px]"
-                  style={{ color: p.status === 'draft' ? S.gold : S.textMuted }}
-                >
-                  {p.status === 'draft' ? '● draft' : '✓'}
-                </span>
+                {/* Only drafts get a marker — everything on this grid is an actual. */}
+                {p.status === 'draft' && (
+                  <span className="font-mono text-[9px]" style={{ color: S.gold }}>● draft</span>
+                )}
               </button>
             </th>
           ))}

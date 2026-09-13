@@ -60,6 +60,11 @@ def _get_metric_value(period: ForecastPeriod, key: str) -> int:
     if key == "cf_liabilities_change":
         # Increase in liabilities = cash inflow → positive = cash favorable
         return (period.ap_change or 0) + (period.current_debt_change or 0) + (period.long_term_debt_change or 0)
+    if key == "owner_total_draws":
+        # The period stores a draw as a positive amount (the Forecast row's own
+        # convention). The Scoreboard, Targets and the prior-year column all
+        # speak signed cash — draws negative, investments positive — so flip it.
+        return -(period.owner_total_draws or 0)
     return getattr(period, key, 0) or 0
 
 

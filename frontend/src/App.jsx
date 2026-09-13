@@ -12,6 +12,7 @@ import MappingReview from './pages/MappingReview'
 import ActualsDetail from './pages/ActualsDetail'
 import ForecastDrivers from './pages/ForecastDrivers'
 import ForecastReport from './pages/ForecastReport'
+import ForecastMonth from './pages/ForecastMonth'
 import Targets from './pages/Targets'
 import Scoreboard from './pages/Scoreboard'
 import ReportCard from './pages/ReportCard'
@@ -163,6 +164,8 @@ export default function App() {
         {/* The year grid now IS the Workspace → Actuals tab */}
         <Route path="/clients/:id/actuals/history"  element={<CL>{() => <ToWorkspace />}</CL>} />
         <Route path="/clients/:id/actuals/:year/:month" element={<CL>{() => <ActualsDetail />}</CL>} />
+        {/* Single-month card view of the forecast (actual or projected) — reached from a month header */}
+        <Route path="/clients/:id/forecast/:year/month/:month" element={<CL>{() => <ForecastMonth />}</CL>} />
 
         {/* ── Old route redirects (bookmarks / cached links) ── */}
         <Route path="/clients/:id/forecast/:year"         element={<CL>{() => <OldForecastDrivers />}</CL>} />

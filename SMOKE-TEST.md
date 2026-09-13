@@ -98,6 +98,31 @@ see `026 -> 027` and `027 -> 028`.
 - [ ] Review Mapping: the equity dropdown offers "Owner Investments / (Distributions)"; the
       distributions account is mapped to it and the auto-mapper suggests it for a fresh upload.
 
+## 11. Follow-ups from the first pass (2026-09-13)
+
+Pull, relaunch, then:
+
+- [ ] **Scoreboard / Report Card:** Owner Investments/(Draws) YTD Actual and Full Year Forecast now
+      read NEGATIVE for a year with draws (signed cash, same as the prior-year column and the
+      target). Grade still red when draws exceed the target.
+- [ ] **Workspace → Actuals:** month headers no longer show a ✓; only drafts carry "● draft".
+- [ ] **Every wide grid** (Actuals, Forecast, Forecast Report): a slim grey scrollbar sits under the
+      grid at all times when columns overflow. Drag its thumb, or click the track to jump. It
+      disappears when the grid fits.
+- [ ] **Forecast → DSO / DIO / DPO:** each row has a `days | $` toggle. In `$` the cells show the
+      balance those days imply (AR, Inventory, AP) and actuals months show the imported balance.
+      Type a dollar amount into a forecast month, click away: the row converts it back to days
+      (check the `days` view) and the projected balance sheet AR/AP moves. The → autofill copies
+      the first forecast month's DAYS in either mode.
+- [ ] **Forecast month cards:** click any month header on the Workspace Forecast — a card view of
+      that month opens (Income Statement, Cash Flow, Balance Sheet). ‹ › step months, Esc or
+      ← Back returns to where you were. Same from the Forecast Report's headers. An actuals month
+      shows "confirmed actual" and an "Imported actuals →" button to the QB detail.
+- [ ] **Forecast Report → List View:** one row per month with Rev / NP / NCF and a source tag; a
+      row opens its month card. The choice sticks after reload.
+- [ ] **Action Plan:** on the last objective on a full screen, "+ owner" opens the picker UPWARD
+      and it is fully visible; a long roster scrolls inside it.
+
 ## If something is off
 Note the screen, what you expected, and what you saw. Numbers first. A screenshot of the grid
 with the month header visible is enough for most of these.

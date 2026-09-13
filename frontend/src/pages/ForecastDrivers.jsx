@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getForecastView, createDrivers, updateDrivers, calculateForecast } from '../api/forecast'
+import HScrollbar from '../components/HScrollbar'
 
 // How many committed edits the Undo dropdown keeps (session memory only).
 const UNDO_LIMIT = 20
@@ -223,16 +224,20 @@ function AutofillBtn({ onFill }) {
 
 // $ | % switch for money rows. Purely a view/entry mode — nothing about how the
 // value is stored changes. Matches the toggle on the Targets page.
-function ModeToggle({ mode = 'dollar', onChange }) {
+const MONEY_MODES = [['dollar', '$'], ['pct', '%']]
+// Working-capital days rows: enter the days, or the balance those days imply.
+const WC_MODES = [['days', 'days'], ['dollar', '$']]
+
+function ModeToggle({ mode = 'dollar', onChange, options = MONEY_MODES }) {
   return (
     <span className="inline-flex rounded overflow-hidden" style={{ border: `1px solid ${S.border}` }}>
-      {['dollar', 'pct'].map(md => (
+      {options.map(([md, label]) => (
         <button
           key={md} type="button" onClick={() => onChange(md)}
           className="px-1.5 py-0.5 font-mono text-[10px] transition-colors"
           style={mode === md ? { background: S.gold, color: '#1a1918' } : { color: S.textMuted, background: 'transparent' }}
         >
-          {md === 'dollar' ? '$' : '%'}
+          {label}
         </button>
       ))}
     </span>
@@ -240,7 +245,7 @@ function ModeToggle({ mode = 'dollar', onChange }) {
 }
 
 // compact: money rows — editable cells rest on the same compact figure as actuals cells.
-function DriverRow({ label, info, monthInts, actualsMonths = new Set(), getValue, getDisplay, onChange, onCommit, onAutofill, ytd, mode, onToggleMode, compact = false }) {
+function DriverRow({ label, info, monthInts, actualsMonths = new Set(), getValue, getDisplay, onChange, onCommit, onAutofill, ytd, mode, onToggleMode, modeOptions, compact = false }) {
   // Find the first non-actuals month for autofill source
   const firstForecastMonth = monthInts.find(m => !actualsMonths.has(m))
 
@@ -259,7 +264,7 @@ function DriverRow({ label, info, monthInts, actualsMonths = new Set(), getValue
         <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
           <span>{label}</span>
           {info && <InfoTip title={info.title} text={info.text} />}
-          {onToggleMode && <span className="shrink-0"><ModeToggle mode={mode} onChange={onToggleMode} /></span>}
+          {onToggleMode && <span className="shrink-0"><ModeToggle mode={mode} onChange={onToggleMode} options={modeOptions} /></span>}
         </span>
       </td>
       {monthInts.map(m =>
@@ -386,6 +391,7 @@ export default function ForecastDrivers() {
   const [saveStatus, setSaveStatus] = useState('idle') // idle | saving | saved | error
   const committedRef = useRef({})
   const seqRef = useRef(0)
+  const gridRef = useRef(null)
   const [saving, setSaving] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState(null)
@@ -666,6 +672,41 @@ export default function ForecastDrivers() {
   const sameFixed = (a = {}, b = {}) =>
     JSON.stringify(Object.entries(a).sort()) === JSON.stringify(Object.entries(b).sort())
 
+  // ── DSO / DIO / DPO: days, or the balance those days imply ─────────────────
+  // The driver is always stored in days. In $ mode the cell shows the engine's
+  // projected balance (AR = revenue × DSO ÷ 30, etc.) and a typed dollar amount
+  // is converted back to days against that month's revenue / COS.
+  const WC = {
+    dso_monthly: { balance: 'projected_ar',        base: 'revenue',       days: 'dso_days' },
+    dio_monthly: { balance: 'projected_inventory', base: 'cost_of_sales', days: 'dio_days' },
+    dpo_monthly: { balance: 'projected_ap',        base: 'cost_of_sales', days: 'dpo_days' },
+  }
+  const wcMode = f => rowModes[f] ?? 'days'
+  const wcBalance = (f, m) => periodByMonth[m]?.[WC[f].balance] ?? 0
+  const wcValue = (f, m) => wcMode(f) === 'dollar' ? Math.round(wcBalance(f, m) / 100) : dv(f, m)
+  const wcDisplay = (f, m) => {
+    if (wcMode(f) === 'dollar') return periodByMonth[m] ? fmt(wcBalance(f, m)) : '—'
+    const d = periodByMonth[m]?.[WC[f].days]
+    return (d !== undefined && d !== null) ? `${d} days` : '—'
+  }
+  const wcSet = (f, m, v) => {
+    if (wcMode(f) !== 'dollar') return setMonthField(f, m, v, 1)
+    const base = periodByMonth[m]?.[WC[f].base] ?? 0
+    if (base <= 0) return
+    setMonthField(f, m, String(Math.round((Number(v) || 0) * 100 / base * 30)), 1)
+  }
+  const firstForecastMonth = monthInts.find(m => !actualsMonths.has(m))
+  const wcRow = (f) => ({
+    compact: wcMode(f) === 'dollar',
+    getValue: m => wcValue(f, m),
+    getDisplay: m => wcDisplay(f, m),
+    mode: wcMode(f), onToggleMode: md => setMode(f, md), modeOptions: WC_MODES,
+    onChange: (m, v) => wcSet(f, m, v),
+    onCommit: (m, lbl) => commitMonthField(f, m, lbl, 1),
+    // Autofill copies the DAYS of the first forecast month regardless of mode.
+    onAutofill: (_, lbl) => autofillField(f, dv(f, firstForecastMonth), lbl, 1),
+  })
+
   const actualsCosDisplay = (month) => {
     const p = periodByMonth[month]
     if (!p || p.revenue === 0) return '—'
@@ -769,7 +810,7 @@ export default function ForecastDrivers() {
 
       {/* The grid is its own scroll box (both axes) so the month header can pin to
           its top while the page title and buttons stay put above it. */}
-      <div className="flex-1 min-h-0 px-8 pb-16 overflow-auto scroll-visible">
+      <div ref={gridRef} className="flex-1 min-h-0 px-8 pb-16 overflow-auto scroll-visible">
         {/* White card, spreadsheet-style rows. No overflow:hidden here — that would
             make the card the sticky header's scroll box instead of this div. */}
         <div className="rounded-xl" style={{ background: S.surface, border: `1px solid ${S.border}` }}>
@@ -809,7 +850,12 @@ export default function ForecastDrivers() {
                       color: actualsMonths.has(i + 1) ? S.actualsText : S.textSecondary,
                       minWidth: 58,
                     }}>
-                  {m}
+                  <button type="button"
+                          onClick={() => navigate(`/clients/${id}/forecast/${fiscalYear}/month/${i + 1}`)}
+                          title={`Open ${m} ${fiscalYear} as a single-month view`}
+                          className="hover:underline decoration-dashed underline-offset-2" style={{ color: 'inherit' }}>
+                    {m}
+                  </button>
                   {actualsMonths.has(i + 1) && (
                     <span className="ml-0.5 text-[8px]" style={{ color: S.textMuted }}>✓</span>
                   )}
@@ -1042,42 +1088,12 @@ export default function ForecastDrivers() {
             <SectionHeader label="Cash Flow" />
 
             <SubHeader label="Working Capital" />
-            <DriverRow
-              label="DSO — Days Sales Outstanding" info={DRIVER_INFO.dso}
-              monthInts={monthInts} actualsMonths={actualsMonths}
-              getValue={m => dv('dso_monthly', m)}
-              getDisplay={m => {
-                const days = periodByMonth[m]?.dso_days
-                return (days !== undefined && days !== null) ? `${days} days` : '—'
-              }}
-              onChange={(m, v) => setMonthField('dso_monthly', m, v)}
-              onCommit={(m, lbl) => commitMonthField('dso_monthly', m, lbl, 1)}
-              onAutofill={(val, lbl) => autofillField('dso_monthly', val, lbl, 1)}
-            />
-            <DriverRow
-              label="DIO — Days Inventory Outstanding" info={DRIVER_INFO.dio}
-              monthInts={monthInts} actualsMonths={actualsMonths}
-              getValue={m => dv('dio_monthly', m)}
-              getDisplay={m => {
-                const days = periodByMonth[m]?.dio_days
-                return (days !== undefined && days !== null) ? `${days} days` : '—'
-              }}
-              onChange={(m, v) => setMonthField('dio_monthly', m, v)}
-              onCommit={(m, lbl) => commitMonthField('dio_monthly', m, lbl, 1)}
-              onAutofill={(val, lbl) => autofillField('dio_monthly', val, lbl, 1)}
-            />
-            <DriverRow
-              label="DPO — Days Payable Outstanding" info={DRIVER_INFO.dpo}
-              monthInts={monthInts} actualsMonths={actualsMonths}
-              getValue={m => dv('dpo_monthly', m)}
-              getDisplay={m => {
-                const days = periodByMonth[m]?.dpo_days
-                return (days !== undefined && days !== null) ? `${days} days` : '—'
-              }}
-              onChange={(m, v) => setMonthField('dpo_monthly', m, v)}
-              onCommit={(m, lbl) => commitMonthField('dpo_monthly', m, lbl, 1)}
-              onAutofill={(val, lbl) => autofillField('dpo_monthly', val, lbl, 1)}
-            />
+            <DriverRow label="DSO — Days Sales Outstanding" info={DRIVER_INFO.dso}
+                       monthInts={monthInts} actualsMonths={actualsMonths} {...wcRow('dso_monthly')} />
+            <DriverRow label="DIO — Days Inventory Outstanding" info={DRIVER_INFO.dio}
+                       monthInts={monthInts} actualsMonths={actualsMonths} {...wcRow('dio_monthly')} />
+            <DriverRow label="DPO — Days Payable Outstanding" info={DRIVER_INFO.dpo}
+                       monthInts={monthInts} actualsMonths={actualsMonths} {...wcRow('dpo_monthly')} />
             <DriverRow
               label="Owner Distributions ($)" info={DRIVER_INFO.owner}
               compact
@@ -1155,6 +1171,7 @@ export default function ForecastDrivers() {
         </table>
         </div>
       </div>
+      <HScrollbar scrollRef={gridRef} />
     </main>
   )
 }

@@ -2,8 +2,11 @@
 > Last updated: 2026-09-11 (evening) | Shipped today: owner-distributions mapping (026, verified
 > against manual calcs), capex derived for actuals months, pinned month headers, Batch 4, the
 > spreadsheet-card restyle, Batch 5 (Action Plan → objectives with nested action items, 027), and
-> advisor-editable Scoreboard text (028). Combined smoke list for all of it is in SMOKE-TEST.md.
-> Next: user runs SMOKE-TEST.md on the Mac; then residual demo items → Phase 6b.
+> advisor-editable Scoreboard text (028). SMOKE-TEST.md sections 0–10 all passed on the Mac
+> (2026-09-12); section 11 holds the follow-ups built 2026-09-13 (scoreboard draw sign, days/$
+> toggle, always-visible scrollbar, forecast month cards + list view, popover flip, header ✓).
+> Parked from that pass: Scoreboard + Action Plan PDF layout → deliverables design pass.
+> Next: user runs section 11; then residual demo items → Phase 6b.
 
 ---
 

@@ -23,7 +23,17 @@ function useAnchoredPopover() {
   const toggle = () => {
     if (!open && btnRef.current) {
       const r = btnRef.current.getBoundingClientRect()
-      setPos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) })
+      const right = Math.max(8, window.innerWidth - r.right)
+      const below = window.innerHeight - r.bottom - 6
+      const above = r.top - 6
+      // Open upward when the space under the button is short and there's more
+      // room above (the last objective on a full screen). maxHeight keeps a
+      // long roster scrollable either way.
+      if (below < 300 && above > below) {
+        setPos({ bottom: window.innerHeight - r.top + 6, right, maxHeight: Math.min(above, 420) })
+      } else {
+        setPos({ top: r.bottom + 6, right, maxHeight: Math.min(below, 420) })
+      }
     }
     setOpen(o => !o)
   }
@@ -42,8 +52,8 @@ function Popover({ open, pos, onClose, width = 288, children }) {
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div
-        className="fixed z-50 bg-surface border border-border rounded-xl shadow-xl p-3"
-        style={{ top: pos.top, right: pos.right, width }}
+        className="fixed z-50 bg-surface border border-border rounded-xl shadow-xl p-3 overflow-y-auto"
+        style={{ top: pos.top, bottom: pos.bottom, right: pos.right, width, maxHeight: pos.maxHeight }}
       >
         {children}
       </div>

@@ -1,6 +1,14 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getForecastView } from '../api/forecast'
+import HScrollbar from '../components/HScrollbar'
+
+const MONTH_NAMES = ['', 'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December']
+// Grid (12 months across) or List (one month per row, each opening its card view).
+const VIEW_KEY = 'ordobook.forecastView'
+const readView = () => { try { return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'grid' } catch { return 'grid' } }
+const storeView = (v) => { try { localStorage.setItem(VIEW_KEY, v) } catch {} }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -156,6 +164,10 @@ export default function ForecastReport() {
   const [periods, setPeriods] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [view, setView] = useState(readView)
+  const gridRef = useRef(null)
+  const switchView = (v) => { setView(v); storeView(v) }
+  const openMonth = (m) => navigate(`/clients/${id}/forecast/${fiscalYear}/month/${m}`)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -264,16 +276,61 @@ export default function ForecastReport() {
             {fiscalYear} · Dimmed values are confirmed actuals
           </p>
         </div>
-        <button
-          onClick={() => navigate(`/clients/${id}/workspace/forecast/${year}`)}
-          className="px-4 py-1.5 rounded text-[12px] font-medium border transition-colors"
-          style={{ borderColor: S.border, color: S.textSecondary, background: S.surface }}
-        >
-          ← Edit Drivers
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded overflow-hidden" style={{ border: `1px solid ${S.border}` }}>
+            {[['grid', 'Grid'], ['list', 'List View']].map(([v, label]) => (
+              <button key={v} onClick={() => switchView(v)}
+                      className="px-3 py-1.5 text-[12px] font-medium transition-colors"
+                      style={view === v ? { background: S.gold, color: '#1a1918' } : { color: S.textSecondary, background: S.surface }}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => navigate(`/clients/${id}/workspace/forecast/${year}`)}
+            className="px-4 py-1.5 rounded text-[12px] font-medium border transition-colors"
+            style={{ borderColor: S.border, color: S.textSecondary, background: S.surface }}
+          >
+            ← Edit Drivers
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 min-h-0 px-8 pb-16 overflow-auto scroll-visible">
+      {view === 'list' && (
+        <div className="flex-1 min-h-0 px-8 pb-16 overflow-auto">
+          <div className="max-w-2xl grid gap-2">
+            {ordered.map((p, i) => (
+              <button key={i} onClick={() => openMonth(i + 1)} disabled={!p}
+                      className="w-full text-left rounded-xl px-5 py-3.5 transition-all group disabled:opacity-50"
+                      style={{ background: S.surface, border: `1px solid ${S.border}` }}>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="font-display font-semibold" style={{ color: S.text }}>{MONTH_NAMES[i + 1]} {fiscalYear}</span>
+                    <span className="font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded border"
+                          style={p?.source_type === 'actual'
+                            ? { color: S.textMuted, borderColor: S.border }
+                            : { color: S.goldDim ?? '#a07a3a', borderColor: 'rgba(200,169,110,0.35)' }}>
+                      {p ? (p.source_type === 'actual' ? 'actual' : 'forecast') : 'no data'}
+                    </span>
+                  </div>
+                  {p && (
+                    <div className="flex items-center gap-6 font-mono text-[12px]" style={{ color: S.textSecondary }}>
+                      <span>Rev <b style={{ color: S.text }}>{fmt(p.revenue)}</b></span>
+                      <span>NP <b style={{ color: S.text }}>{fmt(p.net_profit)}</b></span>
+                      <span>NCF <b style={{ color: S.text }}>{fmt(p.net_cash_flow)}</b></span>
+                      <span className="group-hover:text-[#c8a96e] transition-colors">→</span>
+                    </div>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {view === 'grid' && (<>
+
+      <div ref={gridRef} className="flex-1 min-h-0 px-8 pb-16 overflow-auto scroll-visible">
         <div className="rounded-xl" style={{ background: S.surface, border: `1px solid ${S.border}` }}>
         <table className="w-full border-collapse" style={{ minWidth: 960 }}>
 
@@ -289,7 +346,11 @@ export default function ForecastReport() {
                       color: actualsMonths.has(i + 1) ? S.actualsText : S.textSecondary,
                       minWidth: 58,
                     }}>
-                  {m}
+                  <button type="button" onClick={() => openMonth(i + 1)}
+                          title={`Open ${m} ${fiscalYear} as a single-month view`}
+                          className="hover:underline decoration-dashed underline-offset-2" style={{ color: 'inherit' }}>
+                    {m}
+                  </button>
                   {actualsMonths.has(i + 1) && (
                     <span className="ml-0.5 text-[8px]" style={{ color: S.textMuted }}>✓</span>
                   )}
@@ -407,6 +468,8 @@ export default function ForecastReport() {
         </table>
         </div>
       </div>
+      <HScrollbar scrollRef={gridRef} />
+      </>)}
     </main>
   )
 }

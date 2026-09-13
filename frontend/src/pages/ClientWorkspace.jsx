@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getClient } from '../api/clients'
 import { getActuals, getActualsDetail, updateActuals, getMappingReviewData } from '../api/ingestion'
 import { calculateForecast } from '../api/forecast'
 import { ActualsGrid } from './ActualsHistory'
+import HScrollbar from '../components/HScrollbar'
 
 const MONTH_NAMES = ['', 'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December']
@@ -28,6 +29,7 @@ export default function ClientWorkspace() {
   const [year, setYear] = useState(null)
   const [details, setDetails] = useState([])       // full records for the selected year
   const [loadingYear, setLoadingYear] = useState(false)
+  const gridRef = useRef(null)
 
   const load = useCallback(async () => {
     try {
@@ -211,7 +213,7 @@ export default function ClientWorkspace() {
               {loadingYear ? 'loading…' : `${details.length} month${details.length !== 1 ? 's' : ''} · click a month to open it`}
             </span>
           </div>
-          <div className="flex-1 min-h-0 px-8 pb-16 overflow-auto scroll-visible">
+          <div ref={gridRef} className="flex-1 min-h-0 px-8 pb-16 overflow-auto scroll-visible">
             {details.length > 0 && (
               <ActualsGrid
                 periods={details}
@@ -219,6 +221,7 @@ export default function ClientWorkspace() {
               />
             )}
           </div>
+          <HScrollbar scrollRef={gridRef} />
         </>
       )}
 
