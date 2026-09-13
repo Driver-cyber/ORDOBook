@@ -33,7 +33,7 @@ const DRIVER_ROWS = [
   { key: 'overhead',            label: 'Overhead',            type: 'dollars' },
   { key: 'other_income_expense',label: 'Other Income/Exp',    type: 'dollars_signed' },
   { key: '_sep_cf',             label: 'CASH FLOW',           type: 'section' },
-  { key: 'owner_draws',         label: 'Owner Draws',         type: 'dollars' },
+  { key: 'owner_draws',         label: 'Owner Investments / (Draws)', type: 'dollars' },
   { key: 'dso',                 label: 'DSO (days)',           type: 'days'    },
   { key: 'dio',                 label: 'DIO (days)',           type: 'days'    },
   { key: 'dpo',                 label: 'DPO (days)',           type: 'days'    },
@@ -49,7 +49,7 @@ const RESULT_ROWS = [
   { key: 'net_operating_profit', label: 'Net Op Profit',      type: 'cents', highlight: true },
   { key: 'other_income_expense', label: 'Other Inc/Exp',      type: 'cents_signed' },
   { key: 'net_profit',         label: 'Net Profit',           type: 'cents', highlight: true },
-  { key: 'owner_total_draws',  label: 'Owner Draws',          type: 'cents' },
+  { key: 'owner_total_draws',  label: 'Owner Investments / (Draws)', type: 'cents' },
   { key: 'net_cash_flow',      label: 'Net Cash Flow',        type: 'cents', highlight: true },
 ]
 

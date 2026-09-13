@@ -124,17 +124,17 @@ function InfoTip({ title, text }) {
 // as cash (borrowing positive); asset changes as the balance movement.
 const DRIVER_INFO = {
   dso: { title: 'DSO — Days Sales Outstanding',
-    text: 'How many days of revenue are sitting in Accounts Receivable. The month\'s AR balance is projected as Revenue × DSO ÷ 30. AR going up ties cash up; AR coming down releases it. Actuals months show the days implied by the imported balance.' },
+    text: 'How many days of revenue are sitting in Accounts Receivable. The month\'s AR balance is projected as Revenue × DSO ÷ 30 (the $ view shows that balance). The cash effect is the Δ row beneath: AR going up ties cash up (negative); AR coming down releases it. Actuals months show the imported balance.' },
   dio: { title: 'DIO — Days Inventory Outstanding',
     text: 'How many days of Cost of Sales are held as inventory. The balance is projected as COS × DIO ÷ 30. More inventory uses cash; less releases it. Actuals months show the days implied by the imported balance.' },
   dpo: { title: 'DPO — Days Payable Outstanding',
     text: 'How many days of Cost of Sales are owed to suppliers. Accounts Payable is projected as COS × DPO ÷ 30. A larger AP balance keeps cash in the business; paying suppliers faster uses it. Actuals months show the days implied by the imported balance.' },
-  owner: { title: 'Owner Distributions',
-    text: 'Cash paid out to the owner in the month. Enter draws as a positive number — it is subtracted from Net Cash Flow. Enter money the owner puts in as a negative number. Actuals months derive it from the month-over-month change in the mapped "Owner Investments / (Distributions)" balance.' },
+  owner: { title: 'Owner Investments / (Draws)',
+    text: 'Cash between the business and the owner, as cash: a draw is NEGATIVE (cash out), money the owner puts in is positive. It adds straight into Net Cash Flow. Actuals months derive it from the month-over-month change in the mapped "Owner Investments / (Distributions)" balance.' },
   capex: { title: 'Capital Expenditures',
-    text: 'Purchases of fixed assets. Positive = a purchase: cash out, added to Fixed Assets on the projected balance sheet. Negative = a sale or disposal. Actuals months derive it as the change in net fixed assets plus that month\'s depreciation.' },
+    text: 'Fixed-asset purchases and disposals, as cash: a purchase is NEGATIVE (cash out) and raises Fixed Assets on the projected balance sheet; a sale is positive. Actuals months derive it from the change in net fixed assets plus that month\'s depreciation.' },
   oca: { title: 'Other Current Assets Δ',
-    text: 'Change in other current assets (deposits, prepaids, etc.). Positive = the balance grows, which uses cash. Negative = the balance shrinks, which releases cash. Actuals months use the change in the imported balance.' },
+    text: 'Change in other current assets (deposits, prepaids, etc.), as cash: NEGATIVE when the balance grows (cash tied up), positive when it shrinks (cash released). Actuals months use the change in the imported balance.' },
   currentDebt: { title: 'Current Debt Change',
     text: 'Change in credit cards and other current liabilities, entered as cash. Positive = new borrowing, cash in. Negative = repayment, cash out. Actuals months use the change in the imported balance.' },
   ltd: { title: 'Long-Term Debt Change',
@@ -169,7 +169,6 @@ function DriverInput({ value, display, onChange, onCommit, step = 1, placeholder
       ref={ref}
       type={resting ? 'text' : 'number'}
       readOnly={resting}
-      min="0"
       step={step}
       placeholder={placeholder}
       value={resting ? display : local}
@@ -333,6 +332,23 @@ function CalcRow({ label, periods, field, fields, highlight = false, sublabel, f
       <td className="text-right px-2 py-2 font-mono text-[12px] font-semibold" style={{ color }}>
         {totalText}
       </td>
+    </tr>
+  )
+}
+
+// Read-only derived row whose cells the caller has already formatted.
+function DeltaRow({ label, sub, cells, ytd }) {
+  return (
+    <tr style={{ borderBottom: `1px solid ${S.rowLine}` }}>
+      <td />
+      <td className="px-3 py-1.5 text-[12px] pl-7" style={{ color: S.textSecondary, width: 210 }}>
+        {label}
+        {sub && <span className="block text-[10px]" style={{ color: S.textMuted }}>{sub}</span>}
+      </td>
+      {cells.map((c, i) => (
+        <td key={i} className="text-right px-2 py-1.5 font-mono text-[12px]" style={{ color: S.textSecondary, minWidth: 58 }}>{c}</td>
+      ))}
+      <td className="text-right px-2 py-1.5 font-mono text-[12px]" style={{ color: S.textMuted }}>{ytd}</td>
     </tr>
   )
 }
@@ -694,6 +710,23 @@ export default function ForecastDrivers() {
     const base = periodByMonth[m]?.[WC[f].base] ?? 0
     if (base <= 0) return
     setMonthField(f, m, String(Math.round((Number(v) || 0) * 100 / base * 30)), 1)
+  }
+  // Δ rows under DSO/DIO/DPO. `sign` turns the stored BALANCE delta into cash:
+  // an asset growing uses cash (-1), a liability growing frees it (+1). In days
+  // mode the row shows the change in days from the month before.
+  const wcDelta = (f, changeField, sign) => {
+    const dollar = wcMode(f) === 'dollar'
+    const cells = monthInts.map(m => {
+      const p = periodByMonth[m]
+      if (!p) return '—'
+      if (dollar) return fmt(sign * (p[changeField] ?? 0))
+      const prev = periodByMonth[m - 1]?.[WC[f].days]
+      if (prev === undefined || prev === null) return '—'
+      const d = (p[WC[f].days] ?? 0) - prev
+      return `${d > 0 ? '+' : ''}${d} d`
+    })
+    const ytd = dollar ? fmt(monthInts.reduce((s, m) => s + sign * (periodByMonth[m]?.[changeField] ?? 0), 0)) : '—'
+    return { cells, ytd }
   }
   const firstForecastMonth = monthInts.find(m => !actualsMonths.has(m))
   const wcRow = (f) => ({
@@ -1087,15 +1120,20 @@ export default function ForecastDrivers() {
             {/* ══ CASH FLOW ══════════════════════════════════════════════════════ */}
             <SectionHeader label="Cash Flow" />
 
-            <SubHeader label="Working Capital" />
+            <SubHeader label="Working Capital · every line below sums from Net Profit to Net Cash Flow" />
             <DriverRow label="DSO — Days Sales Outstanding" info={DRIVER_INFO.dso}
                        monthInts={monthInts} actualsMonths={actualsMonths} {...wcRow('dso_monthly')} />
             <DriverRow label="DIO — Days Inventory Outstanding" info={DRIVER_INFO.dio}
                        monthInts={monthInts} actualsMonths={actualsMonths} {...wcRow('dio_monthly')} />
             <DriverRow label="DPO — Days Payable Outstanding" info={DRIVER_INFO.dpo}
                        monthInts={monthInts} actualsMonths={actualsMonths} {...wcRow('dpo_monthly')} />
+            {/* Cash effect of the days rows — the lines that actually sum into Net Cash
+                Flow. Each follows its parent's toggle: Δ days, or Δ balance as cash. */}
+            <DeltaRow label="Δ Accounts Receivable" sub="cash effect of DSO" {...wcDelta('dso_monthly', 'ar_change', -1)} />
+            <DeltaRow label="Δ Inventory"           sub="cash effect of DIO" {...wcDelta('dio_monthly', 'inventory_change', -1)} />
+            <DeltaRow label="Δ Accounts Payable"    sub="cash effect of DPO" {...wcDelta('dpo_monthly', 'ap_change', +1)} />
             <DriverRow
-              label="Owner Distributions ($)" info={DRIVER_INFO.owner}
+              label="Owner Investments / (Draws) ($)" info={DRIVER_INFO.owner}
               compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('owner_distributions', m)}
@@ -1106,7 +1144,7 @@ export default function ForecastDrivers() {
               onAutofill={(val, lbl) => autofillField('owner_distributions', val, lbl, 100)}
             />
 
-            <SubHeader label="Investing & Financing" />
+            <SubHeader label="Investing & Financing · cash sign: negative uses cash, positive adds it" />
             <DriverRow
               label="Capital Expenditures ($)" info={DRIVER_INFO.capex}
               compact

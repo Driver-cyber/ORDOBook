@@ -238,17 +238,20 @@ export default function ForecastReport() {
     isActual: p?.source_type === 'actual',
   }))
 
-  // Stored delta fields — build cell from stored field (sign already correct from engine)
-  const deltaCell = (p, field) => {
+  // Every cash-flow line reads as SIGNED CASH (negative uses cash). ar/inventory/
+  // ap_change are stored as balance deltas, so the asset ones flip here; the
+  // owner / capex / OCA / debt fields are stored signed already (migration 029).
+  const deltaCell = (p, field, sign = 1) => {
     if (!p) return { display: '—', isActual: false, trace: null }
     return {
-      display: fmt(p[field] ?? 0),
+      display: fmt(sign * (p[field] ?? 0)),
       isActual: p.source_type === 'actual',
       trace: p.source_type === 'actual' ? 'Confirmed actual' : null,
     }
   }
-  const arChangeCells  = ordered.map(p => deltaCell(p, 'ar_change'))
-  const invChangeCells = ordered.map(p => deltaCell(p, 'inventory_change'))
+  const ytdSigned = (field, sign) => fmt(ordered.reduce((s, p) => s + sign * (p?.[field] ?? 0), 0))
+  const arChangeCells  = ordered.map(p => deltaCell(p, 'ar_change', -1))
+  const invChangeCells = ordered.map(p => deltaCell(p, 'inventory_change', -1))
   const apChangeCells  = ordered.map(p => deltaCell(p, 'ap_change'))
   const capexCells     = ordered.map(p => deltaCell(p, 'capex'))
   const otherCaCells   = ordered.map(p => deltaCell(p, 'other_current_assets_change'))
@@ -405,11 +408,11 @@ export default function ForecastReport() {
             {/* ══ CASH FLOW ════════════════════════════════════════════════════ */}
             <SectionHeader label="Cash Flow" />
 
-            <SubHeader label="Working Capital" />
-            <DataRow label="AR Change"           values={arChangeCells}  ytd={ytd('ar_change')} muted />
-            <DataRow label="Inventory Change"    values={invChangeCells} ytd={ytd('inventory_change')} muted />
-            <DataRow label="AP Change"           values={apChangeCells}  ytd={ytd('ap_change')} muted />
-            <DataRow label="Owner Distributions" values={ordered.map(p => cell(p, 'owner_distributions'))} ytd={ytd('owner_distributions')} />
+            <SubHeader label="Working Capital · signed cash: negative uses cash" />
+            <DataRow label="Δ Accounts Receivable" values={arChangeCells}  ytd={ytdSigned('ar_change', -1)} muted />
+            <DataRow label="Δ Inventory"           values={invChangeCells} ytd={ytdSigned('inventory_change', -1)} muted />
+            <DataRow label="Δ Accounts Payable"    values={apChangeCells}  ytd={ytd('ap_change')} muted />
+            <DataRow label="Owner Investments / (Draws)" values={ordered.map(p => cell(p, 'owner_distributions'))} ytd={ytd('owner_distributions')} />
 
             <SubHeader label="Investing & Financing" />
             <DataRow label="CapEx"                  values={capexCells}    ytd={ytd('capex')} muted />

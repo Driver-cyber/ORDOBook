@@ -151,15 +151,15 @@ export default function ForecastMonth() {
             <div className="space-y-6">
               <Card title="Cash Flow">
                 <Row label="Net Profit" value={p.net_profit} />
-                <Row label="Owner Distributions" value={-(p.owner_distributions ?? 0)} />
+                <Row label="Owner Investments / (Draws)" value={p.owner_distributions} />
                 <SectionHeader label="Working Capital" />
                 <Row label="AR Change" value={-(p.ar_change ?? 0)} />
                 <Row label="Inventory Change" value={-(p.inventory_change ?? 0)} />
                 <Row label="AP Change" value={p.ap_change} />
                 <Row label="DSO / DIO / DPO" text={`${p.dso_days}d / ${p.dio_days}d / ${p.dpo_days}d`} />
                 <SectionHeader label="Investing & Financing" />
-                <Row label="Capital Expenditures" value={-(p.capex ?? 0)} />
-                <Row label="Other Current Assets Δ" value={-(p.other_current_assets_change ?? 0)} />
+                <Row label="Capital Expenditures" value={p.capex} />
+                <Row label="Other Current Assets Δ" value={p.other_current_assets_change} />
                 <Row label="Current Debt Change" value={p.current_debt_change} />
                 <Row label="Long-Term Debt Change" value={p.long_term_debt_change} />
                 <Row label="Net Cash Flow" value={p.net_cash_flow} calculated />

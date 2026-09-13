@@ -46,7 +46,7 @@ see `026 -> 027` and `027 -> 028`.
 - [ ] Hit **Sync Actuals** once (needed so capex fills in for already-imported months).
 - [ ] Capex row: Feb 2026 reads 126 if no depreciation was booked that month, otherwise 126 plus
       that month's depreciation. A dash only appears for a month with no prior balance.
-- [ ] Owner Distributions row shows the derived monthly draw in actuals months (positive = draw)
+- [ ] Owner Distributions row shows the derived monthly draw in actuals months (now NEGATIVE = draw, see §12)
       and matches your manual calc for January and after.
 - [ ] Net Cash Flow in actuals months moved by the draw and capex amounts.
 - [ ] Month header pins while scrolling; the page title and buttons stay put above the grid.
@@ -122,6 +122,30 @@ Pull, relaunch, then:
       row opens its month card. The choice sticks after reload.
 - [ ] **Action Plan:** on the last objective on a full screen, "+ owner" opens the picker UPWARD
       and it is fully visible; a long roster scrolls inside it.
+
+## 12. Signed cash on the Forecast (2026-09-13, migration 029)
+
+Pull, relaunch (029 flips the stored signs so every figure keeps its size), then on the
+Workspace Forecast:
+
+- [ ] Backend log shows `028 -> 029`. Hit **Sync Actuals** once.
+- [ ] Owner Investments / (Draws): actuals months read NEGATIVE for a draw (e.g. Jan $-7.7k). Type
+      `-5000` in a forecast month: it saves and Net Cash Flow for that month drops by 5,000.
+- [ ] Capex: Feb 2026 reads $-126 (a purchase). Type `-3000` in a forecast month: Net Cash Flow
+      drops by 3,000 and the projected Fixed Assets line rises by 3,000 less that month's
+      depreciation.
+- [ ] Other Current Assets Δ: type `-1000`: Net Cash Flow drops 1,000, projected Other Current
+      Assets rises 1,000.
+- [ ] Debt rows unchanged: a positive entry raises Net Cash Flow.
+- [ ] Three new rows under DPO: Δ Accounts Receivable, Δ Inventory, Δ Accounts Payable. In `$`
+      mode they are cash (AR up → negative). Flip a parent row to `days` and its Δ row shows the
+      change in days from the month before.
+- [ ] **The section foots:** for any forecast month, Net Profit + Owner + ΔAR + ΔInv + ΔAP + Capex
+      + ΔOCA + Current Debt + LT Debt (all as displayed in `$`) = Net Cash Flow. Check one actuals
+      month and one forecast month by hand.
+- [ ] Forecast Report: same rows, same signs, "Owner Investments / (Draws)". Month card too.
+- [ ] Scoreboard / Report Card: Owner Investments/(Draws) still negative for draws (no double flip).
+      Scenario Sandbox: the field is now "Owner Investments / (Draws)" — enter a draw as negative.
 
 ## If something is off
 Note the screen, what you expected, and what you saw. Numbers first. A screenshot of the grid

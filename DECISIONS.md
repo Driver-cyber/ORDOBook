@@ -863,6 +863,19 @@ advisor text. These fields export; `scoreboard_entries.notes` stays private.
 **Reason:** Three sentences per client per month don't deserve a form. The advisor writes the
 conversation opener where the client will read it.
 
+### [2026-09-13] Every cash-flow line is signed cash (migration 029)
+**Decision:** Owner draws, capex and other-current-asset changes are stored, entered and shown as
+signed cash — negative uses cash, positive adds it — like the debt rows, Targets and the Scoreboard
+already were. Net Cash Flow is a straight sum from Net Profit down. The Forecast shows three
+derived Δ rows (AR, Inventory, AP) under the days drivers, following each row's `days | $` toggle
+(Δ days, or Δ balance as cash). `ar/inventory/ap_change` stay stored as balance deltas because the
+projected balance sheet needs them; their cash effect is applied at display and in the sum. The
+Scoreboard negation added 2026-09-13 morning was removed the same day; the Scenario Sandbox
+"Owner Draws" sign item is closed by the same change.
+**Reason:** With the `$` view on, the advisor could see the column didn't foot — three rows were
+"cash out positive", two were signed. One convention, one formula, and what you type is what you
+see. Stored drivers and periods were flipped in place so nothing changed numerically.
+
 ### [2026-09-11] Grids read like the month detail cards
 **Decision:** Forecast, Forecast Report and the Actuals year grid render in a white card with a
 hairline under every row, section headers as a faint band, totals in black on a faint band (not

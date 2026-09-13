@@ -55,16 +55,14 @@ def _get_metric_value(period: ForecastPeriod, key: str) -> int:
     if key == "total_jobs":
         return period.total_job_count or 0
     if key == "cf_assets_change":
-        # Increase in assets = cash outflow → negate so positive = cash favorable
-        return -((period.ar_change or 0) + (period.inventory_change or 0) + (period.other_current_assets_change or 0))
+        # ar/inventory_change are balance deltas (asset up = cash out → negate);
+        # other_current_assets_change is already signed cash (migration 029).
+        return -((period.ar_change or 0) + (period.inventory_change or 0)) + (period.other_current_assets_change or 0)
     if key == "cf_liabilities_change":
         # Increase in liabilities = cash inflow → positive = cash favorable
         return (period.ap_change or 0) + (period.current_debt_change or 0) + (period.long_term_debt_change or 0)
-    if key == "owner_total_draws":
-        # The period stores a draw as a positive amount (the Forecast row's own
-        # convention). The Scoreboard, Targets and the prior-year column all
-        # speak signed cash — draws negative, investments positive — so flip it.
-        return -(period.owner_total_draws or 0)
+    # owner_total_draws is stored as signed cash since migration 029 (draws
+    # negative), the same convention the target and prior-year column use.
     return getattr(period, key, 0) or 0
 
 

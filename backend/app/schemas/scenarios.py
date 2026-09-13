@@ -10,7 +10,7 @@ class ScenarioInput(BaseModel):
     marketing: int = 0             # annual cents
     overhead: int = 0              # annual cents
     other_income_expense: int = 0  # annual cents, signed (+income / -expense)
-    owner_draws: int = 0           # annual cents
+    owner_draws: int = 0           # annual cents, signed cash: a draw is NEGATIVE, an investment positive
     dso: int = 0                   # days
     dio: int = 0                   # days
     dpo: int = 0                   # days

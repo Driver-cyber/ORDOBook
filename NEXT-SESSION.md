@@ -5,8 +5,10 @@
 > advisor-editable Scoreboard text (028). SMOKE-TEST.md sections 0–10 all passed on the Mac
 > (2026-09-12); section 11 holds the follow-ups built 2026-09-13 (scoreboard draw sign, days/$
 > toggle, always-visible scrollbar, forecast month cards + list view, popover flip, header ✓).
-> Parked from that pass: Scoreboard + Action Plan PDF layout → deliverables design pass.
-> Next: user runs section 11; then residual demo items → Phase 6b.
+> Section 11 passed; its one note became migration 029: every cash-flow line is SIGNED CASH
+> (draws / purchases negative), Δ AR / Inventory / AP rows under the days drivers, section foots.
+> Parked: Scoreboard + Action Plan PDF layout → deliverables design pass.
+> Next: user runs section 12; then residual demo items → Phase 6b.
 
 ---
 

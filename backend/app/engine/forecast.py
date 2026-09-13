@@ -120,35 +120,36 @@ def _period_from_actuals(month: int, actuals: dict, prior_projected: dict | None
     curr_debt_change = current_debt - prior.get("projected_current_debt", 0)
     lt_debt_change = lt_debt - prior.get("projected_long_term_debt", 0)
 
-    # CapEx from the balance sheet: fixed assets are carried net of accumulated
-    # depreciation, so Δ net fixed assets = purchases − depreciation, and
-    # purchases = Δ + this month's depreciation. Positive = cash out, matching
-    # the forecast branch; a disposal shows up as negative. Needs last month's
-    # balance — without one (first month, no prior December) it stays 0.
+    # CapEx from the balance sheet, as SIGNED CASH: fixed assets are carried net
+    # of accumulated depreciation, so purchases = Δ net fixed assets + this
+    # month's depreciation, and a purchase uses cash → negative. A disposal reads
+    # positive. Needs last month's balance — without one (first month, no prior
+    # December) it stays 0.
     fixed_assets = actuals.get("total_fixed_assets", 0)
     prior_fixed = prior.get("projected_fixed_assets")
-    capex = (fixed_assets - prior_fixed + depreciation) if prior_fixed is not None else 0
+    capex = -(fixed_assets - prior_fixed + depreciation) if prior_fixed is not None else 0
+
+    # Other current assets as signed cash: the balance growing uses cash.
+    other_ca_change = -other_ca_change
 
     # Owner activity. The actuals column holds QB's signed YTD equity balance for
     # draws / distributions / contributions (draws negative), which resets each
     # fiscal year. This month's activity is the change in that balance; January
-    # measures against 0. Stored the way the forecast branch stores it: a
-    # positive draw amount that is subtracted from net cash (an investment is
-    # negative here and adds cash).
+    # measures against 0. Already signed cash: a draw is negative, an investment
+    # positive — the same convention the forecast branch stores.
     owner_balance = actuals.get("owner_distributions", 0) or 0
     prior_owner_balance = prior.get("owner_distributions_balance", 0) or 0
-    owner_activity = owner_balance - prior_owner_balance   # signed, draws negative
-    distributions = -owner_activity                          # positive = cash out
+    distributions = owner_balance - prior_owner_balance   # signed cash, draws negative
 
-    # Full cash flow: net_profit − owner draws ± working capital ± investing ± financing
+    # Full cash flow: net profit plus every signed cash line
     net_cash = (
         net_profit
-        - distributions
+        + distributions
         - ar_change
         - inventory_change
         + ap_change
-        - capex
-        - other_ca_change
+        + capex
+        + other_ca_change
         + curr_debt_change
         + lt_debt_change
     )
@@ -213,7 +214,7 @@ def _period_from_actuals(month: int, actuals: dict, prior_projected: dict | None
             "note": "Values copied directly from confirmed actuals — balance-sheet deltas and owner activity derived from them.",
             "owner_draws": {
                 "value": distributions,
-                "formula": "-(owner_distributions balance - prior month balance)",
+                "formula": "owner_distributions balance - prior month balance (signed cash)",
                 "components": [
                     {"label": "Owner activity balance (YTD, signed)", "value": owner_balance, "source": "actual"},
                     {"label": "Prior month balance", "value": prior_owner_balance, "source": "actual"},
@@ -221,7 +222,7 @@ def _period_from_actuals(month: int, actuals: dict, prior_projected: dict | None
             },
             "capex": {
                 "value": capex,
-                "formula": "net fixed assets - prior month net fixed assets + depreciation",
+                "formula": "-(net fixed assets - prior month net fixed assets + depreciation)  (signed cash)",
                 "components": [
                     {"label": "Net fixed assets", "value": fixed_assets, "source": "actual"},
                     {"label": "Prior month net fixed assets", "value": prior_fixed, "source": "actual"},
@@ -327,6 +328,11 @@ def _period_from_drivers(month: int, config: dict, prior_projected: dict | None 
     dio = int(config.get("dio_monthly", {}).get(month_key, 0))
     dpo = int(config.get("dpo_monthly", {}).get(month_key, 0))
 
+    # Every cash-flow driver is SIGNED CASH (migration 029): positive adds cash,
+    # negative uses it. A draw, a purchase, a growing other-current-asset balance
+    # and a debt repayment are all negative; an owner investment, a disposal, a
+    # shrinking OCA balance and new borrowing are positive. The section then sums
+    # straight down from net profit to net cash flow.
     distributions = Decimal(config.get("owner_distributions", {}).get(month_key, 0))
     tax_savings = Decimal(0)  # folded into distributions (migration 023)
 
@@ -340,8 +346,8 @@ def _period_from_drivers(month: int, config: dict, prior_projected: dict | None 
     curr_debt_change = int(config.get("current_debt_change_monthly", {}).get(month_key, 0))
     lt_debt_change = int(config.get("long_term_debt_change_monthly", {}).get(month_key, 0))
 
-    # Running balance projections
-    proj_other_ca = prior.get("projected_other_current_assets", 0) + other_ca_change
+    # Running balance projections (a negative cash change means the asset grew)
+    proj_other_ca = prior.get("projected_other_current_assets", 0) - other_ca_change
     proj_curr_debt = prior.get("projected_current_debt", 0) + curr_debt_change
     proj_lt_debt = prior.get("projected_long_term_debt", 0) + lt_debt_change
 
@@ -350,23 +356,26 @@ def _period_from_drivers(month: int, config: dict, prior_projected: dict | None 
     inventory_change = projected_inventory_val - prior.get("projected_inventory", 0)
     ap_change = projected_ap - prior.get("projected_ap", 0)
 
-    # Full cash flow formula
+    # Full cash flow: net profit, then every signed cash line added. ar/inventory/
+    # ap_change are BALANCE deltas (the quantities the balance sheet needs), so
+    # their cash effect is applied here: an asset growing uses cash, a liability
+    # growing frees it.
     net_cash = int(
         net_profit
-        - distributions
+        + distributions
         - tax_savings
         - ar_change
         - inventory_change
         + ap_change
-        - capex
-        - other_ca_change
+        + capex
+        + other_ca_change
         + curr_debt_change
         + lt_debt_change
     )
 
     # --- Phase 3d: forward balance sheet projections ---
     proj_cash = prior.get("projected_cash", 0) + net_cash
-    proj_fixed = max(0, prior.get("projected_fixed_assets", 0) - int(depreciation) + capex)
+    proj_fixed = max(0, prior.get("projected_fixed_assets", 0) - int(depreciation) - capex)
     proj_other_lt = prior.get("projected_other_lt_assets", 0)  # flat — no driver yet
 
     proj_total_ca = proj_cash + projected_ar + projected_inventory_val + proj_other_ca
