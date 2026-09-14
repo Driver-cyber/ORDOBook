@@ -141,6 +141,13 @@ const DRIVER_INFO = {
     text: 'Change in long-term debt, entered as cash. Positive = new loan proceeds, cash in. Negative = principal repayment, cash out. Actuals months use the change in the imported balance.' },
 }
 
+// The derived Δ rows under the days drivers.
+const DELTA_INFO = {
+  ar:  { title: 'Δ Accounts Receivable', text: 'The cash effect of DSO: this month\'s AR balance minus last month\'s, as cash. AR growing ties cash up (negative); AR falling releases it (positive). In days mode the row shows the change in DSO from the month before.' },
+  inv: { title: 'Δ Inventory', text: 'The cash effect of DIO: this month\'s inventory balance minus last month\'s, as cash. More inventory uses cash (negative); less releases it. In days mode the row shows the change in DIO from the month before.' },
+  ap:  { title: 'Δ Accounts Payable', text: 'The cash effect of DPO: this month\'s AP balance minus last month\'s, as cash. A larger AP balance keeps cash in the business (positive); paying suppliers down uses it. In days mode the row shows the change in DPO from the month before.' },
+}
+
 // ── Shared input style ────────────────────────────────────────────────────────
 
 const inputStyle = {
@@ -337,13 +344,15 @@ function CalcRow({ label, periods, field, fields, highlight = false, sublabel, f
 }
 
 // Read-only derived row whose cells the caller has already formatted.
-function DeltaRow({ label, sub, cells, ytd }) {
+function DeltaRow({ label, info, cells, ytd }) {
   return (
     <tr style={{ borderBottom: `1px solid ${S.rowLine}` }}>
       <td />
       <td className="px-3 py-1.5 text-[12px] pl-7" style={{ color: S.textSecondary, width: 210 }}>
-        {label}
-        {sub && <span className="block text-[10px]" style={{ color: S.textMuted }}>{sub}</span>}
+        <span className="inline-flex items-center gap-x-2">
+          <span>{label}</span>
+          {info && <InfoTip title={info.title} text={info.text} />}
+        </span>
       </td>
       {cells.map((c, i) => (
         <td key={i} className="text-right px-2 py-1.5 font-mono text-[12px]" style={{ color: S.textSecondary, minWidth: 58 }}>{c}</td>
@@ -1050,7 +1059,7 @@ export default function ForecastDrivers() {
               mode={modeOf('total_payroll')} onToggleMode={md => setMode('total_payroll', md)} />
 
             {/* ══ OTHER EXPENSES ════════════════════════════════════════════════ */}
-            <SectionHeader label="Other Expenses" />
+            <SectionHeader label="Overhead Expenses" />
 
             <DriverRow
               label="Marketing / Advertising ($)"
@@ -1086,7 +1095,7 @@ export default function ForecastDrivers() {
               onAutofill={(val, lbl) => autofillField('other_overhead_monthly', val, lbl, 100)}
             />
             <CalcRow
-              label="Total Other Expenses"
+              label="Total Overhead Expenses"
               periods={orderedPeriods}
               field="total_other_expenses"
               sublabel="Marketing + Depreciation + Overhead"
@@ -1123,13 +1132,13 @@ export default function ForecastDrivers() {
             <SubHeader label="Working Capital · every line below sums from Net Profit to Net Cash Flow" />
             <DriverRow label="DSO — Days Sales Outstanding" info={DRIVER_INFO.dso}
                        monthInts={monthInts} actualsMonths={actualsMonths} {...wcRow('dso_monthly')} />
-            <DeltaRow label="Δ Accounts Receivable" sub="cash effect of DSO" {...wcDelta('dso_monthly', 'ar_change', -1)} />
+            <DeltaRow label="Δ Accounts Receivable" info={DELTA_INFO.ar} {...wcDelta('dso_monthly', 'ar_change', -1)} />
             <DriverRow label="DIO — Days Inventory Outstanding" info={DRIVER_INFO.dio}
                        monthInts={monthInts} actualsMonths={actualsMonths} {...wcRow('dio_monthly')} />
-            <DeltaRow label="Δ Inventory"           sub="cash effect of DIO" {...wcDelta('dio_monthly', 'inventory_change', -1)} />
+            <DeltaRow label="Δ Inventory"           info={DELTA_INFO.inv} {...wcDelta('dio_monthly', 'inventory_change', -1)} />
             <DriverRow label="DPO — Days Payable Outstanding" info={DRIVER_INFO.dpo}
                        monthInts={monthInts} actualsMonths={actualsMonths} {...wcRow('dpo_monthly')} />
-            <DeltaRow label="Δ Accounts Payable"    sub="cash effect of DPO" {...wcDelta('dpo_monthly', 'ap_change', +1)} />
+            <DeltaRow label="Δ Accounts Payable"    info={DELTA_INFO.ap} {...wcDelta('dpo_monthly', 'ap_change', +1)} />
             <DriverRow
               label="Owner Investments / (Draws) ($)" info={DRIVER_INFO.owner}
               compact

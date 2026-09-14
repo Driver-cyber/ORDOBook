@@ -386,7 +386,7 @@ export default function ForecastReport() {
             <DataRow label="Marketing / Advertising" values={ordered.map(p => cell(p, 'marketing_expenses'))} ytd={ytd('marketing_expenses')} indent />
             <DataRow label="Depreciation & Amort." values={ordered.map(p => cell(p, 'depreciation_amortization'))} ytd={ytd('depreciation_amortization')} indent />
             <DataRow label="Other Overhead" values={ordered.map(p => cell(p, 'overhead_expenses'))} ytd={ytd('overhead_expenses')} indent />
-            <DataRow label="Total Other Expenses" values={ordered.map(p => cell(p, 'total_other_expenses'))} ytd={ytd('total_other_expenses')} />
+            <DataRow label="Total Overhead Expenses" values={ordered.map(p => cell(p, 'total_other_expenses'))} ytd={ytd('total_other_expenses')} />
             <DataRow
               label="Total Operating Expenses"
               values={ordered.map(p => ({
