@@ -867,6 +867,25 @@ advisor text. These fields export; `scoreboard_entries.notes` stays private.
 **Reason:** Three sentences per client per month don't deserve a form. The advisor writes the
 conversation opener where the client will read it.
 
+### [2026-09-14] Overhead is the direct sum of its accounts; "Excluded" retired (030)
+**Decision:** Every account maps to exactly one category, and each category is the direct sum of
+the accounts mapped to it, whatever statement section they came from. `total_expenses` = payroll +
+marketing + depreciation + overhead. The "Excluded" mapping option is gone; migration 030 gives
+every excluded account a real category from its section. `app/engine/category_totals.py` is the
+single source of truth for stored totals — `confirm_import` recomputes there from the raw rows and
+the browser keeps a mirror for live preview only. "Re-apply Mapping" (Workspace → Actuals) replays
+the arithmetic for every stored month from its audit-trail rows and reports each month whose net
+profit moved.
+**Reason:** this REVERSES the plug defined on 2026-04-09 (migration 020). The plug — QB's Total
+Expenses less the three named buckets — guaranteed net profit tied to QB's net income however
+accounts were mapped, but it double-counted any expense-section account mapped to Cost of Sales,
+silently dropped any COGS-section account mapped to Overhead, and made "Excluded" a lie (the name
+was hidden, the dollars still flowed into the plug). With nothing excludable, the direct sum ties
+to QB by construction because every P&L dollar is counted exactly once — and it can be audited
+line by line, which is what the Overhead schedule drills into. The advisor confirmed nothing needs
+genuine exclusion and that a corrected net profit beats a stored one.
+**Note:** CLAUDE.md's "Overhead is a plug/residual" rule is superseded by this entry.
+
 ### [2026-09-13] Every cash-flow line is signed cash (migration 029)
 **Decision:** Owner draws, capex and other-current-asset changes are stored, entered and shown as
 signed cash — negative uses cash, positive adds it — like the debt rows, Targets and the Scoreboard

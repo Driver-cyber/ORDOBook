@@ -154,6 +154,53 @@ Then on the Workspace Forecast:
 - [ ] Scoreboard / Report Card: Owner Investments/(Draws) still negative for draws (no double flip).
       Scenario Sandbox: the field is now "Owner Investments / (Draws)" — enter a draw as negative.
 
+## 13. Overhead drill-down — Part A: one account, one category (migrations 030)
+
+Update, then relaunch. **Order matters here: do 13.1 before anything else**, because
+it restates stored months and every later check reads those figures.
+
+```bash
+cd "/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook"
+./ordobook-update.command
+```
+
+### 13.1 Re-apply the mapping (the one that moves numbers)
+- [ ] Backend log shows `029 -> 030`.
+- [ ] Workspace → Actuals → **Re-apply Mapping** → confirm. A gold panel reports how many
+      months were examined and how many changed, listing each month's net profit before and
+      after.
+- [ ] **Read that list against expectation.** A month should move only if it had an account
+      mapped across sections (an expense-section account sent to Cost of Sales was being
+      counted twice, so net profit goes UP by that amount) or an account you had marked
+      Excluded. Months where everything was mapped normally should not move at all.
+- [ ] Press it a second time: `0 changed`. It is idempotent.
+- [ ] Spot-check one changed month against the QuickBooks P&L: ORDOBOOK's net profit should
+      equal QuickBooks' net income.
+
+### 13.2 Excluded is gone
+- [ ] Review Mapping: the category dropdown no longer offers "Exclude this account".
+- [ ] Any account you had excluded now shows a real category — an expense-section one should
+      read Overhead Expenses, which is where its dollars were already landing.
+- [ ] The Category Totals preview still moves as you change a dropdown, and Total Expenses
+      equals Payroll + Marketing + Depreciation + Overhead.
+
+### 13.3 The overhead schedule
+- [ ] Workspace → Actuals grid: the **Overhead** figures are now clickable. Click one.
+- [ ] The schedule lists every account mapped to Overhead for that month, with Last Month and
+      a YTD Avg column (the header says how many months the average covers).
+- [ ] The total row equals the Overhead figure on the grid, and the line underneath says it
+      ties. If instead you get a gold "this schedule is X below/above the stored figure"
+      panel, you skipped 13.1 — go run it.
+- [ ] ‹ › step through months. Esc and ← Back both return to where you came from.
+- [ ] An account mapped in from another statement section carries a small section tag. Check
+      any tagged account is a deliberate reclass, not a mapping slip.
+- [ ] Same drill-down from a month detail card (Overhead →) and from a confirmed month's
+      forecast card.
+- [ ] A month you have not imported shows "isn't imported" and lists the months you have.
+
+> Part B (the editable Forecast overhead schedule) lands next; section 13 is complete when
+> both halves pass together.
+
 ## If something is off
 Note the screen, what you expected, and what you saw. Numbers first. A screenshot of the grid
 with the month header visible is enough for most of these.

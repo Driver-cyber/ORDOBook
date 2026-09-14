@@ -10,7 +10,11 @@
 > Cosmetic notes from §12 shipped the same day (Δ rows interleaved under DSO/DIO/DPO, OCA above
 > capex, "Change in Current Liabilities"). Updating is now one command: `./ordobook-update.command`.
 > Parked: Scoreboard + Action Plan PDF layout → deliverables design pass.
-> Next: residual demo items (Reports → Actuals view, Scenario Sandbox, Client Profile, exports on
+> **In flight (2026-09-14): overhead drill-down.** Part A shipped — overhead is the direct sum of
+> its accounts (not a plug), "Excluded" retired (030), Re-apply Mapping replays stored months from
+> their audit-trail rows, and the Actuals overhead schedule opens the line. Smoke §13 A.
+> Part B next: the editable Forecast overhead schedule on top of the same payload.
+> Then: residual demo items (Reports → Actuals view, Scenario Sandbox, Client Profile, exports on
 > real data) → Phase 6b Electron.
 
 ---
