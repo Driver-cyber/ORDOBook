@@ -558,8 +558,13 @@ def overhead_schedule(client_id: int, year: int, db: Session = Depends(get_db)):
             "status": rec.status,
         }
 
-    # Statement order, then alphabetical — the order the advisor reads a P&L in.
-    ordered = sorted(accounts.values(), key=lambda a: (a["from_other_section"], a["account_name"].lower()))
+    # Statement order — the order the accounts appear on the QuickBooks P&L, which
+    # is the order Review Mapping lists them in. `accounts` is built by walking
+    # each month's rows in file order, so insertion order already carries it; an
+    # account that only appears in a later month lands after the earlier ones.
+    # Deliberately NOT alphabetical: sub-accounts under a parent (the vehicles
+    # under Vehicle Expenses) belong together where the statement puts them.
+    ordered = list(accounts.values())
 
     return {
         "fiscal_year": year,

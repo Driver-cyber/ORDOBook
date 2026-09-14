@@ -196,8 +196,15 @@ cd "/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook"
       ties. If instead you get a gold "this schedule is X below/above the stored figure"
       panel, you skipped 13.1 — go run it.
 - [ ] ‹ › step through months. Esc and ← Back both return to where you came from.
+- [ ] Accounts are listed in **statement order — the same order as Review Mapping**, not
+      alphabetically. Sub-accounts stay under their parent (the vehicles under Vehicle
+      Expenses).
 - [ ] An account mapped in from another statement section carries a small section tag. Check
       any tagged account is a deliberate reclass, not a mapping slip.
+- [ ] A parent account like **Vehicle Expenses** appears as its own line. If QuickBooks posts
+      directly to the parent it carries an amount; if it is only a heading it reads $0. Either
+      way the total still ties — a real amount there is a direct posting, not a repeat of the
+      sub-accounts below it.
 - [ ] **Vehicle accounts** (2020 Toyota Tundra, 2023 Ford E-Series) appear in the January
       schedule with their expense amounts, and the fixed-asset side is untouched on the
       Balance Sheet. These were dropped by the first cut — an account name that appears on
