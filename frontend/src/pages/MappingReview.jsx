@@ -53,14 +53,23 @@ export default function MappingReview() {
   const { preview, sourceFiles } = location.state || {}
 
   // mappings keyed by `${section}::${account_name}` → {ordobook_category, report_type}
+  // Suggestions arrive one per line-item row, IN ROW ORDER — pair them positionally.
+  // Looking the row up by account name collapsed the two rows a shared name can
+  // legitimately have (a vehicle is a fixed asset on the Balance Sheet and an
+  // expense account on the P&L): both suggestions landed on the first row's key,
+  // the second row got no entry, its dropdown fell back to a default that was
+  // never saved, and its dollars dropped out of the totals. (Real data, 2026-09-14.)
   const [mappings, setMappings] = useState(() => {
     if (!preview) return {}
     const m = {}
-    preview.suggestions.forEach(s => {
-      const row = preview.rows.find(r => r.account_name === s.qb_account_name && r.row_type === 'line_item')
-      if (!row) return
-      const key = `${row.section}::${row.account_name}`
-      m[key] = { ordobook_category: s.suggested_category, report_type: s.report_type }
+    const lineItems = preview.rows.filter(r => r.row_type === 'line_item')
+    lineItems.forEach((row, i) => {
+      const s = preview.suggestions[i]
+      if (!s) return
+      m[`${row.section}::${row.account_name}`] = {
+        ordobook_category: s.suggested_category,
+        report_type: s.report_type,
+      }
     })
     return m
   })
@@ -351,9 +360,14 @@ export default function MappingReview() {
 }
 
 function MappingTable({ title, rows, mappings, periods, onSetMapping, suggestions }) {
+  // Keyed by report type as well as name: the same account name appears on both
+  // statements, and the two rows can carry different confidence.
   const suggestionMap = Object.fromEntries(
-    suggestions.map(s => [`${s.qb_account_name}`, s])
+    suggestions.map(s => [`${s.report_type}::${s.qb_account_name}`, s])
   )
+  const reportTypeOf = (section) =>
+    ['assets', 'liabilities', 'liabilities_equity', 'equity'].includes(section)
+      ? 'balance_sheet' : 'profit_and_loss' 
 
   return (
     <section className="bg-surface border border-border rounded-xl overflow-hidden">
@@ -381,7 +395,7 @@ function MappingTable({ title, rows, mappings, periods, onSetMapping, suggestion
             {rows.map(row => {
               const key = `${row.section}::${row.account_name}`
               const m = mappings[key]
-              const suggestion = suggestionMap[row.account_name]
+              const suggestion = suggestionMap[`${reportTypeOf(row.section)}::${row.account_name}`]
               const needsReview = suggestion?.needs_review && suggestion?.confidence !== 'saved'
 
               const isSaved = suggestion?.confidence === 'saved'

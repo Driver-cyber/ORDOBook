@@ -90,12 +90,46 @@ def recompute_stored_actuals(client_id: int, db: Session) -> dict:
 
     if changed:
         db.commit()
+
     return {
         "months_examined": len(records),
         "months_changed": len(changed),
         "changed": changed,
         "skipped": skipped,
+        "tie_out": _tie_out(records),
     }
+
+
+def _tie_out(records: list) -> dict:
+    """Check the recomputed P&L against QuickBooks' own net income.
+
+    The Balance Sheet's equity section carries `net_profit_for_year` — QB's
+    cumulative year-to-date net income, computed by QuickBooks from a different
+    statement. Running our monthly net profit up against it is a check arrived at
+    a different way, which is the only kind that catches an arithmetic error (Red
+    Team #3). If every P&L dollar is counted exactly once, these agree.
+
+    Months where QB reports no figure are skipped rather than assumed to be zero.
+    """
+    mismatches, checked = [], 0
+    running = 0
+    current_year = None
+    for rec in records:                      # ordered by fiscal_year, month
+        if rec.fiscal_year != current_year:  # the YTD figure resets each year
+            current_year, running = rec.fiscal_year, 0
+        running += _net_profit(rec)
+        qb_ytd = rec.net_profit_for_year or 0
+        if qb_ytd == 0:
+            continue
+        checked += 1
+        if running != qb_ytd:
+            mismatches.append({
+                "period": f"{MONTH_NAMES[rec.month]} {rec.fiscal_year}",
+                "ordobook_ytd": running,
+                "quickbooks_ytd": qb_ytd,
+                "difference": running - qb_ytd,
+            })
+    return {"months_checked": checked, "mismatches": mismatches}
 
 
 def _net_profit(rec: MonthlyActuals) -> int:

@@ -225,6 +225,37 @@ export default function ClientWorkspace() {
                   No saved rows for {reapplyResult.skipped.join(', ')} — re-upload those months to recompute them.
                 </div>
               )}
+              {/* Checked against QuickBooks' own YTD net income from the Balance
+                  Sheet equity line — a different statement, so agreement means
+                  every P&L dollar is counted exactly once. */}
+              {reapplyResult.tie_out && (
+                reapplyResult.tie_out.months_checked === 0 ? (
+                  <div className="text-[11px] text-text-muted mt-2">
+                    No QuickBooks net-income figure on the Balance Sheet to check against.
+                  </div>
+                ) : reapplyResult.tie_out.mismatches.length === 0 ? (
+                  <div className="text-[11px] mt-2" style={{ color: '#3f7d52' }}>
+                    ✓ Net profit ties to QuickBooks' own year-to-date net income in all{' '}
+                    {reapplyResult.tie_out.months_checked} month
+                    {reapplyResult.tie_out.months_checked === 1 ? '' : 's'} it reports one.
+                  </div>
+                ) : (
+                  <div className="mt-2">
+                    <div className="text-[11px] font-medium" style={{ color: '#b04040' }}>
+                      Does not tie to QuickBooks in {reapplyResult.tie_out.mismatches.length} of{' '}
+                      {reapplyResult.tie_out.months_checked} months — send this list over:
+                    </div>
+                    <ul className="space-y-0.5 font-mono text-[11px]" style={{ color: '#b04040' }}>
+                      {reapplyResult.tie_out.mismatches.map(t => (
+                        <li key={t.period}>
+                          {t.period}: ORDOBOOK {fmtCents(t.ordobook_ytd)} vs QB {fmtCents(t.quickbooks_ytd)}
+                          {' '}(off by {fmtCents(t.difference)})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              )}
             </div>
             <button onClick={() => setReapplyResult(null)} className="text-[11px] underline text-text-muted">dismiss</button>
           </div>

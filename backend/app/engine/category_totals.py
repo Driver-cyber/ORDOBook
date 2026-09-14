@@ -45,16 +45,27 @@ def resolve_categories(raw_rows: list[dict], existing_mappings: dict) -> dict:
     Saved mappings win; anything unmapped falls back to the auto-mapper's
     section/keyword suggestion, so a newly-seen account still lands somewhere
     sensible instead of silently scoring zero.
+
+    Rows are matched to suggestions POSITIONALLY, not by account name.
+    `suggest_mappings` emits exactly one suggestion per line-item row, in row
+    order, and the same name legitimately appears on both statements — a vehicle
+    is a fixed asset on the Balance Sheet and an expense account on the P&L.
+    Keying by name alone let one row's category overwrite the other's, and the
+    loser's dollars silently left its category. (Found on real data 2026-09-14:
+    two vehicle accounts vanished from Overhead.)
     """
+    line_items = [r for r in raw_rows if r.get("row_type") == "line_item"]
     suggestions = suggest_mappings(raw_rows, existing_mappings)
-    by_account = {s["qb_account_name"]: s["suggested_category"] for s in suggestions}
+    if len(suggestions) != len(line_items):   # invariant broken — refuse to guess
+        raise ValueError(
+            f"auto-mapper returned {len(suggestions)} suggestions for "
+            f"{len(line_items)} line-item rows"
+        )
 
     resolved = {}
-    for row in raw_rows:
-        if row.get("row_type") != "line_item":
-            continue
-        name = row.get("account_name", "")
-        resolved[(row.get("section", ""), name)] = by_account.get(name, "overhead_expenses")
+    for row, suggestion in zip(line_items, suggestions):
+        resolved[(row.get("section", ""), row.get("account_name", ""))] = \
+            suggestion["suggested_category"]
     return resolved
 
 

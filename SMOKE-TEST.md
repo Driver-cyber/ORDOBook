@@ -173,9 +173,13 @@ cd "/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook"
       mapped across sections (an expense-section account sent to Cost of Sales was being
       counted twice, so net profit goes UP by that amount) or an account you had marked
       Excluded. Months where everything was mapped normally should not move at all.
+- [ ] **The green tie-out line at the bottom of the panel**: "Net profit ties to QuickBooks'
+      own year-to-date net income in all N months". That compares the P&L we just computed
+      against the Balance Sheet's equity net-income line — a different statement, so agreement
+      means every P&L dollar is counted exactly once. If it comes back red, it lists each
+      month and the difference; send that list over.
 - [ ] Press it a second time: `0 changed`. It is idempotent.
-- [ ] Spot-check one changed month against the QuickBooks P&L: ORDOBOOK's net profit should
-      equal QuickBooks' net income.
+- [ ] Spot-check one changed month against the QuickBooks P&L by hand as well.
 
 ### 13.2 Excluded is gone
 - [ ] Review Mapping: the category dropdown no longer offers "Exclude this account".
@@ -194,6 +198,10 @@ cd "/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook"
 - [ ] ‹ › step through months. Esc and ← Back both return to where you came from.
 - [ ] An account mapped in from another statement section carries a small section tag. Check
       any tagged account is a deliberate reclass, not a mapping slip.
+- [ ] **Vehicle accounts** (2020 Toyota Tundra, 2023 Ford E-Series) appear in the January
+      schedule with their expense amounts, and the fixed-asset side is untouched on the
+      Balance Sheet. These were dropped by the first cut — an account name that appears on
+      both statements was being collapsed to one category.
 - [ ] Same drill-down from a month detail card (Overhead →) and from a confirmed month's
       forecast card.
 - [ ] A month you have not imported shows "isn't imported" and lists the months you have.
