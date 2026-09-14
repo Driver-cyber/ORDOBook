@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getClient } from '../api/clients'
-import { getActuals, getActualsDetail, updateActuals, getMappingReviewData } from '../api/ingestion'
+import { getActuals, getActualsDetail, updateActuals, getMappingReviewData, reapplyMapping } from '../api/ingestion'
 import { calculateForecast } from '../api/forecast'
 import { ActualsGrid } from './ActualsHistory'
 import HScrollbar from '../components/HScrollbar'
@@ -11,6 +11,11 @@ const MONTH_NAMES = ['', 'January', 'February', 'March', 'April', 'May', 'June',
 
 // Grid (one fiscal year of months across) is the working view; List is the
 // original period-per-row list. The choice sticks per browser.
+const fmtCents = (c) => {
+  const d = (c ?? 0) / 100
+  return `${d < 0 ? '−' : ''}$${Math.abs(d).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+}
+
 const VIEW_KEY = 'ordobook.actualsView'
 const readView = () => { try { return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'grid' } catch { return 'grid' } }
 const storeView = (v) => { try { localStorage.setItem(VIEW_KEY, v) } catch {} }
@@ -23,6 +28,8 @@ export default function ClientWorkspace() {
   const [actuals, setActuals] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingMapping, setLoadingMapping] = useState(false)
+  const [reapplying, setReapplying] = useState(false)
+  const [reapplyResult, setReapplyResult] = useState(null)
   const [confirming, setConfirming] = useState(false)
   const [error, setError] = useState(null)
   const [view, setView] = useState(readView)
@@ -78,6 +85,29 @@ export default function ClientWorkspace() {
     } finally {
       setLoadingMapping(false)
     }
+  }
+
+  // Stored totals are a snapshot taken at import time. After a mapping change,
+  // this replays the arithmetic from each month's audit-trail rows and reports
+  // every month whose net profit moved — no re-upload, no silent restatement.
+  const handleReapply = async () => {
+    if (!window.confirm(
+      'Recompute every imported month from its saved rows using the current mapping?\n\n' +
+      'Figures can change — that is the point after a mapping correction. ' +
+      'You will get a list of the months that moved.'
+    )) return
+    setReapplying(true); setError(null); setReapplyResult(null)
+    try {
+      const r = await reapplyMapping(clientId)
+      setReapplyResult(r)
+      const affectedYears = [...new Set(actuals.map(a => a.fiscal_year))]
+      await Promise.all(affectedYears.map(y => calculateForecast(clientId, y).catch(() => {})))
+      await load()
+      setDetails([])   // force the grid to refetch the open year
+    } catch (e) {
+      setError(e.message || 'Could not re-apply the mapping')
+    }
+    setReapplying(false)
   }
 
   const handleConfirmAll = async () => {
@@ -149,6 +179,11 @@ export default function ClientWorkspace() {
               <button onClick={handleReviewMapping} disabled={loadingMapping} className={secondaryBtn}>
                 {loadingMapping ? 'Loading…' : 'Review Mapping'}
               </button>
+              <button onClick={handleReapply} disabled={reapplying}
+                      title="Recompute stored months from their saved rows using the current mapping"
+                      className={secondaryBtn}>
+                {reapplying ? 'Recomputing…' : 'Re-apply Mapping'}
+              </button>
             </>
           )}
           <button
@@ -164,6 +199,35 @@ export default function ClientWorkspace() {
         <div className="mx-8 mt-4 px-4 py-2 rounded text-[12px]"
              style={{ background: 'rgba(192,90,90,0.07)', color: '#b04040', border: '1px solid rgba(192,90,90,0.2)' }}>
           {error}
+        </div>
+      )}
+
+      {reapplyResult && (
+        <div className="mx-8 mt-4 px-4 py-3 rounded text-[12px]"
+             style={{ background: 'rgba(200,169,110,0.10)', border: '1px solid rgba(200,169,110,0.35)' }}>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="font-medium text-text-primary mb-1">
+                Re-applied the mapping to {reapplyResult.months_examined} month{reapplyResult.months_examined === 1 ? '' : 's'} ·{' '}
+                {reapplyResult.months_changed} changed
+              </div>
+              {reapplyResult.changed?.length > 0 && (
+                <ul className="space-y-0.5 font-mono text-[11px] text-text-secondary">
+                  {reapplyResult.changed.map(c => (
+                    <li key={c.period}>
+                      {c.period}: net profit {fmtCents(c.net_profit_before)} → {fmtCents(c.net_profit_after)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {reapplyResult.skipped?.length > 0 && (
+                <div className="text-[11px] text-text-muted mt-1">
+                  No saved rows for {reapplyResult.skipped.join(', ')} — re-upload those months to recompute them.
+                </div>
+              )}
+            </div>
+            <button onClick={() => setReapplyResult(null)} className="text-[11px] underline text-text-muted">dismiss</button>
+          </div>
         </div>
       )}
 

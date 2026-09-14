@@ -5,25 +5,34 @@ import { formatApiError } from '../api/errors'
 
 import {
   CATEGORY_GROUPS,
-  EXCLUDED_CATEGORY,
   CAT_LABEL,
   sortEntriesByCategory,
 } from '../lib/categories'
+
+// QB's operating-expense block. Overhead is the direct sum of the accounts mapped
+// to it, so Total Expenses is the sum of these four.
+const OPEX_CATEGORIES = ['payroll_expenses', 'marketing_expenses',
+                         'depreciation_amortization', 'overhead_expenses']
 
 function fmt(cents) {
   const dollars = cents / 100
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(dollars)
 }
 
+// LIVE PREVIEW ONLY. Mirrors app/engine/category_totals.py so the advisor sees
+// totals move as they reassign accounts; what gets stored is recomputed on the
+// server from the same raw rows at confirm time.
+//
+// One rule: every account belongs to exactly one category, and each category is
+// the direct sum of the accounts mapped to it, whatever section they came from.
 function computeTotals(rows, mappings, periods) {
   const result = {}
   periods.forEach(p => {
     const cats = {}
     rows.forEach(row => {
       if (row.row_type !== 'line_item') return
-      const key = `${row.section}::${row.account_name}`
-      const m = mappings[key]
-      if (!m || m.ordobook_category === 'excluded') return
+      const m = mappings[`${row.section}::${row.account_name}`]
+      if (!m) return
       const cat = m.ordobook_category
       const val = row.values[p] || 0
       // QB reports "Other Expenses" as positive values, but they reduce net profit.
@@ -31,18 +40,7 @@ function computeTotals(rows, mappings, periods) {
       const sign = (cat === 'other_income_expense' && row.section === 'other_expenses') ? -1 : 1
       cats[cat] = (cats[cat] || 0) + val * sign
     })
-    // QB's "Total Expenses" = ALL rows in the expenses section, regardless of how they're
-    // mapped (including excluded accounts). This matches the "Total Expenses" subtotal
-    // QB shows right before Other Income/Expense and is used for accurate Net Income.
-    cats['total_expenses'] = rows
-      .filter(r => r.row_type === 'line_item' && r.section === 'expenses')
-      .reduce((sum, r) => sum + (r.values[p] || 0), 0)
-    // Overhead is the residual: everything in total_expenses not already in the other 3 buckets.
-    // This matches the reference workbook definition "Overhead Expenses (less Payroll, Dep)".
-    cats['overhead_expenses'] = cats['total_expenses']
-      - (cats['payroll_expenses'] || 0)
-      - (cats['marketing_expenses'] || 0)
-      - (cats['depreciation_amortization'] || 0)
+    cats['total_expenses'] = OPEX_CATEGORIES.reduce((sum, c) => sum + (cats[c] || 0), 0)
     result[p] = cats
   })
   return result
@@ -146,7 +144,7 @@ export default function MappingReview() {
           qb_account_name: row.account_name,
           report_type: m.report_type,
           ordobook_category: m.ordobook_category,
-          is_excluded: m.ordobook_category === 'excluded',
+          is_excluded: false,
         })
       })
 
@@ -269,7 +267,10 @@ export default function MappingReview() {
             <h2 className="font-display font-semibold text-sm text-text-primary mb-1">
               Category Totals — {periods[0]}
             </h2>
-            <p className="text-[11px] text-text-muted mb-4">Live preview of your mapping for the first period. Updates as you reassign accounts below.</p>
+            <p className="text-[11px] text-text-muted mb-4">
+              Live preview of your mapping for the first period. Updates as you reassign accounts below.
+              Every account counts once, in exactly one category.
+            </p>
             <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-[12px]">
               {sortEntriesByCategory(
                 Object.entries(totals[periods[0]] || {}).filter(([, v]) => v !== 0)
@@ -421,7 +422,6 @@ function MappingTable({ title, rows, mappings, periods, onSetMapping, suggestion
                             ))}
                         </optgroup>
                       ))}
-                      <option value={EXCLUDED_CATEGORY.value}>{EXCLUDED_CATEGORY.label}</option>
                     </select>
                   </td>
                   {periods.slice(0, 3).map(p => (

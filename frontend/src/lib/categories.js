@@ -81,17 +81,17 @@ export const CATEGORY_GROUPS = [
   },
 ]
 
-/** The "leave this account out" choice. Always offered last, outside any group. */
-export const EXCLUDED_CATEGORY = { value: 'excluded', label: '— Exclude this account —' }
+/** Retired 2026-09-14 (migration 030). "Excluded" never excluded anything: overhead
+ * was a plug, so an excluded P&L account's dollars still landed in it while its name
+ * was hidden. Every account now carries a real category. Kept only so any legacy
+ * value still renders with a label instead of a raw key. */
+export const EXCLUDED_CATEGORY = { value: 'excluded', label: 'Excluded (retired)' }
 
 /** Every category in canonical order, including display-only roll-ups. */
 export const ALL_CATEGORIES = CATEGORY_GROUPS.flatMap(g => g.items)
 
-/** Categories an account can be mapped to, in canonical order (excluded last). */
-export const CATEGORIES = [
-  ...ALL_CATEGORIES.filter(c => c.selectable !== false),
-  EXCLUDED_CATEGORY,
-]
+/** Categories an account can be mapped to, in canonical order. */
+export const CATEGORIES = ALL_CATEGORIES.filter(c => c.selectable !== false)
 
 /** value → human label, covering selectable, display-only and excluded. */
 export const CAT_LABEL = Object.fromEntries(

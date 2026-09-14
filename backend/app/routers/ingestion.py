@@ -7,6 +7,7 @@ from app.models.account_mapping import AccountMapping
 from app.models.monthly_actuals import MonthlyActuals
 from app.parsers.qb_parser import parse_file, parse_invoice_report, detect_report_type
 from app.parsers.auto_mapper import suggest_mappings
+from app.engine.category_totals import compute_period_totals
 from app.schemas.ingestion import ParsePreviewResponse, ConfirmRequest
 
 router = APIRouter(prefix="/api/clients", tags=["ingestion"])
@@ -16,6 +17,91 @@ MONTH_LABELS = {
     "May": 5, "June": 6, "July": 7, "August": 8,
     "September": 9, "October": 10, "November": 11, "December": 12,
 }
+
+
+MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June",
+               "July", "August", "September", "October", "November", "December"]
+
+# Category columns written to monthly_actuals, in the order they appear on the model.
+_CATEGORY_COLUMNS = (
+    "revenue", "cost_of_sales", "payroll_expenses", "marketing_expenses",
+    "depreciation_amortization", "overhead_expenses", "total_expenses",
+    "other_income_expense", "cash", "accounts_receivable", "inventory",
+    "other_current_assets", "total_fixed_assets", "total_other_long_term_assets",
+    "accounts_payable", "other_current_liabilities", "total_long_term_liabilities",
+    "equity_before_net_profit", "owner_distributions", "net_profit_for_year",
+)
+
+
+def _client_mappings(client_id: int, db: Session) -> dict:
+    """{(report_type, qb_account_name): ordobook_category} for this client."""
+    return {
+        (m.report_type, m.qb_account_name): m.ordobook_category
+        for m in db.query(AccountMapping).filter(AccountMapping.client_id == client_id).all()
+    }
+
+
+def _apply_categories(record: MonthlyActuals, cats: dict) -> bool:
+    """Write category totals onto a record. Returns True if anything changed."""
+    changed = False
+    for col in _CATEGORY_COLUMNS:
+        new = int(cats.get(col, 0) or 0)
+        if getattr(record, col, 0) != new:
+            setattr(record, col, new)
+            changed = True
+    return changed
+
+
+def recompute_stored_actuals(client_id: int, db: Session) -> dict:
+    """Re-derive every stored month's category totals from its own raw rows and
+    the client's CURRENT mapping.
+
+    Stored totals are a snapshot taken at import time, so a mapping correction
+    afterwards used to mean re-uploading the exports. This replays the arithmetic
+    instead. Returns a per-month summary of what moved, so the advisor sees which
+    months changed and by how much rather than being told to trust it.
+    """
+    records = (
+        db.query(MonthlyActuals)
+        .filter(MonthlyActuals.client_id == client_id)
+        .order_by(MonthlyActuals.fiscal_year, MonthlyActuals.month)
+        .all()
+    )
+    mappings = _client_mappings(client_id, db)
+
+    changed, skipped = [], []
+    for rec in records:
+        rows = (rec.raw_data or {}).get("rows")
+        if not rows:
+            skipped.append(f"{MONTH_NAMES[rec.month]} {rec.fiscal_year}")
+            continue
+        label = f"{MONTH_NAMES[rec.month]} {rec.fiscal_year}"
+        totals = compute_period_totals(rows, mappings)
+        if label not in totals:
+            skipped.append(label)
+            continue
+        before_np = _net_profit(rec)
+        if _apply_categories(rec, totals[label]):
+            changed.append({
+                "period": label,
+                "net_profit_before": before_np,
+                "net_profit_after": _net_profit(rec),
+            })
+
+    if changed:
+        db.commit()
+    return {
+        "months_examined": len(records),
+        "months_changed": len(changed),
+        "changed": changed,
+        "skipped": skipped,
+    }
+
+
+def _net_profit(rec: MonthlyActuals) -> int:
+    """Revenue − COS − operating expenses + other income/expense."""
+    return ((rec.revenue or 0) - (rec.cost_of_sales or 0)
+            - (rec.total_expenses or 0) + (rec.other_income_expense or 0))
 
 
 def _parse_period_label(label: str) -> tuple[int, int]:
@@ -102,10 +188,8 @@ def get_mapping_review_data(
         .filter(MonthlyActuals.client_id == client_id)
         .all()
     )
-    month_names = ["", "January", "February", "March", "April", "May", "June",
-                   "July", "August", "September", "October", "November", "December"]
     job_counts = {
-        f"{month_names[r.month]} {r.fiscal_year}": r.job_count
+        f"{MONTH_NAMES[r.month]} {r.fiscal_year}": r.job_count
         for r in all_records
         if r.job_count
     }
@@ -308,6 +392,13 @@ def confirm_import(
                 is_excluded=decision.is_excluded,
             ))
 
+    # The advisor's browser previews category totals live while they reassign
+    # accounts, but what gets STORED is recomputed here from the raw rows and the
+    # mapping just saved — one formula, server-side (app.engine.category_totals).
+    # payload.periods still carries the browser's figures; they are ignored.
+    db.flush()
+    totals_by_label = compute_period_totals(payload.raw_rows, _client_mappings(client_id, db))
+
     # Build raw_data payload (audit trail)
     raw_data = {
         "rows": payload.raw_rows,
@@ -325,7 +416,7 @@ def confirm_import(
         except ValueError as e:
             raise HTTPException(status_code=422, detail=str(e))
 
-        cats = period.categories
+        cats = totals_by_label.get(period.label, {})
 
         existing_record = db.query(MonthlyActuals).filter(
             MonthlyActuals.client_id == client_id,
@@ -334,26 +425,7 @@ def confirm_import(
         ).first()
 
         if existing_record:
-            existing_record.revenue = cats.get("revenue", 0)
-            existing_record.cost_of_sales = cats.get("cost_of_sales", 0)
-            existing_record.payroll_expenses = cats.get("payroll_expenses", 0)
-            existing_record.marketing_expenses = cats.get("marketing_expenses", 0)
-            existing_record.depreciation_amortization = cats.get("depreciation_amortization", 0)
-            existing_record.overhead_expenses = cats.get("overhead_expenses", 0)
-            existing_record.total_expenses = cats.get("total_expenses", 0)
-            existing_record.other_income_expense = cats.get("other_income_expense", 0)
-            existing_record.cash = cats.get("cash", 0)
-            existing_record.accounts_receivable = cats.get("accounts_receivable", 0)
-            existing_record.inventory = cats.get("inventory", 0)
-            existing_record.other_current_assets = cats.get("other_current_assets", 0)
-            existing_record.total_fixed_assets = cats.get("total_fixed_assets", 0)
-            existing_record.total_other_long_term_assets = cats.get("total_other_long_term_assets", 0)
-            existing_record.accounts_payable = cats.get("accounts_payable", 0)
-            existing_record.other_current_liabilities = cats.get("other_current_liabilities", 0)
-            existing_record.total_long_term_liabilities = cats.get("total_long_term_liabilities", 0)
-            existing_record.equity_before_net_profit = cats.get("equity_before_net_profit", 0)
-            existing_record.owner_distributions = cats.get("owner_distributions", 0)
-            existing_record.net_profit_for_year = cats.get("net_profit_for_year", 0)
+            _apply_categories(existing_record, cats)
             existing_record.job_count = period.job_count
             existing_record.raw_data = raw_data
             existing_record.source_files = payload.source_files
@@ -366,31 +438,12 @@ def confirm_import(
                 fiscal_year=fiscal_year,
                 month=month,
                 status="draft",
-                revenue=cats.get("revenue", 0),
-                cost_of_sales=cats.get("cost_of_sales", 0),
-                payroll_expenses=cats.get("payroll_expenses", 0),
-                marketing_expenses=cats.get("marketing_expenses", 0),
-                depreciation_amortization=cats.get("depreciation_amortization", 0),
-                overhead_expenses=cats.get("overhead_expenses", 0),
-                total_expenses=cats.get("total_expenses", 0),
-                other_income_expense=cats.get("other_income_expense", 0),
-                cash=cats.get("cash", 0),
-                accounts_receivable=cats.get("accounts_receivable", 0),
-                inventory=cats.get("inventory", 0),
-                other_current_assets=cats.get("other_current_assets", 0),
-                total_fixed_assets=cats.get("total_fixed_assets", 0),
-                total_other_long_term_assets=cats.get("total_other_long_term_assets", 0),
-                accounts_payable=cats.get("accounts_payable", 0),
-                other_current_liabilities=cats.get("other_current_liabilities", 0),
-                total_long_term_liabilities=cats.get("total_long_term_liabilities", 0),
-                equity_before_net_profit=cats.get("equity_before_net_profit", 0),
-                owner_distributions=cats.get("owner_distributions", 0),
-                net_profit_for_year=cats.get("net_profit_for_year", 0),
                 job_count=period.job_count,
                 raw_data=raw_data,
                 source_files=payload.source_files,
                 uploaded_at=now,
             )
+            _apply_categories(record, cats)
             db.add(record)
             saved.append(record)
 
@@ -399,3 +452,17 @@ def confirm_import(
         db.refresh(r)
 
     return {"saved": len(saved), "periods": [p.label for p in payload.periods]}
+
+
+@router.post("/{client_id}/actuals/reapply-mapping")
+def reapply_mapping(client_id: int, db: Session = Depends(get_db)):
+    """Recompute every stored month from its raw rows and the current mapping.
+
+    Category totals are a snapshot taken at import time, so correcting a mapping
+    afterwards used to mean re-uploading the QuickBooks exports. This replays the
+    arithmetic from the audit-trail rows already on each record.
+    """
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    return recompute_stored_actuals(client_id, db)

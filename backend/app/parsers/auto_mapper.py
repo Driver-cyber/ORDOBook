@@ -30,9 +30,14 @@ VALID_CATEGORIES = frozenset([
     "equity_before_net_profit",
     "owner_distributions",   # signed YTD owner activity: draws negative, investments positive
     "net_profit_for_year",
-    # Special
-    "excluded",
 ])
+
+# "excluded" was retired 2026-09-14 (migration 030). It never excluded anything:
+# an excluded P&L account's dollars still reached overhead through the plug, while
+# its name was hidden from the schedule. Every account now carries a real category.
+# A saved mapping naming a retired category is ignored below and re-suggested from
+# context, so a database that predates the migration heals itself on the next review.
+RETIRED_CATEGORIES = frozenset(["excluded"])
 
 # P&L: section → default category
 _PL_SECTION_MAP = {
@@ -154,8 +159,9 @@ def suggest_mappings(
 
         lookup_key = (report_type, account_name)
 
-        # 1. Use saved mapping if available
-        if lookup_key in existing_mappings:
+        # 1. Use saved mapping if available — unless it names a retired category,
+        #    in which case fall through and re-derive it from context.
+        if lookup_key in existing_mappings and existing_mappings[lookup_key] in VALID_CATEGORIES:
             suggestions.append({
                 "qb_account_name": account_name,
                 "report_type": report_type,

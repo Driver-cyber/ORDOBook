@@ -24,3 +24,9 @@ export const updateActuals = (clientId, year, month, data) =>
 
 export const getMappingReviewData = (clientId) =>
   api.get(`/clients/${clientId}/actuals/mapping-review-data`).then(r => r.data)
+
+// Recompute every stored month's category totals from its own raw rows and the
+// client's current mapping. Totals are a snapshot taken at import time, so this
+// is how a mapping correction reaches months that are already imported.
+export const reapplyMapping = (clientId) =>
+  api.post(`/clients/${clientId}/actuals/reapply-mapping`).then(r => r.data)
