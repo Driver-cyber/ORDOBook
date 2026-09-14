@@ -5,10 +5,13 @@
 > advisor-editable Scoreboard text (028). SMOKE-TEST.md sections 0–10 all passed on the Mac
 > (2026-09-12); section 11 holds the follow-ups built 2026-09-13 (scoreboard draw sign, days/$
 > toggle, always-visible scrollbar, forecast month cards + list view, popover flip, header ✓).
-> Section 11 passed; its one note became migration 029: every cash-flow line is SIGNED CASH
-> (draws / purchases negative), Δ AR / Inventory / AP rows under the days drivers, section foots.
+> Sections 11 and 12 passed (2026-09-14). **The Workspace is functionally complete and the math
+> is verified by the advisor on real data** — signed cash everywhere (029), section foots.
+> Cosmetic notes from §12 shipped the same day (Δ rows interleaved under DSO/DIO/DPO, OCA above
+> capex, "Change in Current Liabilities"). Updating is now one command: `./ordobook-update.command`.
 > Parked: Scoreboard + Action Plan PDF layout → deliverables design pass.
-> Next: user runs section 12; then residual demo items → Phase 6b.
+> Next: residual demo items (Reports → Actuals view, Scenario Sandbox, Client Profile, exports on
+> real data) → Phase 6b Electron.
 
 ---
 

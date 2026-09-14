@@ -20,7 +20,11 @@ Dev runs as a Dock app (`ORDOBOOK.app` → Chrome app-mode window over the Vite/
 manual calcs), capex derived for actuals months, Batch 4 (year grid, sidebar, driver definitions),
 the spreadsheet-card restyle, and Batch 5 (Action Plan → objectives with nested action items, 027).
 Residual untested live: Batch 5 + restyle, Reports → Actuals view, Scenario Sandbox, PDF/JSON exports.
-**NEXT:** advisor-editable Scoreboard text fields; residual demo items → Phase 6b.
+**2026-09-14 milestone:** the Workspace (Actuals, Forecast, Targets) is functionally complete —
+every smoke-test section passed on real data and the advisor verified the cash-flow math by hand.
+Signed cash everywhere (029). Updating the Mac is one command (`ordobook-update.command`).
+**NEXT:** residual demo items (Reports → Actuals, Scenario Sandbox, Client Profile, exports on real
+data) → Phase 6b Electron. Deliverables design pass (Scoreboard + Action Plan PDF) is parked.
 
 **Current Vibe:** Deliberate. Plan before building. Verify before shipping. One module at a time.
 

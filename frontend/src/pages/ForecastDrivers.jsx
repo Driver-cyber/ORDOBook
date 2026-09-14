@@ -135,7 +135,7 @@ const DRIVER_INFO = {
     text: 'Fixed-asset purchases and disposals, as cash: a purchase is NEGATIVE (cash out) and raises Fixed Assets on the projected balance sheet; a sale is positive. Actuals months derive it from the change in net fixed assets plus that month\'s depreciation.' },
   oca: { title: 'Other Current Assets Δ',
     text: 'Change in other current assets (deposits, prepaids, etc.), as cash: NEGATIVE when the balance grows (cash tied up), positive when it shrinks (cash released). Actuals months use the change in the imported balance.' },
-  currentDebt: { title: 'Current Debt Change',
+  currentDebt: { title: 'Change in Current Liabilities',
     text: 'Change in credit cards and other current liabilities, entered as cash. Positive = new borrowing, cash in. Negative = repayment, cash out. Actuals months use the change in the imported balance.' },
   ltd: { title: 'Long-Term Debt Change',
     text: 'Change in long-term debt, entered as cash. Positive = new loan proceeds, cash in. Negative = principal repayment, cash out. Actuals months use the change in the imported balance.' },
@@ -1123,14 +1123,12 @@ export default function ForecastDrivers() {
             <SubHeader label="Working Capital · every line below sums from Net Profit to Net Cash Flow" />
             <DriverRow label="DSO — Days Sales Outstanding" info={DRIVER_INFO.dso}
                        monthInts={monthInts} actualsMonths={actualsMonths} {...wcRow('dso_monthly')} />
+            <DeltaRow label="Δ Accounts Receivable" sub="cash effect of DSO" {...wcDelta('dso_monthly', 'ar_change', -1)} />
             <DriverRow label="DIO — Days Inventory Outstanding" info={DRIVER_INFO.dio}
                        monthInts={monthInts} actualsMonths={actualsMonths} {...wcRow('dio_monthly')} />
+            <DeltaRow label="Δ Inventory"           sub="cash effect of DIO" {...wcDelta('dio_monthly', 'inventory_change', -1)} />
             <DriverRow label="DPO — Days Payable Outstanding" info={DRIVER_INFO.dpo}
                        monthInts={monthInts} actualsMonths={actualsMonths} {...wcRow('dpo_monthly')} />
-            {/* Cash effect of the days rows — the lines that actually sum into Net Cash
-                Flow. Each follows its parent's toggle: Δ days, or Δ balance as cash. */}
-            <DeltaRow label="Δ Accounts Receivable" sub="cash effect of DSO" {...wcDelta('dso_monthly', 'ar_change', -1)} />
-            <DeltaRow label="Δ Inventory"           sub="cash effect of DIO" {...wcDelta('dio_monthly', 'inventory_change', -1)} />
             <DeltaRow label="Δ Accounts Payable"    sub="cash effect of DPO" {...wcDelta('dpo_monthly', 'ap_change', +1)} />
             <DriverRow
               label="Owner Investments / (Draws) ($)" info={DRIVER_INFO.owner}
@@ -1146,17 +1144,6 @@ export default function ForecastDrivers() {
 
             <SubHeader label="Investing & Financing · cash sign: negative uses cash, positive adds it" />
             <DriverRow
-              label="Capital Expenditures ($)" info={DRIVER_INFO.capex}
-              compact
-              monthInts={monthInts} actualsMonths={actualsMonths}
-              getValue={m => viewValue('capex_monthly', m)}
-              getDisplay={m => actualsMonths.has(m) ? periodDisplay('capex_monthly', 'capex', m) : viewDisplay('capex_monthly', m)}
-              mode={modeOf('capex_monthly')} onToggleMode={md => setMode('capex_monthly', md)}
-              onChange={(m, v) => setMonthField('capex_monthly', m, v, 100)}
-              onCommit={(m, lbl) => commitMonthField('capex_monthly', m, lbl, 100)}
-              onAutofill={(val, lbl) => autofillField('capex_monthly', val, lbl, 100)}
-            />
-            <DriverRow
               label="Other Current Assets Δ ($)" info={DRIVER_INFO.oca}
               compact
               monthInts={monthInts} actualsMonths={actualsMonths}
@@ -1168,7 +1155,18 @@ export default function ForecastDrivers() {
               onAutofill={(val, lbl) => autofillField('other_current_assets_change_monthly', val, lbl, 100)}
             />
             <DriverRow
-              label="Current Debt Change ($)" info={DRIVER_INFO.currentDebt}
+              label="Capital Expenditures ($)" info={DRIVER_INFO.capex}
+              compact
+              monthInts={monthInts} actualsMonths={actualsMonths}
+              getValue={m => viewValue('capex_monthly', m)}
+              getDisplay={m => actualsMonths.has(m) ? periodDisplay('capex_monthly', 'capex', m) : viewDisplay('capex_monthly', m)}
+              mode={modeOf('capex_monthly')} onToggleMode={md => setMode('capex_monthly', md)}
+              onChange={(m, v) => setMonthField('capex_monthly', m, v, 100)}
+              onCommit={(m, lbl) => commitMonthField('capex_monthly', m, lbl, 100)}
+              onAutofill={(val, lbl) => autofillField('capex_monthly', val, lbl, 100)}
+            />
+            <DriverRow
+              label="Change in Current Liabilities ($)" info={DRIVER_INFO.currentDebt}
               compact
               monthInts={monthInts} actualsMonths={actualsMonths}
               getValue={m => viewValue('current_debt_change_monthly', m)}

@@ -158,9 +158,9 @@ export default function ForecastMonth() {
                 <Row label="AP Change" value={p.ap_change} />
                 <Row label="DSO / DIO / DPO" text={`${p.dso_days}d / ${p.dio_days}d / ${p.dpo_days}d`} />
                 <SectionHeader label="Investing & Financing" />
-                <Row label="Capital Expenditures" value={p.capex} />
                 <Row label="Other Current Assets Δ" value={p.other_current_assets_change} />
-                <Row label="Current Debt Change" value={p.current_debt_change} />
+                <Row label="Capital Expenditures" value={p.capex} />
+                <Row label="Change in Current Liabilities" value={p.current_debt_change} />
                 <Row label="Long-Term Debt Change" value={p.long_term_debt_change} />
                 <Row label="Net Cash Flow" value={p.net_cash_flow} calculated />
                 <div className="px-4 py-2 text-[10px] text-text-muted">Shown as cash: outflows negative, so the lines add to Net Cash Flow.</div>

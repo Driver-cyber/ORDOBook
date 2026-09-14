@@ -415,9 +415,9 @@ export default function ForecastReport() {
             <DataRow label="Owner Investments / (Draws)" values={ordered.map(p => cell(p, 'owner_distributions'))} ytd={ytd('owner_distributions')} />
 
             <SubHeader label="Investing & Financing" />
-            <DataRow label="CapEx"                  values={capexCells}    ytd={ytd('capex')} muted />
             <DataRow label="Other Current Assets Δ" values={otherCaCells}  ytd={ytd('other_current_assets_change')} muted />
-            <DataRow label="Current Debt Change"    values={currDebtCells} ytd={ytd('current_debt_change')} muted />
+            <DataRow label="Capital Expenditures"   values={capexCells}    ytd={ytd('capex')} muted />
+            <DataRow label="Change in Current Liabilities" values={currDebtCells} ytd={ytd('current_debt_change')} muted />
             <DataRow label="LT Debt Change"         values={ltDebtCells}   ytd={ytd('long_term_debt_change')} muted />
 
             <Divider />
