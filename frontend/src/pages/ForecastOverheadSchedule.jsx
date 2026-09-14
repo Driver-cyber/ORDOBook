@@ -100,9 +100,11 @@ export default function ForecastOverheadSchedule() {
 
   // What each account ran last month: an imported month reads from the statement,
   // a forecast month reads from the schedule built for it.
+  const priorDec = schedule?.prior_december || {}
   const lastMonthOf = (name) => {
     const prev = m - 1
-    if (prev < 1) return null
+    // January reaches back to December of the prior fiscal year.
+    if (prev < 1) return priorDec[name] ?? null
     if (imported.includes(prev)) {
       const acc = accounts.find(a => a.account_name === name)
       return acc?.months?.[String(prev)] ?? 0
@@ -285,7 +287,11 @@ export default function ForecastOverheadSchedule() {
                     <th className="text-left px-5 py-2.5 font-mono text-[10px] uppercase tracking-widest text-text-muted">
                       Account
                     </th>
-                    <th className={th}>{m > 1 ? `${MONTH_ABBR[m - 1]} ${String(fiscalYear).slice(2)}` : 'Last Month'}</th>
+                    <th className={th}>
+                      {m > 1
+                        ? `${MONTH_ABBR[m - 1]} ${String(fiscalYear).slice(2)}`
+                        : (schedule?.prior_december_label || 'Last Month')}
+                    </th>
                     <th className={th} title={`Average of ${imported.length} imported month${imported.length === 1 ? '' : 's'}`}>
                       YTD Avg ({imported.length})
                     </th>

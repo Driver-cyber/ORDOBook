@@ -558,6 +558,28 @@ def overhead_schedule(client_id: int, year: int, db: Session = Depends(get_db)):
             "status": rec.status,
         }
 
+    # January has no prior month inside its own fiscal year, so its "Last Month"
+    # column would read blank on the one screen where the previous month matters
+    # most. Reach back to December of the year before and supply it separately —
+    # it is a different fiscal year, so it stays out of `accounts[].months` and
+    # out of the year-to-date average.
+    prior_december: dict[str, int] = {}
+    prior_dec = (
+        db.query(MonthlyActuals)
+        .filter(MonthlyActuals.client_id == client_id,
+                MonthlyActuals.fiscal_year == year - 1,
+                MonthlyActuals.month == 12)
+        .first()
+    )
+    if prior_dec and (prior_dec.raw_data or {}).get("rows"):
+        dec_label = f"December {year - 1}"
+        for acc in category_accounts(prior_dec.raw_data["rows"], mappings, "overhead_expenses"):
+            amount = acc["values"].get(dec_label)
+            if amount is not None:
+                prior_december[acc["account_name"]] = amount
+            # An account that existed in December but not this year is left out:
+            # the schedule lists this year's accounts.
+
     # Statement order — the order the accounts appear on the QuickBooks P&L, which
     # is the order Review Mapping lists them in. `accounts` is built by walking
     # each month's rows in file order, so insertion order already carries it; an
@@ -572,4 +594,7 @@ def overhead_schedule(client_id: int, year: int, db: Session = Depends(get_db)):
         "imported_months": imported_months,
         "accounts": ordered,
         "reconciliation": reconciliation,
+        # December of the prior fiscal year, for January's "Last Month" column.
+        "prior_december": prior_december,
+        "prior_december_label": f"Dec {str(year - 1)[2:]}" if prior_december else None,
     }

@@ -196,6 +196,9 @@ cd "/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook"
       ties. If instead you get a gold "this schedule is X below/above the stored figure"
       panel, you skipped 13.1 — go run it.
 - [ ] ‹ › step through months. Esc and ← Back both return to where you came from.
+- [ ] Open **January**. Its Last Month column is headed `Dec` of the prior year and shows
+      December's figures, reaching across the fiscal-year boundary. The YTD Avg column is
+      unaffected — January's average is January, because December belongs to the prior year.
 - [ ] Accounts are listed in **statement order — the same order as Review Mapping**, not
       alphabetically. Sub-accounts stay under their parent (the vehicles under Vehicle
       Expenses).

@@ -58,7 +58,12 @@ export default function OverheadSchedule() {
   // average is never mistaken for a full-year figure.
   const ytdMonths = imported.filter(x => x <= m)
 
+  // January reaches back to December of the prior fiscal year for its comparison.
+  const priorDec = data.prior_december || {}
+  const usePriorDec = priorMonth === null && Object.keys(priorDec).length > 0
   const amount = (acc, mm) => (mm === null ? null : acc.months?.[String(mm)] ?? 0)
+  const lastMonthOf = (acc) =>
+    usePriorDec ? (priorDec[acc.account_name] ?? null) : amount(acc, priorMonth)
   const ytdAvg = (acc) => {
     if (ytdMonths.length === 0) return null
     const sum = ytdMonths.reduce((s, mm) => s + (acc.months?.[String(mm)] ?? 0), 0)
@@ -67,7 +72,9 @@ export default function OverheadSchedule() {
 
   const rows = data.accounts || []
   const thisTotal = rows.reduce((s, a) => s + (amount(a, m) ?? 0), 0)
-  const priorTotal = priorMonth === null ? null : rows.reduce((s, a) => s + (amount(a, priorMonth) ?? 0), 0)
+  const priorTotal = (priorMonth === null && !usePriorDec)
+    ? null
+    : rows.reduce((s, a) => s + (lastMonthOf(a) ?? 0), 0)
   const avgTotal = ytdMonths.length === 0 ? null : rows.reduce((s, a) => s + (ytdAvg(a) ?? 0), 0)
 
   const monthsWithData = imported.length > 0
@@ -140,7 +147,11 @@ export default function OverheadSchedule() {
                       Account
                     </th>
                     <th className={th}>{MONTH_ABBR[m]} {String(fiscalYear).slice(2)}</th>
-                    <th className={th}>{priorMonth ? `${MONTH_ABBR[priorMonth]} ${String(fiscalYear).slice(2)}` : 'Last Month'}</th>
+                    <th className={th}>
+                      {priorMonth
+                        ? `${MONTH_ABBR[priorMonth]} ${String(fiscalYear).slice(2)}`
+                        : usePriorDec ? data.prior_december_label : 'Last Month'}
+                    </th>
                     <th className={th} title={`Average of ${ytdMonths.length} imported month${ytdMonths.length === 1 ? '' : 's'}`}>
                       YTD Avg ({ytdMonths.length})
                     </th>
@@ -166,7 +177,7 @@ export default function OverheadSchedule() {
                         </span>
                       </td>
                       <td className="px-4 py-2.5 text-right font-mono text-[12px] text-text-primary">{fmt(amount(acc, m))}</td>
-                      <td className="px-4 py-2.5 text-right font-mono text-[12px] text-text-muted">{fmt(amount(acc, priorMonth))}</td>
+                      <td className="px-4 py-2.5 text-right font-mono text-[12px] text-text-muted">{fmt(lastMonthOf(acc))}</td>
                       <td className="px-4 py-2.5 text-right font-mono text-[12px] text-text-muted">{fmt(ytdAvg(acc))}</td>
                     </tr>
                   ))}
