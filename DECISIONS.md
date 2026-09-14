@@ -903,6 +903,10 @@ cards; a spreadsheet-like surface is what the eye expects for a 13-column money 
   "Starting backend" with a log ending at the last "Running upgrade" line (2026-09-11, 028).
   Now: `lock_timeout=15s` as a libpq connect option in `alembic/env.py`, progress lines from
   `main.py`, and the stop script kills stray workers and ends stuck sessions.
+- **Stop before you pull.** With `uvicorn --reload`, checking files out while the app runs makes
+  it restart mid-pull on a half-updated tree (and re-run migrations from whichever files have
+  landed). `ordobook-update.command` (2026-09-14) does stop → pull → launch in that order and
+  remembers the last pulled commit; the hand recipe is retired.
 - **Never `connection.execute()` anything in `alembic/env.py` before `begin_transaction()`.**
   SQLAlchemy 2 auto-begins a transaction; Alembic reuses it without owning it, and the whole
   migration rolls back on connection close — silently, with "Running upgrade" still logged.

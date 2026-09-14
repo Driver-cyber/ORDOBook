@@ -125,8 +125,15 @@ Pull, relaunch, then:
 
 ## 12. Signed cash on the Forecast (2026-09-13, migration 029)
 
-Pull, relaunch (029 flips the stored signs so every figure keeps its size), then on the
-Workspace Forecast:
+Update with the new one-command script (it stops first, pulls, then relaunches — 029 flips the
+stored signs so every figure keeps its size):
+
+```bash
+cd "/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook"
+./ordobook-update.command
+```
+
+Then on the Workspace Forecast:
 
 - [ ] Backend log shows `028 -> 029`. Hit **Sync Actuals** once.
 - [ ] Owner Investments / (Draws): actuals months read NEGATIVE for a draw (e.g. Jan $-7.7k). Type

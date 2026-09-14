@@ -35,3 +35,6 @@ backend/ordobook.db
 
 # Alembic
 backend/alembic/versions/*.pyc
+
+# ORDOBOOK update stamp (last pulled commit on the Mac)
+.ordobook-last-pull

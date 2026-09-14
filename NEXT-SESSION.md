@@ -20,12 +20,13 @@ Postgres/uvicorn/Vite if they aren't running, waits for health, and opens a Chro
 **The backend migrates itself to head on every launch** — no manual `alembic upgrade head`.
 Rebuild the Dock app after a logo change with `build-app.command`.
 
-Pulling code on the Mac (no merge; branch is `claude/add-project-tracker-zGrFN`):
+Pulling code on the Mac — ONE command, which stops, pulls, and relaunches in that order:
 ```
-git fetch origin claude/add-project-tracker-zGrFN
-git checkout origin/claude/add-project-tracker-zGrFN -- $(git diff --name-only <last-pulled-sha> origin/claude/add-project-tracker-zGrFN)
-./ordobook-stop.command    # then relaunch from the Dock
+./ordobook-update.command          # add --dry-run to just list what would change
 ```
+It remembers the last pulled commit in `.ordobook-last-pull` (gitignored). Never pull while the
+app is running: the backend's `--reload` restarts it mid-pull on a half-updated tree, which is
+how three launches broke on 2026-09-11 → 14.
 
 ## Top priorities
 
