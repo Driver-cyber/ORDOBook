@@ -926,6 +926,16 @@ cards; a spreadsheet-like surface is what the eye expects for a 13-column money 
   "Starting backend" with a log ending at the last "Running upgrade" line (2026-09-11, 028).
   Now: `lock_timeout=15s` as a libpq connect option in `alembic/env.py`, progress lines from
   `main.py`, and the stop script kills stray workers and ends stuck sessions.
+- **An account name is not a key.** The same name legitimately owns a row on each statement —
+  a vehicle is a fixed asset on the Balance Sheet and an expense account on the P&L. Keying the
+  auto-mapper's suggestions by name collapsed the two, and the losing row's dollars silently left
+  their category (real data, 2026-09-14: two vehicles fell out of Overhead while the mapping screen
+  still showed them as Overhead). Pair rows to suggestions positionally, and raise if the
+  one-suggestion-per-row invariant is ever broken rather than guess.
+- **A tie computed the same way is not a check.** Overhead-as-a-plug made net profit equal QB's by
+  definition, so it could never disagree — and it hid a double count for months. The direct sum is
+  checked against QB's own YTD net income from the Balance Sheet equity line: a different
+  statement, so it can actually fail. Re-apply Mapping reports it.
 - **Stop before you pull.** With `uvicorn --reload`, checking files out while the app runs makes
   it restart mid-pull on a half-updated tree (and re-run migrations from whichever files have
   landed). `ordobook-update.command` (2026-09-14) does stop → pull → launch in that order and
