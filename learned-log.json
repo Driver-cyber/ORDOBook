@@ -64,5 +64,71 @@
     "project": "ordobook",
     "tag": "infra",
     "lesson": "Auto-migrate on launch turns a bad migration into 'the app will not start'. The launcher's failure message must point at the backend log, and the log must be the first thing asked for."
+  },
+  {
+    "date": "2026-09-13",
+    "project": "ordobook",
+    "tag": "ux",
+    "lesson": "A $ view on a driver grid doubles as a foot-check. The moment the advisor could read the cash-flow column as dollars, three rows entered 'cash out positive' and two signed became obvious. Show the cash view early."
+  },
+  {
+    "date": "2026-09-13",
+    "project": "ordobook",
+    "tag": "finance",
+    "lesson": "Pick ONE sign convention and make every line obey it. Signed cash — negative uses cash, positive adds it — lets a section sum straight down, so the reader can foot it by eye. Mixed 'natural' conventions per row hide arithmetic errors behind a correct total."
+  },
+  {
+    "date": "2026-09-14",
+    "project": "ordobook",
+    "tag": "finance",
+    "lesson": "A plug is a promise you cannot audit. Overhead as 'total expenses less the named buckets' made net profit tie to QuickBooks by definition, and paid for it by double-counting any cross-section mapping and making 'Excluded' a lie. Once nothing can be unmapped, a direct sum ties by construction AND opens line by line."
+  },
+  {
+    "date": "2026-09-14",
+    "project": "ordobook",
+    "tag": "testing",
+    "lesson": "A tie computed the same way is not a check — it cannot fail. Check a derived P&L against the OTHER statement: QuickBooks' cumulative net income on the balance sheet equity line. Different source, so agreement means something."
+  },
+  {
+    "date": "2026-09-14",
+    "project": "ordobook",
+    "tag": "architecture",
+    "lesson": "An account name is not a key. The same name legitimately owns a row on each statement (a vehicle is a fixed asset AND an expense account). Keying by name collapsed the two and the losing row's dollars silently left their category. Pair rows to results positionally, and raise if the one-per-row invariant breaks."
+  },
+  {
+    "date": "2026-09-14",
+    "project": "ordobook",
+    "tag": "testing",
+    "lesson": "Test data with distinct names hid a name-collision bug that real data exposed in minutes. Ask what the fixtures quietly assume that the client's chart of accounts does not."
+  },
+  {
+    "date": "2026-09-14",
+    "project": "ordobook",
+    "tag": "architecture",
+    "lesson": "'Presence, not truthiness' is the house pattern for derived-unless-overridden: a key present in the override dict wins, absence lets the derivation flow. A typed zero is then a real answer and clearing a cell is how control is handed back. Used by COS pinning (025) and overhead (031)."
+  },
+  {
+    "date": "2026-09-14",
+    "project": "ordobook",
+    "tag": "infra",
+    "lesson": "Never pull into a running --reload dev server: it restarts mid-pull on a half-updated tree and re-runs migrations from whichever files have landed. Three launches broke this way. Make the safe order the only order — one script that stops, pulls, then launches."
+  },
+  {
+    "date": "2026-09-14",
+    "project": "ordobook",
+    "tag": "infra",
+    "lesson": "A migration that alters a table waits on any session holding a lock on it, and because migrations run at app import the backend simply never answers health. Set a lock_timeout so it fails loudly, and print a progress line per startup stage."
+  },
+  {
+    "date": "2026-09-14",
+    "project": "ordobook",
+    "tag": "infra",
+    "lesson": "Never connection.execute() anything in alembic/env.py before begin_transaction(). SQLAlchemy 2 auto-begins a transaction Alembic then reuses without owning, and the whole migration rolls back silently at close — with 'Running upgrade' still in the log. Session settings belong in connect_args."
+  },
+  {
+    "date": "2026-09-14",
+    "project": "ordobook",
+    "tag": "process",
+    "lesson": "A timeout is not a failure. The launcher gave up on the backend after a flat 20s while a migration over a full dataset was still running, and reported a broken app that was fine. Wait on the process being alive, not on a clock."
   }
 ]

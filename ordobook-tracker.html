@@ -285,7 +285,7 @@ body {
     </div>
     <div class="header-desc">Financial advisory workflow app — QB ingestion → analytical engine → client deliverables</div>
     <div class="header-meta">
-      <span>Updated: 2026-09-14 (Workspace functionally complete — signed cash, smoke sections 0–12 passed)</span>
+      <span>Updated: 2026-09-14 (session close — overhead drill-down shipped; smoke sections 0–13 cleared on real data)</span>
       <span>Branch: claude/add-project-tracker-zGrFN</span>
       <span>Stack: React + Vite · FastAPI · SQLite · Electron</span>
     </div>
@@ -399,8 +399,8 @@ body {
       "sub": "React · FastAPI · SQLite · Local-first desktop",
       "priorities": [
         {
-          "title": "Run SMOKE-TEST.md §13 Part B (forecast overhead schedule, migration 031)",
-          "note": "Part A passed on real data 2026-09-14 — net profit ties to QB's own YTD net income across all 32 months. Part B built the same day and is untested live: build a forecast month account by account, type over it, clear the cell to release it, fill forward, drill down from the report and month cards."
+          "title": "Red Team the 2026-09-13/14 work, then plan the next phase",
+          "note": "Sections 12 and 13 cleared on real data. Argue the decisions before building on them: (a) overhead-as-plug reversed (030) — a tie true by definition traded for one that must be earned, with the QB net-income tie-out as the safety net; (b) signed cash everywhere (029) — is one convention right for every line; (c) presence-not-truthiness as the house override pattern (025/031) — discoverable enough; (d) test fixtures with distinct account names hid a collision real data exposed in minutes — what else do they assume. Then pick the next phase."
         },
         {
           "title": "Residual demo items → Phase 6b Electron",
@@ -434,6 +434,8 @@ body {
         "DONE: Owner distributions BS mapping category (migration 026) — signed YTD balance, total equity, forecast actuals-month draws, Targets prior year",
         "DONE: Batch 4 — Actuals year grid as Workspace default + List View, collapsible sidebar, pinned month headers, visible scrollbars, driver definitions, job-count autosave",
         "DONE: Batch 5 — Action Plan objectives → nested action items (migration 027), owner roster, exports 1.1.0",
+        "DONE: Smoke sections 11-13 cleared on real data 2026-09-14 — signed cash foots, overhead direct sum ties to QB net income across 32 months, forecast overhead schedule",
+        "DONE: Overhead drill-down — actuals schedule (audit trail) + forecast schedule (editable, 031), drill-down from grid/report/month cards",
         "DONE: Grid restyle — Forecast / Forecast Report / Actuals grid read like the month detail cards",
         "DONE: Advisor-editable Scoreboard headline / priority reason / action item (migration 028), mirrored into the PDF",
         "Later: Action Plan completion tracking UI (completed_at already stored on steps) — Meeting Mode checkbox flow",
@@ -442,6 +444,14 @@ body {
         "DONE: Signed cash everywhere (migration 029) — Forecast cash-flow section sums from Net Profit to Net Cash Flow; Sandbox owner field aligned"
       ],
       "shipped": [
+        {
+          "date": "2026-09-14",
+          "what": "January's Last Month on both overhead schedules reaches back to prior December, without entering the YTD average",
+          "tags": [
+            "fix",
+            "ux"
+          ]
+        },
         {
           "date": "2026-09-14",
           "what": "Forecast overhead schedule (migration 031): build a month account by account, a typed figure overrides without deleting the schedule, clearing the cell releases it, fill-forward copies the detail, drill-down from the grid, report and month cards",

@@ -1,23 +1,11 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-09-11 (evening) | Shipped today: owner-distributions mapping (026, verified
-> against manual calcs), capex derived for actuals months, pinned month headers, Batch 4, the
-> spreadsheet-card restyle, Batch 5 (Action Plan → objectives with nested action items, 027), and
-> advisor-editable Scoreboard text (028). SMOKE-TEST.md sections 0–10 all passed on the Mac
-> (2026-09-12); section 11 holds the follow-ups built 2026-09-13 (scoreboard draw sign, days/$
-> toggle, always-visible scrollbar, forecast month cards + list view, popover flip, header ✓).
-> Sections 11 and 12 passed (2026-09-14). **The Workspace is functionally complete and the math
-> is verified by the advisor on real data** — signed cash everywhere (029), section foots.
-> Cosmetic notes from §12 shipped the same day (Δ rows interleaved under DSO/DIO/DPO, OCA above
-> capex, "Change in Current Liabilities"). Updating is now one command: `./ordobook-update.command`.
-> Parked: Scoreboard + Action Plan PDF layout → deliverables design pass.
-> **Overhead drill-down shipped 2026-09-14.** Part A: overhead is the direct sum of its accounts
-> (not a plug), "Excluded" retired (030), Re-apply Mapping replays stored months and ties out
-> against QB's own YTD net income — **green across all 32 months on real data**. Part B: a forecast
-> month can be built account by account (031), hard key overrides without deleting the schedule,
-> fill-forward copies the detail. Smoke §13 A passed; §13 B awaiting test.
-> Then: residual demo items (Reports → Actuals view, Scenario Sandbox, Client Profile, exports on
-> real data) → Phase 6b Electron.
-
+> Last updated: 2026-09-14 (session close) | **Smoke sections 0–13 all cleared on real data.**
+> Two days of work: signed cash on every cash-flow line (029), Batch 4/5, advisor-editable
+> Scoreboard text (028), owner distributions (026), and the overhead drill-down — overhead is now
+> the direct sum of its accounts rather than a plug ("Excluded" retired, 030), Re-apply Mapping
+> replays stored months and **ties out against QuickBooks' own YTD net income across all 32 months**,
+> and a forecast month can be built account by account (031).
+> **Next session: Red Team the 2026-09-13/14 decisions, then plan the next phase.**
 ---
 
 ## Launch (dev, as a desktop app)
@@ -38,53 +26,40 @@ how three launches broke on 2026-09-11 → 14.
 
 ## Top priorities
 
-0. **Owner distributions mapping — SHIPPED 2026-09-11 (26b901f), data step still open.**
-   Category `owner_distributions` ("Owner Investments / (Distributions)", Equity group), column on
-   `monthly_actuals` (migration 026, signed YTD balance as QB shows it), total equity includes it
-   everywhere, engine actuals branch derives the month's draw as Δ balance (January against 0)
-   and subtracts it from net cash, Targets prior-year owner draws read the year-end balance
-   (equity roll-forward stays as the fallback while the account is unmapped).
-   `backend/scripts/verify_owner_draws.py` covers the directions. **Still to do on the Mac:**
-   pull, relaunch (026 applies itself), open Review Mapping for a BS import and map the
-   distributions / draws account(s) to the new category, then re-upload the Balance Sheet
-   exports for the months you want filled in — stored totals are computed at import time and
-   there is no re-apply-mapping path yet (candidate for Batch 4 if re-importing gets old).
-   Assumption to confirm on real data: the QB draws account resets to 0 at fiscal-year start
-   like Net Income does. If it carries forward instead, January's derived draw will be the
-   whole cumulative balance — flag it and we switch January to measure against prior December.
+0. **Red Team, then plan the next phase.** Four decisions from 2026-09-13/14 are worth arguing
+   before more is built on them:
+   - **The plug reversal (030).** Overhead was QB's Total Expenses less the three named buckets,
+     so net profit tied to QB *by definition* and could never disagree — while double-counting any
+     expense-section account mapped to Cost of Sales. It is now a direct sum that must EARN the
+     tie, with the QB net-income tie-out as the check. Is that check load-bearing enough, and what
+     happens the first time it goes red on a month the advisor has already presented?
+   - **Signed cash everywhere (029).** One convention for every cash-flow line. Does it hold for
+     lines not yet built, or is there a case where "natural" entry is genuinely better?
+   - **Presence, not truthiness (025/031).** The house pattern for derived-unless-overridden now
+     spans COS pinning and overhead. Clearing a cell is how control is handed back — is that
+     discoverable without the tooltip?
+   - **Fixtures.** A name-collision bug survived my own verification because the test data used
+     distinct account names; real data exposed it in minutes. What else do the fixtures assume
+     that a real chart of accounts does not?
+   Then choose the next phase from the items below.
 
-1. **Batch 4 — SHIPPED 2026-09-11 (87b9f15).** Workspace → Actuals is the year grid (year
-   selector, Grid | List View toggle remembered per browser, month headers pinned and clickable,
-   Confirm All + Review Mapping in the top bar; `/actuals/history` redirects there). Sidebar
-   collapses to an icon rail (footer toggle, remembered). Every cash-flow driver on the Forecast has
-   a click-to-open definition with its sign convention (`DRIVER_INFO` in `ForecastDrivers.jsx`).
-   Job count on the Actuals detail autosaves on blur/Enter. Wide grids keep visible scrollbars
-   (`.scroll-visible`); the Forecast month header pins while scrolling.
-   Not done: a re-apply-mapping button (still re-upload to recompute stored totals).
-2. **Batch 5 — SHIPPED 2026-09-11.** Action Plan = objectives (≤3, UI-guided) each with nested
-   action items (≤3) carrying their own owners (chips from the client's roster) and due date.
-   Migration 027: `action_plan_steps` table, legacy next_steps/owner/due_date copied into one step
-   per objective then dropped, `clients.action_plan_owners` roster. JSON export 1.1.0 (steps[]
-   added; flattened owner/next_steps/due_date kept on the objective for 1.0 readers). PDF prints
-   objective rows with indented action items. `completed_at` exists on steps but has no UI yet
-   (completion tracking is a Product 2 handoff field). Roster editable from the Action Plan header
-   and Profile & Settings.
-   **Untested on the Mac as of this write** — see the test list in the 2026-09-11 session notes.
-3. **Advisor-editable Scoreboard text — SHIPPED 2026-09-11 (migration 028).** Click the headline,
-   a priority's reason, or an action item on the sheet to write your own; blur/Enter saves, clearing
-   or ↺ returns to the auto wording. Stored on `scoreboard_entries` (reason, action) and a new
-   `scoreboard_pages` row (headline); the PDF adapter prefers the advisor text. Untested live.
-4. **Residual demo items** never exercised live: Reports → Actuals view, Scenario Sandbox, Client
-   Profile, PDF + JSON exports. Then Phase 6b (Electron) is unblocked; 6c signing after.
-5. **Engine verification vs. the Vetter Jan-2026 workbook** — a systematic diff remains a Module 3
-   hard requirement. `backend/scripts/verify_targets.py` now covers the Targets derivation; the
-   monthly forecast engine still needs its equivalent.
-   Include in that pass: actuals months now derive owner draws (Δ mapped balance) and capex
-   (Δ net fixed assets + depreciation; a disposal reads as negative capex). With every flow
-   derived, check whether the actuals-month Net Cash Flow ties to Δ cash — any residual is an
-   unmapped balance movement.
+1. **Deliverables design pass** — Scoreboard + Action Plan PDFs. Both export correctly and print
+   badly ("basic and ugly", advisor's words, parked deliberately). Bring the print CSS up to the
+   on-screen Concept 5 sheet; give the Action Plan PDF a real layout.
+2. **Residual demo items** never exercised live: Reports → Actuals view, Scenario Sandbox (its
+   owner field is now signed), Client Profile, PDF + JSON exports on real data. Clearing these
+   unblocks Phase 6b (Electron); 6c signing after — budget for it, Electron+Python bundles trip AV.
+3. **Engine verification vs. the Vetter Jan-2026 workbook** — a systematic diff remains a Module 3
+   hard requirement. `verify_targets.py`, `verify_owner_draws.py` and `verify_category_totals.py`
+   cover Targets, the signed-cash directions and the category rule; the monthly forecast engine
+   still needs its equivalent. Actuals months now derive owner draws (Δ mapped balance) and capex
+   (Δ net fixed assets + depreciation), so check whether an actuals-month Net Cash Flow ties to
+   Δ cash — any residual is an unmapped balance movement.
+4. **Ideas raised but not scoped:** extend the drill-down pattern to other summary lines now that
+   overhead proves it (payroll by account, marketing); a re-apply-mapping equivalent for forecast
+   detail; Action Plan completion tracking (`completed_at` is already stored on steps).
 
-## Where We Are (2026-09-10)
+## Where We Are (2026-09-14)
 
 - Real data: Vetter Plumbing Jan 2024 → Aug 2026 imported (BS, P&L, invoices), all mappings saved.
 - **Import:** P&L root cause fixed (QB header order), duplicate accounts merged across files,
@@ -102,8 +77,18 @@ how three launches broke on 2026-09-11 → 14.
   Forecast drivers carry definitions; capex derived for actuals months; month headers pinned.
   Grids restyled to match the month detail cards (white card, hairline rows, black totals).
 - **Action Plan (2026-09-11):** objectives → action items (027); owner roster; exports at 1.1.0.
-- **Infra:** auto-migrate on launch (dev too), migrations 021–026 idempotent, schema audit + targets
-  + owner-draws direction tests in `backend/scripts/`, Dock launcher `.app`, branch merged with main.
+- **Cash flow (2026-09-13, 029):** every line is SIGNED CASH — negative uses cash, positive adds
+  it — so the section sums straight down from Net Profit to Net Cash Flow. Δ AR / Inventory / AP
+  rows sit under the days drivers and follow their `days | $` toggle.
+- **Mapping / overhead (2026-09-14, 030+031):** every account carries exactly one category and each
+  category is the direct sum of its accounts ("Excluded" retired). **Re-apply Mapping** on the
+  Actuals tab replays stored months from their audit-trail rows and reports what moved, plus a
+  tie-out against QB's own YTD net income. Overhead opens: an audit-trail schedule for actuals
+  months, an editable one for forecast months, reachable from the grid, report and month cards.
+- **Infra:** auto-migrate on launch (dev too), migrations 021–031 idempotent, four verification
+  scripts in `backend/scripts/` (schema audit, targets, owner draws, category totals), Dock
+  launcher `.app`, **`./ordobook-update.command`** is the only way to update the Mac (stop → pull →
+  launch, in that order), launcher waits on the backend process rather than a clock.
 
 ## Prior session — 2026-05-15 → 2026-05-19 (history)
 

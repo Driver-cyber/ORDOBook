@@ -20,11 +20,14 @@ Dev runs as a Dock app (`ORDOBOOK.app` → Chrome app-mode window over the Vite/
 manual calcs), capex derived for actuals months, Batch 4 (year grid, sidebar, driver definitions),
 the spreadsheet-card restyle, and Batch 5 (Action Plan → objectives with nested action items, 027).
 Residual untested live: Batch 5 + restyle, Reports → Actuals view, Scenario Sandbox, PDF/JSON exports.
-**2026-09-14 milestone:** the Workspace (Actuals, Forecast, Targets) is functionally complete —
-every smoke-test section passed on real data and the advisor verified the cash-flow math by hand.
-Signed cash everywhere (029). Updating the Mac is one command (`ordobook-update.command`).
-**NEXT:** residual demo items (Reports → Actuals, Scenario Sandbox, Client Profile, exports on real
-data) → Phase 6b Electron. Deliverables design pass (Scoreboard + Action Plan PDF) is parked.
+**2026-09-14 milestone:** the Workspace (Actuals, Forecast, Targets) is functionally complete and
+smoke sections 0–13 all cleared on real data. Signed cash on every cash-flow line (029). Overhead
+is the direct sum of its accounts rather than a plug (030) and opens line by line on both the
+actuals and forecast sides (031); net profit ties to QuickBooks' own YTD net income across all 32
+imported months. Updating the Mac is one command (`ordobook-update.command`).
+**NEXT:** Red Team the 2026-09-13/14 decisions (the plug reversal above all), then pick the next
+phase: deliverables design pass (Scoreboard + Action Plan PDF, parked), residual demo items →
+Phase 6b Electron, or the forecast-engine diff against the reference workbook.
 
 **Current Vibe:** Deliberate. Plan before building. Verify before shipping. One module at a time.
 
