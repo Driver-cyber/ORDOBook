@@ -867,6 +867,18 @@ advisor text. These fields export; `scoreboard_entries.notes` stays private.
 **Reason:** Three sentences per client per month don't deserve a form. The advisor writes the
 conversation opener where the client will read it.
 
+### [2026-09-14] A forecast month's overhead can be a schedule, and a typed figure overrides it (031)
+**Decision:** `forecast_configs.overhead_detail_monthly` holds month → account → cents. Resolution
+is PRESENCE, not truthiness, the same rule COS pinning uses (025): a month keyed in
+`other_overhead_monthly` is hard keyed and wins; otherwise a non-empty schedule sums; otherwise
+zero. A typed $0 is therefore honoured, and clearing the cell releases the month back to its
+schedule, which is never deleted by the override. `calc_trace` names the rule and lists the
+accounts. Fill-forward copies the source month's STATE — a schedule propagates account by account,
+not as a flattened total.
+**Reason:** the advisor wants the Forecast grid to stay at summary density while the detail behind
+one line is a click away and stored. It is Module 3a Level 2 arriving on the line that needs it,
+and it only became possible once overhead stopped being a plug.
+
 ### [2026-09-14] Overhead is the direct sum of its accounts; "Excluded" retired (030)
 **Decision:** Every account maps to exactly one category, and each category is the direct sum of
 the accounts mapped to it, whatever statement section they came from. `total_expenses` = payroll +

@@ -10,10 +10,11 @@
 > Cosmetic notes from §12 shipped the same day (Δ rows interleaved under DSO/DIO/DPO, OCA above
 > capex, "Change in Current Liabilities"). Updating is now one command: `./ordobook-update.command`.
 > Parked: Scoreboard + Action Plan PDF layout → deliverables design pass.
-> **In flight (2026-09-14): overhead drill-down.** Part A shipped — overhead is the direct sum of
-> its accounts (not a plug), "Excluded" retired (030), Re-apply Mapping replays stored months from
-> their audit-trail rows, and the Actuals overhead schedule opens the line. Smoke §13 A.
-> Part B next: the editable Forecast overhead schedule on top of the same payload.
+> **Overhead drill-down shipped 2026-09-14.** Part A: overhead is the direct sum of its accounts
+> (not a plug), "Excluded" retired (030), Re-apply Mapping replays stored months and ties out
+> against QB's own YTD net income — **green across all 32 months on real data**. Part B: a forecast
+> month can be built account by account (031), hard key overrides without deleting the schedule,
+> fill-forward copies the detail. Smoke §13 A passed; §13 B awaiting test.
 > Then: residual demo items (Reports → Actuals view, Scenario Sandbox, Client Profile, exports on
 > real data) → Phase 6b Electron.
 

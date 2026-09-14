@@ -213,8 +213,55 @@ cd "/Users/Shared/Claude-Projects/ORDO Projects/ORDOBook"
       forecast card.
 - [ ] A month you have not imported shows "isn't imported" and lists the months you have.
 
-> Part B (the editable Forecast overhead schedule) lands next; section 13 is complete when
-> both halves pass together.
+## 13 Part B — the editable Forecast overhead schedule (migration 031)
+
+Update first (`./ordobook-update.command`); the backend log should show `030 -> 031`.
+Work in a **forecast** month — September or later if your actuals run through August.
+
+### 13.4 Building a month
+- [ ] Workspace → Forecast. The row is now **Overhead** and every cell carries a faint ⊞ at
+      its top-left. Click the ⊞ on a forecast month.
+- [ ] The schedule lists the accounts mapped to Overhead in statement order, with Last Month
+      and YTD Avg, and an empty input per account. The header says how many months the
+      average covers.
+- [ ] **Fill averages** fills every account with its YTD average. The total at the bottom
+      updates and says how many of the accounts are entered.
+- [ ] Change one account and click away — "saved ✓". **Undo** puts it back.
+- [ ] **Clear all** empties the month; Undo restores the whole set in one go.
+- [ ] Back (or Esc) → the Forecast. That month's Overhead equals your total and the cell now
+      shows a gold **Σ** instead of the ⊞.
+- [ ] Net Profit and Net Cash Flow for the month moved by the change.
+
+### 13.5 Typing over a schedule
+- [ ] Type a figure straight into that month's Overhead cell on the grid and click away. The
+      Σ disappears — the typed figure wins.
+- [ ] Open the schedule again: a gold panel says a typed figure is overriding it, and the
+      account entries are **still there**.
+- [ ] Click **Use the schedule** (or edit any account line). The typed figure is dropped and
+      the Σ returns on the grid.
+- [ ] Do it once more, then instead of the button, **clear the grid cell** (delete the
+      contents, click away). Same result: the schedule flows again.
+- [ ] Type a literal **0** into the cell. Overhead reads $0 and the Σ is gone — a typed zero
+      is a real entry, not an empty one.
+- [ ] **Undo** on the Forecast page reverses each of these, one step per commit.
+
+### 13.6 Fill forward
+- [ ] With one forecast month built from a schedule, click the **→** at the left of the
+      Overhead row. Every later forecast month gets the same schedule account by account —
+      open two of them and confirm the individual lines copied, not just the total.
+- [ ] Actuals months are untouched by the fill.
+
+### 13.7 Drill-down from everywhere
+- [ ] Reports → Forecast: the Overhead figures are clickable. A forecast month opens the
+      schedule; an actuals month opens the imported accounts.
+- [ ] A month card (click a month header on either Forecast screen) → Overhead → opens the
+      right screen for that month's type.
+- [ ] Open a forecast schedule for a month that later becomes an actual: it says so and links
+      to the imported accounts.
+
+### 13.8 It still all ties
+- [ ] Workspace → Actuals → **Re-apply Mapping**: still green, still 0 changed.
+- [ ] The cash-flow section on the Forecast still foots for a month you edited.
 
 ## If something is off
 Note the screen, what you expected, and what you saw. Numbers first. A screenshot of the grid

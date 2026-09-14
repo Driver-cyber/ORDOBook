@@ -399,8 +399,8 @@ body {
       "sub": "React · FastAPI · SQLite · Local-first desktop",
       "priorities": [
         {
-          "title": "Overhead drill-down Part B — editable Forecast overhead schedule",
-          "note": "Part A shipped 2026-09-14 (direct-sum overhead, Excluded retired via 030, Re-apply Mapping, Actuals overhead schedule). Part B: per-account inputs for a forecast month summing to the Overhead row, Σ badge when detail-driven, a hard key overrides without deleting the detail, fill-forward copies the detail, Clear all / Fill averages / Undo in the header, drill-down from the Forecast Report and List View. Migration 031 for overhead_detail_monthly. Smoke §13 Part A first — it restates stored months."
+          "title": "Run SMOKE-TEST.md §13 Part B (forecast overhead schedule, migration 031)",
+          "note": "Part A passed on real data 2026-09-14 — net profit ties to QB's own YTD net income across all 32 months. Part B built the same day and is untested live: build a forecast month account by account, type over it, clear the cell to release it, fill forward, drill down from the report and month cards."
         },
         {
           "title": "Residual demo items → Phase 6b Electron",
@@ -442,6 +442,16 @@ body {
         "DONE: Signed cash everywhere (migration 029) — Forecast cash-flow section sums from Net Profit to Net Cash Flow; Sandbox owner field aligned"
       ],
       "shipped": [
+        {
+          "date": "2026-09-14",
+          "what": "Forecast overhead schedule (migration 031): build a month account by account, a typed figure overrides without deleting the schedule, clearing the cell releases it, fill-forward copies the detail, drill-down from the grid, report and month cards",
+          "tags": [
+            "feature",
+            "migration",
+            "audit-trail"
+          ],
+          "learned": "Presence, not truthiness, is now the house pattern for 'derived unless overridden' — COS pinning (025) and overhead (031) resolve the same way, so a typed zero is a real answer and clearing a cell is how you hand control back."
+        },
         {
           "date": "2026-09-14",
           "what": "Overhead becomes the direct sum of its accounts (migration 030 retires 'Excluded', reversing the 020 plug); Re-apply Mapping replays stored months from audit-trail rows and reports what moved; Actuals overhead schedule opens the line",
