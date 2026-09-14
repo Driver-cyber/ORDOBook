@@ -29,6 +29,9 @@ class ForecastConfigCreate(BaseModel):
 
     overhead_schedule: list[dict[str, Any]] = []
     other_overhead_monthly: dict[str, int] = {}         # catch-all overhead per month (cents)
+    # Per-account overhead for a month: {"9": {"Rent": 250000}, ...}. A month
+    # present in other_overhead_monthly overrides its entry here.
+    overhead_detail_monthly: dict[str, dict[str, int]] = {}
 
     cos_pct_monthly: dict[str, float] = {}
     cos_fixed_monthly: dict[str, int] = {}  # cents; presence pins the month
@@ -71,6 +74,7 @@ class ForecastConfigUpdate(BaseModel):
 
     overhead_schedule: list[dict[str, Any]] | None = None
     other_overhead_monthly: dict[str, int] | None = None
+    overhead_detail_monthly: dict[str, dict[str, int]] | None = None
 
     cos_pct_monthly: dict[str, float] | None = None
     cos_fixed_monthly: dict[str, int] | None = None
@@ -117,6 +121,7 @@ class ForecastConfigOut(BaseModel):
 
     overhead_schedule: list[dict[str, Any]]
     other_overhead_monthly: dict[str, Any]
+    overhead_detail_monthly: dict[str, Any] = {}
 
     cos_pct_monthly: dict[str, Any]
     cos_fixed_monthly: dict[str, Any] = {}

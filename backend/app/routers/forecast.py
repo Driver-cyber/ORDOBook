@@ -63,6 +63,7 @@ def _run_calculation(config: ForecastConfig, db: Session) -> list[ForecastPeriod
         "owner_tax_savings": config.owner_tax_savings or {},
         "overhead_schedule": config.overhead_schedule or [],
         "other_overhead_monthly": config.other_overhead_monthly or {},
+        "overhead_detail_monthly": config.overhead_detail_monthly or {},
         "cos_pct_monthly": config.cos_pct_monthly or {},
         "cos_fixed_monthly": config.cos_fixed_monthly or {},
         "marketing_monthly": config.marketing_monthly or {},

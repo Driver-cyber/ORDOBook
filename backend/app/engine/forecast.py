@@ -281,8 +281,13 @@ def _period_from_drivers(month: int, config: dict, prior_projected: dict | None 
     )
 
     # --- Overhead ---
+    # Presence, not truthiness: a month keyed in other_overhead_monthly is hard
+    # keyed and overrides its schedule; a month absent falls through to the sum.
+    _oh_monthly = config.get("other_overhead_monthly") or {}
+    _oh_hard = int(_oh_monthly[month_key]) if month_key in _oh_monthly else None
     overhead, overhead_trace = calculate_overhead(
-        other_overhead_cents=int(config.get("other_overhead_monthly", {}).get(month_key, 0)),
+        hard_key_cents=_oh_hard,
+        detail=(config.get("overhead_detail_monthly") or {}).get(month_key) or {},
         month=month,
     )
 

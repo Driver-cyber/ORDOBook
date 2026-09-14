@@ -14,6 +14,7 @@ import ForecastDrivers from './pages/ForecastDrivers'
 import ForecastReport from './pages/ForecastReport'
 import ForecastMonth from './pages/ForecastMonth'
 import OverheadSchedule from './pages/OverheadSchedule'
+import ForecastOverheadSchedule from './pages/ForecastOverheadSchedule'
 import Targets from './pages/Targets'
 import Scoreboard from './pages/Scoreboard'
 import ReportCard from './pages/ReportCard'
@@ -167,6 +168,8 @@ export default function App() {
         {/* Audit trail for one month's Overhead line — the accounts behind the number */}
         <Route path="/clients/:id/actuals/:year/overhead/:month" element={<CL>{() => <OverheadSchedule />}</CL>} />
         <Route path="/clients/:id/actuals/:year/:month" element={<CL>{() => <ActualsDetail />}</CL>} />
+        {/* Build one forecast month's Overhead account by account */}
+        <Route path="/clients/:id/workspace/forecast/:year/overhead/:month" element={<CL>{() => <ForecastOverheadSchedule />}</CL>} />
         {/* Single-month card view of the forecast (actual or projected) — reached from a month header */}
         <Route path="/clients/:id/forecast/:year/month/:month" element={<CL>{() => <ForecastMonth />}</CL>} />
 

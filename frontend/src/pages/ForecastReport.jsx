@@ -101,7 +101,7 @@ const stickyTh = {
 
 // ── A single data row ─────────────────────────────────────────────────────────
 
-function DataRow({ label, values, ytd, highlight = false, muted = false, indent = false }) {
+function DataRow({ label, values, ytd, highlight = false, muted = false, indent = false, onCell, cellTitle }) {
   const color = highlight ? S.text : muted ? S.textMuted : S.textSecondary
   const weight = highlight ? 'font-semibold' : 'font-normal'
 
@@ -115,9 +115,17 @@ function DataRow({ label, values, ytd, highlight = false, muted = false, indent 
         <td key={i}
             className={`text-right px-2 py-2 font-mono text-[12px] ${weight}`}
             style={{ color: v?.isActual ? S.actualsText : color, minWidth: 58 }}>
-          <Tooltip content={v?.trace}>
-            {v?.display ?? '—'}
-          </Tooltip>
+          {onCell ? (
+            <button type="button" onClick={() => onCell(i)} title={cellTitle}
+                    className="w-full text-right hover:underline decoration-dashed underline-offset-2"
+                    style={{ color: 'inherit' }}>
+              {v?.display ?? '—'}
+            </button>
+          ) : (
+            <Tooltip content={v?.trace}>
+              {v?.display ?? '—'}
+            </Tooltip>
+          )}
         </td>
       ))}
       <td className={`text-right px-2 py-2 font-mono text-[12px] ${weight}`}
@@ -168,6 +176,11 @@ export default function ForecastReport() {
   const gridRef = useRef(null)
   const switchView = (v) => { setView(v); storeView(v) }
   const openMonth = (m) => navigate(`/clients/${id}/forecast/${fiscalYear}/month/${m}`)
+  // An imported month's overhead opens its statement accounts; a forecast month
+  // opens the schedule that drives it.
+  const openOverhead = (m) => navigate(actualsMonths.has(m)
+    ? `/clients/${id}/actuals/${fiscalYear}/overhead/${m}`
+    : `/clients/${id}/workspace/forecast/${fiscalYear}/overhead/${m}`)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -385,7 +398,8 @@ export default function ForecastReport() {
             <DataRow label="Payroll" values={ordered.map(p => cell(p, 'payroll_expenses'))} ytd={ytd('payroll_expenses')} />
             <DataRow label="Marketing / Advertising" values={ordered.map(p => cell(p, 'marketing_expenses'))} ytd={ytd('marketing_expenses')} indent />
             <DataRow label="Depreciation & Amort." values={ordered.map(p => cell(p, 'depreciation_amortization'))} ytd={ytd('depreciation_amortization')} indent />
-            <DataRow label="Other Overhead" values={ordered.map(p => cell(p, 'overhead_expenses'))} ytd={ytd('overhead_expenses')} indent />
+            <DataRow label="Overhead" values={ordered.map(p => cell(p, 'overhead_expenses'))} ytd={ytd('overhead_expenses')} indent
+                     onCell={i => openOverhead(i + 1)} cellTitle="Open the accounts behind this figure" />
             <DataRow label="Total Overhead Expenses" values={ordered.map(p => cell(p, 'total_other_expenses'))} ytd={ytd('total_other_expenses')} />
             <DataRow
               label="Total Operating Expenses"
@@ -454,7 +468,8 @@ export default function ForecastReport() {
             <DataRow label="Payroll"               values={ordered.map(p => cell(p, 'payroll_expenses'))}      ytd={ytd('payroll_expenses')} indent muted />
             <DataRow label="Marketing / Advertising" values={ordered.map(p => cell(p, 'marketing_expenses'))} ytd={ytd('marketing_expenses')} indent muted />
             <DataRow label="Depreciation & Amort." values={ordered.map(p => cell(p, 'depreciation_amortization'))} ytd={ytd('depreciation_amortization')} indent muted />
-            <DataRow label="Other Overhead"        values={ordered.map(p => cell(p, 'overhead_expenses'))}    ytd={ytd('overhead_expenses')} indent muted />
+            <DataRow label="Overhead"              values={ordered.map(p => cell(p, 'overhead_expenses'))}    ytd={ytd('overhead_expenses')} indent muted
+                     onCell={i => openOverhead(i + 1)} cellTitle="Open the accounts behind this figure" />
             <DataRow label="Total Operating Expenses"
               values={ordered.map(p => ({
                 display: fmt((p?.payroll_expenses ?? 0) + (p?.total_other_expenses ?? 0)),

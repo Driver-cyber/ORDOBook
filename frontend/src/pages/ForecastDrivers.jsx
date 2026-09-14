@@ -141,6 +141,11 @@ const DRIVER_INFO = {
     text: 'Change in long-term debt, entered as cash. Positive = new loan proceeds, cash in. Negative = principal repayment, cash out. Actuals months use the change in the imported balance.' },
 }
 
+const OVERHEAD_INFO = {
+  title: 'Overhead Expenses',
+  text: 'Type a figure here, or click the Σ / ⊞ in a cell to build the month account by account from the accounts mapped to Overhead. A month built that way carries a Σ and reads as the sum. Typing over it wins and keeps the schedule underneath — clear the cell and the schedule comes back. Actuals months show the imported figure; click through to see the accounts behind it.',
+}
+
 // The derived Δ rows under the days drivers.
 const DELTA_INFO = {
   ar:  { title: 'Δ Accounts Receivable', text: 'The cash effect of DSO: this month\'s AR balance minus last month\'s, as cash. AR growing ties cash up (negative); AR falling releases it (positive). In days mode the row shows the change in DSO from the month before.' },
@@ -749,6 +754,91 @@ export default function ForecastDrivers() {
     onAutofill: (_, lbl) => autofillField(f, dv(f, firstForecastMonth), lbl, 1),
   })
 
+  // ── Overhead: hard key vs schedule ────────────────────────────────────────
+  // PRESENCE in other_overhead_monthly means "typed here", and it overrides the
+  // month's schedule; absence lets the schedule sum through. So a typed $0 is
+  // honoured and clearing a cell releases the month back to its schedule — the
+  // same rule COS pinning uses.
+  const OH = 'other_overhead_monthly'
+  const ohDetail = (m) => (draft?.overhead_detail_monthly || {})[String(m)] || {}
+  const ohHard = (m) => {
+    const d = draft?.[OH] || {}
+    return String(m) in d ? Number(d[String(m)] || 0) : null
+  }
+  const ohIsDetail = (m) => ohHard(m) === null && Object.keys(ohDetail(m)).length > 0
+  const ohResolved = (m) => {
+    const hard = ohHard(m)
+    if (hard !== null) return hard
+    return Object.values(ohDetail(m)).reduce((s, v) => s + Number(v || 0), 0)
+  }
+  // Editing shows whole dollars (or % of revenue); a month with neither a key
+  // nor a schedule edits as blank, not as a misleading 0.
+  const ohEditValue = (m) => {
+    if (ohHard(m) === null && !ohIsDetail(m)) return ''
+    const cents = ohResolved(m)
+    return modeOf(OH) === 'pct' ? (pctOfRev(cents, m) ?? 0).toFixed(1) : Math.round(cents / 100)
+  }
+  const ohRestDisplay = (m) => {
+    if (ohHard(m) === null && !ohIsDetail(m)) return '—'
+    const cents = ohResolved(m)
+    if (modeOf(OH) !== 'pct') return fmt(cents)
+    const pct = pctOfRev(cents, m)
+    return pct === null ? '—' : `${pct.toFixed(1)}%`
+  }
+  const setOverheadCell = (m, rawVal) => {
+    const blank = String(rawVal).trim() === ''
+    setDraft(prev => {
+      const next = { ...(prev[OH] || {}) }
+      if (blank) delete next[String(m)]           // release: the schedule flows again
+      else {
+        const n = Number(rawVal) || 0
+        next[String(m)] = modeOf(OH) === 'pct' ? Math.round(revAt(m) * n / 100) : Math.round(n * 100)
+      }
+      return { ...prev, [OH]: next }
+    })
+  }
+  // Presence-sensitive compare — sameDict() treats a missing key as 0, which
+  // would miss "cleared a cell that held 0".
+  const commitOverheadCell = (m) => {
+    const prev = committedRef.current[OH] || {}
+    const next = draft[OH] || {}
+    if (sameFixed(prev, next)) return
+    committedRef.current[OH] = { ...next }
+    const mk = String(m)
+    const shown = mk in next ? fmt(Number(next[mk] || 0)) : (ohIsDetail(m) ? 'schedule' : '—')
+    pushUndo({ field: OH, label: `Overhead · ${MONTHS[m - 1]} → ${shown}`, prev: { ...prev } })
+    persist(draft)
+  }
+  // Fill forward copies the first forecast month's STATE, not just its number:
+  // a hard key copies as a hard key, a schedule copies account by account.
+  const fillOverheadRow = () => {
+    const src = monthInts.find(mm => !actualsMonths.has(mm))
+    if (src === undefined) return
+    const srcHard = ohHard(src)
+    const srcDetail = ohDetail(src)
+    const hard = { ...(draft[OH] || {}) }
+    const detailAll = { ...(draft.overhead_detail_monthly || {}) }
+    for (let mm = 1; mm <= 12; mm++) {
+      if (actualsMonths.has(mm)) continue
+      if (srcHard === null) delete hard[String(mm)]
+      else hard[String(mm)] = srcHard
+      if (Object.keys(srcDetail).length) detailAll[String(mm)] = { ...srcDetail }
+      else delete detailAll[String(mm)]
+    }
+    const prevHard = committedRef.current[OH] || {}
+    const prevDetail = committedRef.current.overhead_detail_monthly || {}
+    if (sameFixed(prevHard, hard) && JSON.stringify(prevDetail) === JSON.stringify(detailAll)) return
+    const nextDraft = { ...draft, [OH]: hard, overhead_detail_monthly: detailAll }
+    setDraft(nextDraft)
+    committedRef.current[OH] = { ...hard }
+    committedRef.current.overhead_detail_monthly = { ...detailAll }
+    pushUndo({
+      label: `Overhead · fill row → ${srcHard === null ? 'schedule' : fmt(srcHard)}`,
+      fields: { [OH]: { ...prevHard }, overhead_detail_monthly: { ...prevDetail } },
+    })
+    persist(nextDraft)
+  }
+
   const actualsCosDisplay = (month) => {
     const p = periodByMonth[month]
     if (!p || p.revenue === 0) return '—'
@@ -1083,17 +1173,61 @@ export default function ForecastDrivers() {
               onCommit={(m, lbl) => commitMonthField('depreciation_monthly', m, lbl, 100)}
               onAutofill={(val, lbl) => autofillField('depreciation_monthly', val, lbl, 100)}
             />
-            <DriverRow
-              label="Other Overhead ($)"
-              compact
-              monthInts={monthInts} actualsMonths={actualsMonths}
-              getValue={m => viewValue('other_overhead_monthly', m)}
-              getDisplay={m => viewDisplay('other_overhead_monthly', m)}
-              mode={modeOf('other_overhead_monthly')} onToggleMode={md => setMode('other_overhead_monthly', md)}
-              onChange={(m, v) => setMonthField('other_overhead_monthly', m, v, 100)}
-              onCommit={(m, lbl) => commitMonthField('other_overhead_monthly', m, lbl, 100)}
-              onAutofill={(val, lbl) => autofillField('other_overhead_monthly', val, lbl, 100)}
-            />
+{/* Overhead — a month is either hard keyed here or built account by account on
+                its schedule. Presence in other_overhead_monthly decides which, so a typed
+                $0 still overrides. See app/engine/overhead.py. */}
+            <tr style={{ borderBottom: `1px solid ${S.rowLine}` }}>
+              <AutofillBtn onFill={fillOverheadRow} />
+              <td className="px-3 py-1.5 text-[12px]" style={{ color: S.textSecondary, width: 210 }}>
+                <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span>Overhead ($)</span>
+                  <InfoTip title={OVERHEAD_INFO.title} text={OVERHEAD_INFO.text} />
+                  <span className="shrink-0">
+                    <ModeToggle mode={modeOf('other_overhead_monthly')}
+                                onChange={md => setMode('other_overhead_monthly', md)} />
+                  </span>
+                </span>
+              </td>
+              {monthInts.map(m => {
+                const isActual = actualsMonths.has(m)
+                const detailDriven = ohIsDetail(m)
+                return (
+                  <td key={m} className="px-1 py-1 relative" style={{ minWidth: 58 }}>
+                    <button
+                      type="button"
+                      onClick={() => navigate(isActual
+                        ? `/clients/${id}/actuals/${fiscalYear}/overhead/${m}`
+                        : `/clients/${id}/workspace/forecast/${fiscalYear}/overhead/${m}`)}
+                      title={isActual
+                        ? 'See the accounts behind this figure'
+                        : detailDriven
+                          ? 'Built from an account schedule — open it'
+                          : 'Build this month account by account'}
+                      className="absolute left-1 top-0 font-mono text-[9px] leading-none transition-opacity"
+                      style={detailDriven || isActual
+                        ? { color: S.gold, opacity: 1 }
+                        : { color: S.textMuted, opacity: 0.35 }}
+                    >
+                      {detailDriven ? 'Σ' : '⊞'}
+                    </button>
+                    {isActual
+                      ? <div className="text-right px-1 py-0.5 font-mono text-[12px]" style={{ color: S.actualsText }}>
+                          {viewDisplay('other_overhead_monthly', m)}
+                        </div>
+                      : <DriverInput
+                          value={ohEditValue(m)}
+                          display={ohRestDisplay(m)}
+                          placeholder="—"
+                          onChange={v => setOverheadCell(m, v)}
+                          onCommit={() => commitOverheadCell(m)}
+                        />}
+                  </td>
+                )
+              })}
+              <td className="text-right px-2 py-1.5 font-mono text-[12px]" style={{ color: S.textMuted }}>
+                {fmt(monthInts.reduce((sum, m) => sum + (periodByMonth[m]?.overhead_expenses ?? 0), 0))}
+              </td>
+            </tr>
             <CalcRow
               label="Total Overhead Expenses"
               periods={orderedPeriods}

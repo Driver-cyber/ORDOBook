@@ -237,7 +237,7 @@ export default function ClientWorkspace() {
                   <div className="text-[11px] mt-2" style={{ color: '#3f7d52' }}>
                     ✓ Net profit ties to QuickBooks' own year-to-date net income in all{' '}
                     {reapplyResult.tie_out.months_checked} month
-                    {reapplyResult.tie_out.months_checked === 1 ? '' : 's'} it reports one.
+                    {reapplyResult.tie_out.months_checked === 1 ? '' : 's'} reported.
                   </div>
                 ) : (
                   <div className="mt-2">

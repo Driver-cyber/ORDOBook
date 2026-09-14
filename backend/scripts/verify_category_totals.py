@@ -106,6 +106,51 @@ r = totals(SUBS, {("profit_and_loss", "Rent"): "excluded"})
 check("the excluded account's dollars are in Overhead, not lost",
       r["overhead_expenses"] == 1_500_000, r["overhead_expenses"])
 
+
+# ── Overhead resolution: hard key vs schedule (migration 031) ────────────────
+from app.engine.forecast import build_forecast_period  # noqa: E402
+
+print()
+print("Overhead resolution — presence, not truthiness:")
+
+BASE_CFG = {"large_job_counts": {"9": 10}, "large_job_avg_value_monthly": {"9": 100_000}}
+
+
+def overhead_for(cfg_extra):
+    p = build_forecast_period(month=9, config={**BASE_CFG, **cfg_extra}, actuals=None)
+    return p["overhead_expenses"], p["calc_trace"]["overhead_expenses"]
+
+
+oh, tr = overhead_for({"overhead_detail_monthly": {"9": {"Rent": 250_000, "Phone": 34_000}}})
+check("a schedule with no hard key sums its accounts", oh == 284_000, oh)
+check("the trace lists each account",
+      [c["label"] for c in tr["components"]] == ["Rent", "Phone"], tr["components"])
+
+oh, tr = overhead_for({
+    "other_overhead_monthly": {"9": 500_000},
+    "overhead_detail_monthly": {"9": {"Rent": 250_000, "Phone": 34_000}},
+})
+check("a typed figure overrides the schedule", oh == 500_000, oh)
+check("the trace says the schedule underneath was overridden",
+      any("overridden" in c["label"] for c in tr["components"]), tr["components"])
+
+oh, _ = overhead_for({
+    "other_overhead_monthly": {"9": 0},
+    "overhead_detail_monthly": {"9": {"Rent": 250_000}},
+})
+check("a typed ZERO still overrides (presence, not truthiness)", oh == 0, oh)
+
+oh, _ = overhead_for({
+    "other_overhead_monthly": {"8": 500_000},          # another month's key
+    "overhead_detail_monthly": {"9": {"Rent": 250_000}},
+})
+check("clearing the cell (key removed) lets the schedule flow again", oh == 250_000, oh)
+
+oh, _ = overhead_for({"other_overhead_monthly": {"9": 700_000}})
+check("no schedule: the typed figure is used", oh == 700_000, oh)
+oh, _ = overhead_for({})
+check("neither: zero", oh == 0, oh)
+
 print()
 print("ALL PASS" if not fails else f"{len(fails)} FAILED: {fails}")
 sys.exit(0 if not fails else 1)

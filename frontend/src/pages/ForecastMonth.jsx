@@ -143,7 +143,9 @@ export default function ForecastMonth() {
               <Row label="Marketing" value={p.marketing_expenses} />
               <Row label="Depreciation & Amortization" value={p.depreciation_amortization} />
               <Row label="Overhead" value={p.overhead_expenses}
-                   onOpen={isActual ? () => navigate(`/clients/${id}/actuals/${fiscalYear}/overhead/${m}`) : undefined} />
+                   onOpen={() => navigate(isActual
+                     ? `/clients/${id}/actuals/${fiscalYear}/overhead/${m}`
+                     : `/clients/${id}/workspace/forecast/${fiscalYear}/overhead/${m}`)} />
               <Row label="Total Operating Expenses" value={totalOpex} calculated />
               <Row label="Net Operating Profit" value={p.net_operating_profit} calculated />
               <SectionHeader label="Other" />

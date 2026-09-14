@@ -38,8 +38,12 @@ class ForecastConfig(Base):
     # Format: [{"name": "Rent", "monthly": {"1": 250000, "2": 250000, ...}}, ...]
     overhead_schedule = Column(JSON, nullable=False, default=list)
 
-    # Other overhead — single editable per-month catch-all (rent, utilities, etc.)
+    # Other overhead — per-month catch-all typed straight into the Forecast grid.
+    # A month PRESENT here is hard keyed and overrides overhead_detail_monthly;
+    # a month absent falls through to the schedule (migration 031).
     other_overhead_monthly = Column(JSON, nullable=False, default=dict)  # {"1": 250000, ...} cents
+    # Overhead built account by account for a month: {"9": {"Rent": 250000}, ...}
+    overhead_detail_monthly = Column(JSON, nullable=False, default=dict)
 
     # Cost of Sales — per-month percentage of revenue (e.g., {"1": 35.5, "2": 36.0})
     cos_pct_monthly = Column(JSON, nullable=False, default=dict)
