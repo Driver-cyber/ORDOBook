@@ -282,6 +282,7 @@ export default function ClientWorkspace() {
               <ActualsGrid
                 periods={details}
                 onOpenMonth={p => navigate(`/clients/${id}/actuals/${p.fiscal_year}/${p.month}`)}
+                onOpenOverhead={p => navigate(`/clients/${id}/actuals/${p.fiscal_year}/overhead/${p.month}`)}
               />
             )}
           </div>

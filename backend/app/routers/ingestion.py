@@ -7,7 +7,7 @@ from app.models.account_mapping import AccountMapping
 from app.models.monthly_actuals import MonthlyActuals
 from app.parsers.qb_parser import parse_file, parse_invoice_report, detect_report_type
 from app.parsers.auto_mapper import suggest_mappings
-from app.engine.category_totals import compute_period_totals
+from app.engine.category_totals import compute_period_totals, category_accounts
 from app.schemas.ingestion import ParsePreviewResponse, ConfirmRequest
 
 router = APIRouter(prefix="/api/clients", tags=["ingestion"])
@@ -466,3 +466,71 @@ def reapply_mapping(client_id: int, db: Session = Depends(get_db)):
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
     return recompute_stored_actuals(client_id, db)
+
+
+@router.get("/{client_id}/actuals/{year}/overhead")
+def overhead_schedule(client_id: int, year: int, db: Session = Depends(get_db)):
+    """The accounts behind the Overhead line, month by month, for one fiscal year.
+
+    Overhead is the direct sum of the accounts mapped to it, so this is the audit
+    trail for that line: open the number, see what it is made of. Each account
+    carries its full month history, so the caller can show this month, last month
+    and a year-to-date average without a second round trip — the same payload the
+    Forecast overhead schedule reads for its Last Month and YTD Avg columns.
+
+    `reconciliation` compares the schedule against the figure stored on each month.
+    A non-zero difference means the stored total predates the current mapping —
+    "Re-apply Mapping" clears it.
+    """
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    records = (
+        db.query(MonthlyActuals)
+        .filter(MonthlyActuals.client_id == client_id, MonthlyActuals.fiscal_year == year)
+        .order_by(MonthlyActuals.month)
+        .all()
+    )
+    mappings = _client_mappings(client_id, db)
+
+    accounts: dict[str, dict] = {}
+    reconciliation: dict[str, dict] = {}
+    imported_months: list[int] = []
+
+    for rec in records:
+        rows = (rec.raw_data or {}).get("rows")
+        if not rows:
+            continue
+        imported_months.append(rec.month)
+        label = f"{MONTH_NAMES[rec.month]} {year}"
+
+        month_total = 0
+        for acc in category_accounts(rows, mappings, "overhead_expenses"):
+            amount = acc["values"].get(label, 0) or 0
+            month_total += amount
+            entry = accounts.setdefault(acc["account_name"], {
+                "account_name": acc["account_name"],
+                "section": acc["section"],
+                "from_other_section": acc["from_other_section"],
+                "months": {},
+            })
+            entry["months"][str(rec.month)] = amount
+
+        reconciliation[str(rec.month)] = {
+            "schedule_total": month_total,
+            "stored_total": rec.overhead_expenses or 0,
+            "difference": (rec.overhead_expenses or 0) - month_total,
+            "status": rec.status,
+        }
+
+    # Statement order, then alphabetical — the order the advisor reads a P&L in.
+    ordered = sorted(accounts.values(), key=lambda a: (a["from_other_section"], a["account_name"].lower()))
+
+    return {
+        "fiscal_year": year,
+        "category": "overhead_expenses",
+        "imported_months": imported_months,
+        "accounts": ordered,
+        "reconciliation": reconciliation,
+    }

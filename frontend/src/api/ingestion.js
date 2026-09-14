@@ -30,3 +30,8 @@ export const getMappingReviewData = (clientId) =>
 // is how a mapping correction reaches months that are already imported.
 export const reapplyMapping = (clientId) =>
   api.post(`/clients/${clientId}/actuals/reapply-mapping`).then(r => r.data)
+
+// The accounts behind the Overhead line for a fiscal year, with each account's
+// month history so a screen can show this month, last month and a YTD average.
+export const getOverheadSchedule = (clientId, year) =>
+  api.get(`/clients/${clientId}/actuals/${year}/overhead`).then(r => r.data)

@@ -21,11 +21,14 @@ function RowText({ label, value }) {
   )
 }
 
-function Row({ label, value, calculated = false }) {
+function Row({ label, value, calculated = false, onOpen }) {
   return (
     <div className={`flex items-center justify-between py-2 border-b border-border/50 ${calculated ? 'bg-surface2/30' : ''}`}>
       <span className={`text-[12px] ${calculated ? 'text-text-muted font-medium' : 'text-text-secondary'} pl-4`}>
-        {label}
+        {onOpen ? (
+          <button type="button" onClick={onOpen} title="Open the accounts behind this figure"
+                  className="hover:underline decoration-dashed underline-offset-2">{label} →</button>
+        ) : label}
       </span>
       <span className={`font-mono text-[12px] pr-4 ${
         calculated ? 'text-text-primary' : value < 0 ? 'text-[#c05a5a]' : 'text-text-secondary'
@@ -208,7 +211,8 @@ export default function ActualsDetail() {
             <Row label="Payroll" value={data.payroll_expenses} />
             <Row label="Marketing" value={data.marketing_expenses} />
             <Row label="Depreciation & Amortization" value={data.depreciation_amortization} />
-            <Row label="Overhead" value={data.overhead_expenses} />
+            <Row label="Overhead" value={data.overhead_expenses}
+                 onOpen={() => navigate(`/clients/${id}/actuals/${year}/overhead/${month}`)} />
             <Row label="Total Expenses" value={totalExpenses} calculated />
             <Row label="Net Operating Profit" value={netOperatingProfit} calculated />
             <SectionHeader label="Other" />

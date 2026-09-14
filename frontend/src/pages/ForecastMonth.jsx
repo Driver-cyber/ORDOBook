@@ -14,11 +14,16 @@ function fmt(cents) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(cents / 100)
 }
 
-function Row({ label, value, calculated = false, text }) {
+function Row({ label, value, calculated = false, text, onOpen }) {
   const shown = text !== undefined ? text : fmt(value)
   return (
     <div className={`flex items-center justify-between py-2 border-b border-border/50 ${calculated ? 'bg-surface2/30' : ''}`}>
-      <span className={`text-[12px] ${calculated ? 'text-text-muted font-medium' : 'text-text-secondary'} pl-4`}>{label}</span>
+      <span className={`text-[12px] ${calculated ? 'text-text-muted font-medium' : 'text-text-secondary'} pl-4`}>
+        {onOpen ? (
+          <button type="button" onClick={onOpen} title="Open the accounts behind this figure"
+                  className="hover:underline decoration-dashed underline-offset-2">{label} →</button>
+        ) : label}
+      </span>
       <span className={`font-mono text-[12px] pr-4 ${
         calculated ? 'text-text-primary' : (text === undefined && value < 0) ? 'text-[#c05a5a]' : 'text-text-secondary'
       }`}>{shown}</span>
@@ -137,7 +142,8 @@ export default function ForecastMonth() {
               <Row label="Payroll" value={p.payroll_expenses} />
               <Row label="Marketing" value={p.marketing_expenses} />
               <Row label="Depreciation & Amortization" value={p.depreciation_amortization} />
-              <Row label="Overhead" value={p.overhead_expenses} />
+              <Row label="Overhead" value={p.overhead_expenses}
+                   onOpen={isActual ? () => navigate(`/clients/${id}/actuals/${fiscalYear}/overhead/${m}`) : undefined} />
               <Row label="Total Operating Expenses" value={totalOpex} calculated />
               <Row label="Net Operating Profit" value={p.net_operating_profit} calculated />
               <SectionHeader label="Other" />

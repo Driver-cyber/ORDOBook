@@ -45,7 +45,7 @@ function SectionHeader({ label, colCount }) {
   )
 }
 
-function DataRow({ label, values, highlight = false, muted = false, indent = false, isText = false }) {
+function DataRow({ label, values, highlight = false, muted = false, indent = false, isText = false, onCell, cellTitle }) {
   const color = highlight ? S.text : muted ? S.textMuted : S.textSecondary
   const weight = highlight ? 'font-semibold' : 'font-normal'
   const rowBg = highlight ? S.calcBg : S.surface
@@ -67,7 +67,13 @@ function DataRow({ label, values, highlight = false, muted = false, indent = fal
             minWidth: 80,
           }}
         >
-          {isText ? v : fmt(v)}
+          {onCell ? (
+            <button type="button" onClick={() => onCell(i)} title={cellTitle}
+                    className="w-full text-right hover:underline decoration-dashed underline-offset-2"
+                    style={{ color: 'inherit' }}>
+              {isText ? v : fmt(v)}
+            </button>
+          ) : (isText ? v : fmt(v))}
         </td>
       ))}
     </tr>
@@ -109,7 +115,7 @@ export function calcs(d) {
  * `onOpenMonth(period)` makes each month header a link to that month's detail.
  * The caller owns the scroll box so it can place the grid under its own header.
  */
-export function ActualsGrid({ periods, onOpenMonth }) {
+export function ActualsGrid({ periods, onOpenMonth, onOpenOverhead }) {
   const computed = periods.map(calcs)
   const n = periods.length
 
@@ -189,7 +195,9 @@ export function ActualsGrid({ periods, onOpenMonth }) {
         <DataRow label="Payroll"                    values={periods.map(d => d.payroll_expenses)} />
         <DataRow label="Marketing"                  values={periods.map(d => d.marketing_expenses)} indent />
         <DataRow label="Depreciation & Amort."      values={periods.map(d => d.depreciation_amortization)} indent />
-        <DataRow label="Overhead"                   values={periods.map(d => d.overhead_expenses)} indent />
+        <DataRow label="Overhead"                   values={periods.map(d => d.overhead_expenses)} indent
+                 onCell={onOpenOverhead ? (i => onOpenOverhead(periods[i])) : undefined}
+                 cellTitle="Open the accounts behind this figure" />
         <DataRow label="Total Expenses"             values={computed.map(c => c.totalExpenses)}    highlight />
         <DataRow label="Net Operating Profit"       values={computed.map(c => c.netOperatingProfit)} highlight />
 

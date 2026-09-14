@@ -13,6 +13,7 @@ import ActualsDetail from './pages/ActualsDetail'
 import ForecastDrivers from './pages/ForecastDrivers'
 import ForecastReport from './pages/ForecastReport'
 import ForecastMonth from './pages/ForecastMonth'
+import OverheadSchedule from './pages/OverheadSchedule'
 import Targets from './pages/Targets'
 import Scoreboard from './pages/Scoreboard'
 import ReportCard from './pages/ReportCard'
@@ -163,6 +164,8 @@ export default function App() {
         <Route path="/clients/:id/mapping-review"   element={<CL>{() => <MappingReview />}</CL>} />
         {/* The year grid now IS the Workspace → Actuals tab */}
         <Route path="/clients/:id/actuals/history"  element={<CL>{() => <ToWorkspace />}</CL>} />
+        {/* Audit trail for one month's Overhead line — the accounts behind the number */}
+        <Route path="/clients/:id/actuals/:year/overhead/:month" element={<CL>{() => <OverheadSchedule />}</CL>} />
         <Route path="/clients/:id/actuals/:year/:month" element={<CL>{() => <ActualsDetail />}</CL>} />
         {/* Single-month card view of the forecast (actual or projected) — reached from a month header */}
         <Route path="/clients/:id/forecast/:year/month/:month" element={<CL>{() => <ForecastMonth />}</CL>} />
