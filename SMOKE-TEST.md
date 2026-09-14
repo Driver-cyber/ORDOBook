@@ -256,8 +256,12 @@ Work in a **forecast** month — September or later if your actuals run through 
       schedule; an actuals month opens the imported accounts.
 - [ ] A month card (click a month header on either Forecast screen) → Overhead → opens the
       right screen for that month's type.
-- [ ] Open a forecast schedule for a month that later becomes an actual: it says so and links
-      to the imported accounts.
+- [ ] **A schedule that has been overtaken by an import.** You build a September schedule in
+      advance; September then closes and gets imported, so its Overhead comes from the statement
+      and the schedule no longer drives anything. To see that state now, open any forecast
+      month's schedule and press **‹** until you land on a month you have already imported
+      (August, say). A grey note should say it is a confirmed actual, that anything entered
+      there is ignored, and link through to the imported accounts.
 
 ### 13.8 It still all ties
 - [ ] Workspace → Actuals → **Re-apply Mapping**: still green, still 0 changed.
