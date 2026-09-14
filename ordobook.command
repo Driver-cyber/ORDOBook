@@ -89,8 +89,24 @@ else
   # still a dev-mode launcher, not a packaged build).
   nohup ./venv/bin/uvicorn app.main:app --port "$BACKEND_PORT" --reload \
     >"$LOG_DIR/backend.log" 2>&1 &
-  for _ in $(seq 1 40); do backend_ok && break; sleep 0.5; done
-  backend_ok || fail "Backend didn't come up. Check $LOG_DIR/backend.log"
+  BACKEND_PID=$!
+  # The backend migrates the database before it answers health, and a
+  # migration over a full dataset can take longer than a flat 20 seconds on a
+  # cold start. Wait while the process is alive (up to 2 minutes); a crash
+  # still fails immediately because the process is gone.
+  for _ in $(seq 1 240); do
+    backend_ok && break
+    kill -0 "$BACKEND_PID" 2>/dev/null || break
+    sleep 0.5
+  done
+  if ! backend_ok; then
+    if kill -0 "$BACKEND_PID" 2>/dev/null; then
+      fail "Backend is still starting after 2 minutes. Check $LOG_DIR/backend.log —
+   if the last line is a 'Running upgrade' or 'lock timeout', run ordobook-stop.command and relaunch."
+    else
+      fail "Backend exited during startup. The error is at the end of $LOG_DIR/backend.log"
+    fi
+  fi
   say "✅ Backend started"
 fi
 
