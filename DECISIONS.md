@@ -25,9 +25,13 @@ smoke sections 0–13 all cleared on real data. Signed cash on every cash-flow l
 is the direct sum of its accounts rather than a plug (030) and opens line by line on both the
 actuals and forecast sides (031); net profit ties to QuickBooks' own YTD net income across all 32
 imported months. Updating the Mac is one command (`ordobook-update.command`).
-**NEXT:** Red Team the 2026-09-13/14 decisions (the plug reversal above all), then pick the next
-phase: deliverables design pass (Scoreboard + Action Plan PDF, parked), residual demo items →
-Phase 6b Electron, or the forecast-engine diff against the reference workbook.
+**2026-09-16 course change (Phase 7).** An audit found two latent mapping bugs and a stale
+constitution; a scrollytelling prototype and a whiteboard session with the client-side reviewer
+then reframed the deliverable entirely. Reports retires into the Workspace (five tabs: Actuals,
+Forecast, Targets, Action Items, Presentation), and the monthly deliverable becomes a generated
+panel-based presentation. Scoreboard and Report Card are deleted as pages. See
+`PHASE-7-PRESENTATION.md` and `AUDIT-PLAN.md`.
+**NEXT:** Phase 0 plumbing (audit fixes 1 + 2 + cleanup), then the shell collapse.
 
 **Current Vibe:** Deliberate. Plan before building. Verify before shipping. One module at a time.
 
@@ -985,3 +989,57 @@ They are documented here so they don't get lost.
   align with the signed "Investments or (Draws)" convention once its own sign handling is confirmed.
 - **Store nothing derived** — the Scoreboard still persists grades (legitimately, they're advisor
   overridable). Audit any other stored-but-derivable values against the one-formula rule.
+
+---
+
+## 2026-09-16 — One Workspace, One Deliverable (Phase 7)
+
+**Decided:** Retire the Reports section into the Workspace. Five tabs in workflow order —
+Actuals, Forecast, Targets, Action Items, Presentation. The monthly client deliverable becomes
+a **generated, panel-based presentation**: an ordered list of typed panels, each holding bound
+figures plus authored prose. `Scoreboard.jsx` and `ReportCard.jsx` are both deleted.
+
+**Reason:** ORDOBOOK is a workspace for the advisor, and the tabs should be the advisor's month.
+A reorganized P&L grid is negative value — the client can download that from QuickBooks, and
+handing them a worse version of it spends credibility. This does not reverse the 2026-04-05
+Workspace/Reports split: that split was always "analyst density vs. client-ready," which is a
+mode, not a place. Presenter view is the same idea with the seam in a better spot.
+
+**The structural decision:** a presentation is DATA, not a document. Generate, edit, reorder,
+present, export and (later) a card library all collapse into one small problem. Seven panel
+types, two parameterized by a count — a closed set, which is what makes the generator tractable.
+The source was a whiteboard sketch; its circled "x3" on the action-plan panel is cardinality,
+drawn.
+
+**Scoreboard: retire the VIEW, keep the MODEL.** The grading engine (thresholds, prorating,
+manual override, max-3-priorities) stays exactly where it is and gains a new renderer. The
+Scoreboard's controls — grade override, priority selection, yellow flagging, reason and
+action-item prose — move into the Presentation tab as a "select" step before "generate".
+Targets sets the bar; Presentation decides what to say about it. The Scoreboard is demoted
+from deliverable to control panel, living inside the thing it controls.
+
+**Exception panels:** all reds automatically, plus any yellow the advisor flags.
+
+**Bound vs. authored:** every panel declares which. Bound regenerates from data; authored never
+does but flags when its figures move. "Presence, not truthiness" one level up. Decided before
+any prose exists, because retrofitting it later is painful.
+
+**A presented presentation freezes.** It is the record of what was said, and next month's
+`action_review` panel reads from it.
+
+**Delivery is a self-contained HTML attachment**, not a hosted URL — hosting collides with the
+CLAUDE.md non-negotiable that client data never leaves the advisor's machine, and is effectively
+Product 2 arriving through a side door.
+
+**Not now:** the drag-and-drop card library (most fun, least load-bearing), hosted links, the
+client mobile app.
+
+**Also decided:** Module 5's three PDF exports become legacy — "PDF" comes to mean "print this
+presentation." Depreciation gets added to the target model (it is missing from
+`SCOREBOARD_METRICS` and `engine/targets.py`, so every target is overstated by full-year
+depreciation). Direction-vs-prior-year becomes a first-class field beside grade, because
+"down .8% and still red" is a different conversation from "behind and stuck."
+
+**Note:** CLAUDE.md's "Overhead is a plug/residual" rule (superseded 2026-09-14 by migration 030)
+and its Module 4 "Net CF = Net Profit - Owner Draws" formula (superseded by 029) are both still
+stated as law in the constitution. Correcting them is part of the Phase 0 cleanup.

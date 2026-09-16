@@ -8,6 +8,12 @@ PDF would be thrown away.
 
 Status: **not started.** Begin with migration 032.
 
+**Amended 2026-09-16 (Phase 7).** The
+deliverable-formatting findings are now obsolete rather than deferred: the Reports pages are
+being deleted, taking several of the thirteen formatters with them. Two items JOIN this
+cleanup: delete `Scoreboard.jsx` and `ReportCard.jsx`, and add depreciation to the target
+model. See `PHASE-7-PRESENTATION.md`.
+
 ---
 
 ## Fix 1 — mapping identity gains `section`

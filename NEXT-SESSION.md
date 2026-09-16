@@ -1,11 +1,13 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-09-14 (session close) | **Smoke sections 0–13 all cleared on real data.**
-> Two days of work: signed cash on every cash-flow line (029), Batch 4/5, advisor-editable
-> Scoreboard text (028), owner distributions (026), and the overhead drill-down — overhead is now
-> the direct sum of its accounts rather than a plug ("Excluded" retired, 030), Re-apply Mapping
-> replays stored months and **ties out against QuickBooks' own YTD net income across all 32 months**,
-> and a forecast month can be built account by account (031).
-> **Next session: Red Team the 2026-09-13/14 decisions, then plan the next phase.**
+> Last updated: 2026-09-16 | **Course change: Phase 7 — One Workspace, One Deliverable.**
+> A code audit found two latent mapping bugs (see `AUDIT-PLAN.md`), a scrollytelling prototype
+> went in front of the client-side reviewer, and her whiteboard reframed the deliverable:
+> Reports retires into the Workspace (five tabs), and the monthly deliverable becomes a
+> generated panel-based presentation. Scoreboard and Report Card are deleted as pages.
+> Read `PHASE-7-PRESENTATION.md` first, then `AUDIT-PLAN.md`.
+> **Next session: Phase 0 plumbing — audit fixes 1 and 2 plus the cleanup, starting at
+> migration 032.** The Red Team is deferred; the course change answered most of it.
+
 ---
 
 ## Launch (dev, as a desktop app)
