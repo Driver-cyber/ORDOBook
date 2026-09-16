@@ -1,0 +1,1124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vetter Plumbing Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* Standalone reset — mirrors what the artifact host normally supplies. */
+:root{color-scheme:light dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<style>
+:root{
+  --ground:#F5F6F7;
+  --surface:#FFFFFF;
+  --surface-sunk:#EDEFF1;
+  --ink:#161A1F;
+  --ink-2:#535C66;
+  --muted:#8B949E;
+  --rule:#E3E7EB;
+  --rule-strong:#CBD2D9;
+  --bar-neutral:#9FB0BE;
+  --accent:#B06A3B;
+  --accent-soft:#F0E2D7;
+  --series-actual:#3C5A70;
+  --series-actual-soft:#E0E7ED;
+  --good:#0E8C5E;
+  --good-text:#0B6E4A;
+  --warn:#D19A00;
+  --warn-text:#8A6508;
+  --crit:#C0392B;
+  --crit-text:#A62F23;
+  --shadow:0 1px 2px rgba(22,26,31,.05), 0 8px 24px -12px rgba(22,26,31,.14);
+  --display:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --body:'Source Serif 4',Georgia,'Times New Roman',serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#101317;
+    --surface:#181C22;
+    --surface-sunk:#13171B;
+    --ink:#E9ECEF;
+    --ink-2:#A2ABB5;
+    --muted:#6E7883;
+    --rule:#282E36;
+    --rule-strong:#3A424C;
+    --bar-neutral:#54646F;
+    --accent:#D28A57;
+    --accent-soft:#3A2A1C;
+    --series-actual:#7FA6C4;
+    --series-actual-soft:#232D36;
+    --good:#3FBE8A;
+    --good-text:#4FCB97;
+    --warn:#E8B53C;
+    --warn-text:#E8B53C;
+    --crit:#E4695C;
+    --crit-text:#EE7C70;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#101317;
+  --surface:#181C22;
+  --surface-sunk:#13171B;
+  --ink:#E9ECEF;
+  --ink-2:#A2ABB5;
+  --muted:#6E7883;
+  --rule:#282E36;
+  --rule-strong:#3A424C;
+  --bar-neutral:#54646F;
+  --accent:#D28A57;
+  --accent-soft:#3A2A1C;
+  --series-actual:#7FA6C4;
+  --series-actual-soft:#232D36;
+  --good:#3FBE8A;
+  --good-text:#4FCB97;
+  --warn:#E8B53C;
+  --warn-text:#E8B53C;
+  --crit:#E4695C;
+  --crit-text:#EE7C70;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--body);
+  font-size:17px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:0}
+
+/* ─────────── shared type ─────────── */
+.eyebrow{
+  font-family:var(--display);font-size:11px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  margin:0 0 14px;
+}
+h1,h2,h3{font-family:var(--display);font-weight:800;line-height:1.08;text-wrap:balance;margin:0}
+h1{font-size:clamp(34px,6.2vw,62px);letter-spacing:-.022em}
+h2{font-size:clamp(26px,3.8vw,40px);letter-spacing:-.018em}
+h3{font-size:clamp(19px,2.4vw,24px);letter-spacing:-.012em;font-weight:700}
+p{margin:0 0 1.05em;max-width:62ch}
+p:last-child{margin-bottom:0}
+strong{font-weight:600;color:var(--ink)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:500;letter-spacing:-.02em}
+.lede{font-size:clamp(18px,2.1vw,21px);color:var(--ink-2);line-height:1.58}
+
+/* ─────────── masthead ─────────── */
+.masthead{border-bottom:1px solid var(--rule);background:var(--surface)}
+.mast-inner{
+  display:flex;flex-wrap:wrap;gap:14px 26px;align-items:baseline;
+  justify-content:space-between;padding-block:16px;
+}
+.mast-id{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.mark{
+  font-family:var(--display);font-weight:800;font-size:13px;letter-spacing:.2em;
+  color:var(--accent);text-transform:uppercase;
+}
+.mast-client{font-family:var(--display);font-weight:600;font-size:14px;color:var(--ink)}
+.mast-meta{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.02em}
+
+/* ─────────── opener ─────────── */
+.opener{padding-block:clamp(40px,7vw,78px) clamp(32px,5vw,56px)}
+.verdict{max-width:20ch;margin-bottom:26px}
+.verdict .em{color:var(--accent)}
+.opener .lede{max-width:56ch}
+.opener-foot{
+  margin-top:34px;padding-top:24px;border-top:1px solid var(--rule);
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:22px 30px;
+}
+.kfig{display:flex;flex-direction:column;gap:5px}
+.kfig-label{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.kfig-value{font-family:var(--mono);font-size:clamp(22px,3vw,28px);font-weight:600;letter-spacing:-.03em;color:var(--ink)}
+.kfig-note{font-size:14px;color:var(--ink-2);line-height:1.4}
+
+/* ─────────── status pills ─────────── */
+.pill{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:var(--display);font-size:11px;font-weight:700;
+  letter-spacing:.07em;text-transform:uppercase;
+  padding:4px 10px 4px 8px;border-radius:3px;border:1px solid;white-space:nowrap;
+}
+.pill .dot{width:7px;height:7px;border-radius:50%;flex:none}
+.pill.good{color:var(--good-text);border-color:color-mix(in srgb,var(--good) 40%,transparent);background:color-mix(in srgb,var(--good) 8%,transparent)}
+.pill.good .dot{background:var(--good)}
+.pill.warn{color:var(--warn-text);border-color:color-mix(in srgb,var(--warn) 45%,transparent);background:color-mix(in srgb,var(--warn) 10%,transparent)}
+.pill.warn .dot{background:var(--warn)}
+.pill.crit{color:var(--crit-text);border-color:color-mix(in srgb,var(--crit) 40%,transparent);background:color-mix(in srgb,var(--crit) 8%,transparent)}
+.pill.crit .dot{background:var(--crit)}
+
+/* ─────────── scrolly ─────────── */
+.scrolly{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);
+  gap:0 56px;align-items:start;
+  padding-block:clamp(30px,5vw,54px);
+  border-top:1px solid var(--rule);
+}
+.scrolly-figure{
+  position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);
+  order:2;
+}
+.scrolly-steps{order:1;min-width:0}
+.step{
+  padding-block:clamp(24px,5.5vh,58px);
+}
+.step:first-child{padding-top:8px}
+.step h3{margin-bottom:10px}
+.step .step-n{
+  font-family:var(--mono);font-size:12px;color:var(--accent);
+  display:block;margin-bottom:8px;letter-spacing:.06em;
+}
+.step p{font-size:16.5px}
+.translate{
+  margin-top:16px;padding:13px 15px;background:var(--surface);
+  border:1px solid var(--rule);border-left:2px solid var(--accent);
+  font-size:15px;line-height:1.5;color:var(--ink-2);max-width:62ch;
+}
+.translate b{color:var(--ink);font-weight:600}
+
+.figcard{
+  background:var(--surface);border:1px solid var(--rule);border-radius:4px;
+  padding:22px 20px 18px;box-shadow:var(--shadow);
+}
+.figcard-head{display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin-bottom:20px;flex-wrap:wrap}
+.figcard-title{font-family:var(--display);font-size:14px;font-weight:700;letter-spacing:-.005em;color:var(--ink)}
+.figcard-sub{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+/* ─────────── waterfall (HTML/CSS) ─────────── */
+.wf{display:flex;flex-direction:column;gap:2px}
+.wf-row{
+  display:grid;grid-template-columns:minmax(96px,1.15fr) minmax(0,2.1fr) minmax(74px,auto);
+  gap:12px;align-items:center;
+  padding:7px 6px;border-radius:3px;
+  transition:opacity .35s ease, background-color .35s ease;
+  cursor:default;
+}
+.wf-row .wf-label{font-family:var(--display);font-size:12.5px;font-weight:600;color:var(--ink);line-height:1.25}
+.wf-track{position:relative;height:26px;background:var(--surface-sunk);border-radius:2px;overflow:hidden}
+.wf-bar{position:absolute;top:0;bottom:0;min-width:3px;border-radius:2px;background:var(--bar-neutral)}
+.wf-row[data-kind="total"] .wf-bar{background:var(--series-actual)}
+.wf-row[data-kind="result"] .wf-bar{background:var(--accent)}
+.wf-val{font-family:var(--mono);font-size:13px;font-weight:500;text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.wf-row[data-kind="total"] .wf-val,.wf-row[data-kind="result"] .wf-val{color:var(--ink);font-weight:600}
+.wf.dimming .wf-row{opacity:.55}
+.wf.dimming .wf-row.is-active{opacity:1;background:var(--surface-sunk)}
+.wf-rule{height:1px;background:var(--rule);margin:5px 0}
+.figcard-foot{
+  margin-top:16px;padding-top:13px;border-top:1px solid var(--rule);
+  font-size:13.5px;color:var(--muted);line-height:1.45;
+}
+
+/* ─────────── line chart ─────────── */
+.chart svg{display:block;width:100%;height:auto;max-width:100%;overflow:visible}
+.gridline{stroke:var(--rule);stroke-width:1}
+.axis-text{font-family:var(--mono);font-size:10px;fill:var(--muted)}
+.axis-text.lbl-mo{font-size:9.5px}
+.series-line{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.line-actual{stroke:var(--series-actual)}
+.line-fc{stroke:var(--accent);stroke-dasharray:5 4}
+.line-fix{stroke:var(--good);stroke-dasharray:2 4;opacity:0;transition:opacity .4s ease}
+.chart.show-fix .line-fix{opacity:1}
+.dot-actual{fill:var(--series-actual);stroke:var(--surface);stroke-width:2}
+.dot-fc{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.dlabel{font-family:var(--display);font-size:11px;font-weight:700}
+.dlabel.a{fill:var(--series-actual)}
+.dlabel.f{fill:var(--accent)}
+.band{fill:var(--accent-soft);opacity:.5}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:16px}
+.legend-item{display:flex;align-items:center;gap:8px;font-family:var(--display);font-size:11.5px;font-weight:600;color:var(--ink-2)}
+.swatch{width:20px;height:0;border-top-width:2px;border-top-style:solid;flex:none}
+.swatch.a{border-color:var(--series-actual)}
+.swatch.f{border-color:var(--accent);border-top-style:dashed}
+.swatch.x{border-color:var(--good);border-top-style:dotted}
+
+/* ─────────── priorities ─────────── */
+.priorities{padding-block:clamp(40px,6vw,72px);border-top:1px solid var(--rule)}
+.pri-intro{max-width:60ch;margin-bottom:40px}
+.pri-list{display:flex;flex-direction:column;gap:18px}
+.pri{
+  background:var(--surface);border:1px solid var(--rule);border-radius:4px;
+  padding:24px clamp(18px,3vw,28px);
+  display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:22px 36px;
+}
+.pri-main{min-width:0}
+.pri-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.pri-rank{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.pri h3{margin-bottom:10px}
+.pri p{font-size:16px;margin-bottom:.8em}
+.pri-side{
+  border-left:1px solid var(--rule);padding-left:26px;
+  display:flex;flex-direction:column;gap:18px;min-width:0;
+}
+.gauge-label{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.gauge-nums{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.gauge-now{font-family:var(--mono);font-size:29px;font-weight:600;letter-spacing:-.03em;color:var(--ink)}
+.gauge-vs{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.gauge-bar{position:relative;height:6px;background:var(--surface-sunk);border-radius:3px;margin-top:11px;overflow:hidden}
+.gauge-fill{position:absolute;inset:0 auto 0 0;border-radius:3px}
+.gauge-fill.crit{background:var(--crit)}
+.gauge-fill.warn{background:var(--warn)}
+.gauge-tick{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);opacity:.55}
+.gauge-foot{display:flex;justify-content:space-between;gap:10px;margin-top:7px;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.moves{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+.moves li{position:relative;padding-left:18px;font-size:14.5px;line-height:1.45;color:var(--ink-2)}
+.moves li::before{
+  content:"";position:absolute;left:0;top:.62em;width:7px;height:1.5px;background:var(--accent);
+}
+.moves-h{font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:11px}
+
+/* ─────────── plan table ─────────── */
+.plan{padding-block:clamp(40px,6vw,72px);border-top:1px solid var(--rule)}
+.table-scroll{overflow-x:auto;margin-top:30px;border:1px solid var(--rule);border-radius:4px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:620px}
+th,td{text-align:left;padding:13px 18px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{
+  font-family:var(--display);font-size:10.5px;font-weight:700;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--muted);background:var(--surface-sunk);
+  border-bottom:1px solid var(--rule-strong);
+}
+tbody tr:last-child td{border-bottom:none}
+td{font-size:15.5px;color:var(--ink-2)}
+td.what{color:var(--ink);max-width:40ch}
+td.who,td.when{font-family:var(--mono);font-size:13px;white-space:nowrap}
+td.link{font-family:var(--display);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
+
+/* ─────────── close ─────────── */
+.close{padding-block:clamp(44px,7vw,84px);border-top:1px solid var(--rule)}
+.close-inner{max-width:60ch}
+.close h2{margin-bottom:22px}
+.signoff{
+  margin-top:30px;padding-top:22px;border-top:1px solid var(--rule);
+  display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+}
+.signoff-name{font-family:var(--display);font-size:14px;font-weight:700;color:var(--ink)}
+.signoff-role{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.footer{
+  border-top:1px solid var(--rule);background:var(--surface);
+  padding-block:20px;font-family:var(--mono);font-size:11.5px;color:var(--muted);
+}
+.footer-inner{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+/* ─────────── progress rail ─────────── */
+.rail{
+  position:fixed;left:0;right:0;top:0;height:2px;background:transparent;z-index:40;
+  pointer-events:none;
+}
+.rail-fill{height:100%;width:0;background:var(--accent);transition:width .1s linear}
+
+/* ─────────── tooltip ─────────── */
+.tip{
+  position:fixed;z-index:50;pointer-events:none;opacity:0;
+  background:var(--ink);color:var(--ground);
+  font-family:var(--mono);font-size:11.5px;line-height:1.45;
+  padding:7px 10px;border-radius:3px;white-space:nowrap;
+  transition:opacity .12s ease;box-shadow:0 4px 14px rgba(0,0,0,.2);
+}
+.tip.on{opacity:1}
+/* --ink / --ground both flip with the theme, so the tooltip inverts on its own. */
+.tip b{font-weight:600;color:var(--surface)}
+
+.hit{fill:transparent;cursor:crosshair}
+
+/* ─────────── responsive ─────────── */
+@media (max-width:900px){
+  .scrolly{grid-template-columns:1fr;gap:0}
+  .scrolly-figure{
+    order:1;position:sticky;top:calc(env(safe-area-inset-top,0px) + 8px);
+    z-index:20;padding-block:10px;background:var(--ground);
+    margin-inline:-20px;padding-inline:20px;
+  }
+  .scrolly-steps{order:2}
+  .step{padding-block:34px}
+  .step:first-child{padding-top:26px}
+  .pri{grid-template-columns:1fr;gap:24px}
+  .pri-side{border-left:none;border-top:1px solid var(--rule);padding-left:0;padding-top:22px}
+}
+@media (max-width:560px){
+  body{font-size:16px}
+  .wf-row{grid-template-columns:minmax(86px,1.2fr) minmax(0,1.6fr) auto;gap:9px}
+  .wf-row .wf-label{font-size:11.5px}
+  .wf-val{font-size:12px}
+  .figcard{padding:16px 14px 14px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition-duration:.01ms !important;animation-duration:.01ms !important}
+}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ─────────── recap: what we said last time ─────────── */
+.recap{padding-block:clamp(38px,6vw,68px);border-top:1px solid var(--rule)}
+.recap-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px 30px;flex-wrap:wrap;margin-bottom:8px}
+.recap-score{
+  font-family:var(--mono);font-size:13px;color:var(--ink-2);
+  padding:6px 12px;border:1px solid var(--rule);border-radius:3px;background:var(--surface);
+  white-space:nowrap;
+}
+.recap-list{
+  margin-top:32px;border:1px solid var(--rule);border-radius:4px;
+  background:var(--surface);overflow:hidden;
+}
+.commit{
+  display:grid;grid-template-columns:auto minmax(0,1.35fr) minmax(0,1fr);
+  gap:8px 22px;align-items:start;
+  padding:18px clamp(16px,2.4vw,24px);border-bottom:1px solid var(--rule);
+}
+.commit:last-child{border-bottom:none}
+.commit-mark{
+  width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+  font-family:var(--display);font-size:12px;font-weight:800;line-height:1;
+  border:1.5px solid;margin-top:2px;flex:none;
+}
+.commit-mark.done{color:var(--good-text);border-color:var(--good);background:color-mix(in srgb,var(--good) 10%,transparent)}
+.commit-mark.part{color:var(--warn-text);border-color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent)}
+.commit-mark.miss{color:var(--crit-text);border-color:var(--crit);background:color-mix(in srgb,var(--crit) 10%,transparent)}
+.commit-what{min-width:0}
+.commit-title{font-family:var(--display);font-size:16px;font-weight:700;color:var(--ink);line-height:1.3;margin-bottom:5px}
+.commit-meta{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.02em}
+.commit-out{min-width:0;font-size:15px;line-height:1.5;color:var(--ink-2)}
+.commit-out b{color:var(--ink);font-weight:600}
+.commit-out .moved{
+  display:block;margin-top:7px;font-family:var(--mono);font-size:12px;letter-spacing:.01em;
+}
+.commit-out .moved.up{color:var(--good-text)}
+.commit-out .moved.flat{color:var(--warn-text)}
+.recap-note{
+  margin-top:22px;font-size:16px;color:var(--ink-2);max-width:62ch;line-height:1.55;
+}
+.recap-note b{color:var(--ink);font-weight:600}
+@media (max-width:720px){
+  .commit{grid-template-columns:auto minmax(0,1fr);gap:6px 16px}
+  .commit-out{grid-column:2}
+}
+
+/* ─────────── ytd strip under the month figure ─────────── */
+.ytd-strip{
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--rule);
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:12px 18px;
+}
+.ytd-cell{display:flex;flex-direction:column;gap:2px}
+.ytd-k{font-family:var(--display);font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.ytd-v{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--ink)}
+.ytd-n{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+
+/* carried-forward marker in the plan table */
+td .carried{
+  display:inline-block;margin-top:5px;font-family:var(--display);font-size:9.5px;font-weight:700;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--crit-text);
+}
+</style>
+</head>
+<body>
+<div class="rail"><div class="rail-fill" id="railFill"></div></div>
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+
+<header class="masthead">
+  <div class="wrap mast-inner">
+    <div class="mast-id">
+      <span class="mark">Ordobook</span>
+      <span class="mast-client">Vetter Plumbing Svc. LLC</span>
+    </div>
+    <div class="mast-meta">August close · review 8 of 12 · last met 14 August</div>
+  </div>
+</header>
+
+<main>
+
+<!-- ══════════ OPENER ══════════ -->
+<section class="wrap opener">
+  <p class="eyebrow">The short version</p>
+  <h1 class="verdict">You changed two things in August. Both of them <span class="em">moved</span>.</h1>
+  <p class="lede">
+    Collections came in from 53 days to 48, and the material escalator lifted August's margin
+    to the best it's been since March. The year is still <strong>$19,600</strong> behind on
+    profit — and the one job on the list we didn't get to is still running every month.
+  </p>
+
+  <div class="opener-foot">
+    <div class="kfig">
+      <span class="kfig-label">August revenue</span>
+      <span class="kfig-value">$77,400</span>
+      <span class="kfig-note">32 jobs · $2,419 average ticket</span>
+    </div>
+    <div class="kfig">
+      <span class="kfig-label">August profit</span>
+      <span class="kfig-value">$9,175</span>
+      <span class="kfig-note">11.9¢ per dollar — best since March</span>
+    </div>
+    <div class="kfig">
+      <span class="kfig-label">Days to get paid</span>
+      <span class="kfig-value">48</span>
+      <span class="kfig-note">Was 53 · you aim for 35</span>
+    </div>
+    <div class="kfig">
+      <span class="kfig-label">Year to date</span>
+      <span class="kfig-value">$554,300</span>
+      <span class="kfig-note">99% of the eight-month plan</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ ACT 1 — SINCE WE LAST MET ══════════ -->
+<section class="wrap recap">
+  <div class="recap-head">
+    <div>
+      <p class="eyebrow">Since we last met</p>
+      <h2>Four things. You did two and a half.</h2>
+    </div>
+    <span class="recap-score">14 Aug → 14 Sep · 4 committed</span>
+  </div>
+
+  <div class="recap-list">
+
+    <div class="commit">
+      <span class="commit-mark done" aria-hidden="true">✓</span>
+      <div class="commit-what">
+        <div class="commit-title">Call the nine accounts past 60 days</div>
+        <div class="commit-meta">Marisol · due 22 Aug · <span style="color:var(--good-text)">DONE</span></div>
+      </div>
+      <div class="commit-out">
+        Six answered, three paid in full. <b>$18,400</b> came in the door — most of it inside
+        a fortnight.
+        <span class="moved up">↓ Days to get paid: 53 → 48</span>
+      </div>
+    </div>
+
+    <div class="commit">
+      <span class="commit-mark done" aria-hidden="true">✓</span>
+      <div class="commit-what">
+        <div class="commit-title">Stop quoting off the spring price list</div>
+        <div class="commit-meta">Doug · due 18 Aug · <span style="color:var(--good-text)">DONE</span></div>
+      </div>
+      <div class="commit-out">
+        Material escalator now on every quote over $5,000. August was the first full month
+        of it, and the job margin responded immediately.
+        <span class="moved up">↑ Gross margin: 62.1% → 64.6%</span>
+      </div>
+    </div>
+
+    <div class="commit">
+      <span class="commit-mark part" aria-hidden="true">~</span>
+      <div class="commit-what">
+        <div class="commit-title">Get the 2019 truck on a service schedule</div>
+        <div class="commit-meta">Doug · due 31 Aug · <span style="color:var(--warn-text)">PART DONE</span></div>
+      </div>
+      <div class="commit-out">
+        Booked, first service 22 September. Nothing has changed in the numbers yet — but
+        nothing has broken either, which is the point.
+        <span class="moved flat">— No effect yet · expected from October</span>
+      </div>
+    </div>
+
+    <div class="commit">
+      <span class="commit-mark miss" aria-hidden="true">✕</span>
+      <div class="commit-what">
+        <div class="commit-title">Cancel the unused software subscriptions</div>
+        <div class="commit-meta">Chad · due 25 Aug · <span style="color:var(--crit-text)">NOT DONE</span></div>
+      </div>
+      <div class="commit-out">
+        This one is on me. Four subscriptions nobody has opened since spring renewed again
+        in August at <b>$310 a month</b>.
+        <span class="moved flat">— Cost of the delay so far: $310</span>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="recap-note">
+    Worth noticing: the two things that got done are the two things that moved.
+    That's the whole method — we're not trying to fix the business, we're trying to
+    move <b>two or three numbers a month</b> and let them compound.
+  </p>
+</section>
+
+<!-- ══════════ ACT 2 — WHERE AUGUST LANDED ══════════ -->
+<section class="wrap scrolly" id="act1">
+  <div class="scrolly-figure">
+    <div class="figcard">
+      <div class="figcard-head">
+        <span class="figcard-title">Where every August dollar went</span>
+        <span class="figcard-sub">Aug 2026</span>
+      </div>
+
+      <div class="wf" id="wf">
+        <div class="wf-row" data-kind="total" data-step="0" data-tip="Work sold in August · $77,400 across 32 jobs">
+          <span class="wf-label">Work you sold</span>
+          <span class="wf-track"><span class="wf-bar" style="left:0%;width:100%"></span></span>
+          <span class="wf-val">77,400</span>
+        </div>
+        <div class="wf-row" data-step="1" data-tip="Materials, fixtures and subcontractors · 35.4% of revenue">
+          <span class="wf-label">What the jobs cost</span>
+          <span class="wf-track"><span class="wf-bar" style="left:64.60%;width:35.40%"></span></span>
+          <span class="wf-val">−27,400</span>
+        </div>
+        <div class="wf-row" data-step="2" data-tip="Wages, payroll taxes and benefits">
+          <span class="wf-label">Your crew</span>
+          <span class="wf-track"><span class="wf-bar" style="left:36.43%;width:28.17%"></span></span>
+          <span class="wf-val">−21,800</span>
+        </div>
+        <div class="wf-row" data-step="3" data-tip="Overhead 13,750 · marketing 2,900 · equipment wear 1,850">
+          <span class="wf-label">Keeping the doors open</span>
+          <span class="wf-track"><span class="wf-bar" style="left:12.53%;width:23.90%"></span></span>
+          <span class="wf-val">−18,500</span>
+        </div>
+        <div class="wf-row" data-step="3" data-tip="Interest on the truck note and the line of credit">
+          <span class="wf-label">Loan interest</span>
+          <span class="wf-track"><span class="wf-bar" style="left:11.85%;width:0.68%"></span></span>
+          <span class="wf-val">−525</span>
+        </div>
+        <div class="wf-rule"></div>
+        <div class="wf-row" data-kind="result" data-step="4" data-tip="Net profit · 11.9 cents on every dollar sold">
+          <span class="wf-label">What's left</span>
+          <span class="wf-track"><span class="wf-bar" style="left:0%;width:11.85%"></span></span>
+          <span class="wf-val">9,175</span>
+        </div>
+      </div>
+
+      <div class="ytd-strip">
+        <div class="ytd-cell">
+          <span class="ytd-k">YTD revenue</span>
+          <span class="ytd-v">$554,300</span>
+          <span class="ytd-n">plan 560,000</span>
+        </div>
+        <div class="ytd-cell">
+          <span class="ytd-k">YTD profit</span>
+          <span class="ytd-v">$54,395</span>
+          <span class="ytd-n">plan 74,000</span>
+        </div>
+        <div class="ytd-cell">
+          <span class="ytd-k">YTD margin</span>
+          <span class="ytd-v">9.8¢</span>
+          <span class="ytd-n">plan 13.2¢</span>
+        </div>
+        <div class="ytd-cell">
+          <span class="ytd-k">Jobs YTD</span>
+          <span class="ytd-v">241</span>
+          <span class="ytd-n">plan 240</span>
+        </div>
+      </div>
+
+      <p class="figcard-foot">
+        Every bar starts where the one above it ended. Hover any line for detail.
+      </p>
+    </div>
+  </div>
+
+  <div class="scrolly-steps" data-steps>
+    <div class="step" data-step="0">
+      <span class="step-n">Start here</span>
+      <h3>$77,400 went out the door in August.</h3>
+      <p>32 jobs at an average ticket of <strong>$2,419</strong> — your highest average of the
+      year, and about $120 a job above where you were running in the spring. That's the
+      escalator, not a price rise your customers noticed.</p>
+      <p>The top bar is the whole of August. Everything below is where it went.</p>
+    </div>
+
+    <div class="step" data-step="1">
+      <span class="step-n">First cut</span>
+      <h3>35.4 cents of every dollar is the job itself.</h3>
+      <p>Copper, fixtures, fittings, the occasional sub. In July this was 37.9 cents. One
+      month of quoting at today's material prices instead of March's moved it nearly two and
+      a half points.</p>
+      <div class="translate"><b>In plain terms:</b> on the same $77,400 of work, quoting the
+      old way would have left about <b>$1,900 less</b> on the table. That's one commitment,
+      one month.</div>
+    </div>
+
+    <div class="step" data-step="2">
+      <span class="step-n">Second cut</span>
+      <h3>Your crew takes the next 28 cents.</h3>
+      <p>$21,800, and tracking plan within 2% all year. Payroll isn't the problem — worth
+      saying out loud, because it's the first place everyone looks.</p>
+    </div>
+
+    <div class="step" data-step="3">
+      <span class="step-n">Third cut</span>
+      <h3>Keeping the doors open cost $18,500.</h3>
+      <p>Rent, insurance, trucks, fuel, software, phones, the bookkeeper. Plan was $15,650.
+      <strong>Third month running over</strong> — and unlike the two cuts above, this one
+      doesn't care how much work you sold. It goes out whether the phone rings or not.</p>
+      <div class="translate"><b>In plain terms:</b> that $2,850 overage is about
+      <b>one and a half jobs</b> you worked in August purely to cover the gap. Three months
+      of it is $8,500.</div>
+    </div>
+
+    <div class="step" data-step="4">
+      <span class="step-n">What's left</span>
+      <h3>11.9 cents on the dollar — your best month since March.</h3>
+      <p>$9,175 from August. The escalator did that, and it will keep doing it every month
+      from here without anyone lifting a finger.</p>
+      <p>But eight months in you're at 9.8 cents against a plan of 13.2. One good month
+      doesn't close that. The doors-open line and the collection lag do — and both are still
+      open.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ ACT 3 — PRIORITIES ══════════ -->
+<section class="wrap priorities">
+  <p class="eyebrow">What the numbers are telling us</p>
+  <h2>Three things. Not thirty.</h2>
+  <div class="pri-intro">
+    <p class="lede" style="margin-top:18px">
+      There are eighteen numbers we track. Fifteen are fine. These are the three that
+      aren't — and the third is really just the scoreboard for the first two.
+    </p>
+  </div>
+
+  <div class="pri-list">
+
+    <article class="pri">
+      <div class="pri-main">
+        <div class="pri-top">
+          <span class="pri-rank">Priority 1</span>
+          <span class="pill crit"><span class="dot"></span>Off plan</span>
+          <span class="pill good"><span class="dot"></span>Improving</span>
+        </div>
+        <h3>You're still financing your customers for 48 days.</h3>
+        <p>Down from 53 — the phone calls worked, and they worked fast. But the plan is 35,
+        and those extra 13 days are the single biggest reason the bank balance doesn't feel
+        like a business doing $830,000 a year.</p>
+        <p>Calling people is a cure. What we need next is a preventative, so this doesn't
+        climb back to 53 the moment nobody's chasing.</p>
+        <div class="translate"><b>In plain terms:</b> <b>$29,600</b> of your money is sitting
+        in other people's accounts right now. That's about <b>12 completed jobs</b> — or one
+        service truck, paid cash.</div>
+      </div>
+      <div class="pri-side">
+        <div>
+          <div class="gauge-label">Days to get paid</div>
+          <div class="gauge-nums">
+            <span class="gauge-now">48</span>
+            <span class="gauge-vs">days · was 53 · target 35</span>
+          </div>
+          <div class="gauge-bar" role="img" aria-label="48 days, improved from 53, against a 35-day target">
+            <span class="gauge-fill crit" style="width:80%"></span>
+            <span class="gauge-tick" style="left:58.3%"></span>
+          </div>
+          <div class="gauge-foot"><span>0</span><span>target 35</span><span>60</span></div>
+        </div>
+        <div>
+          <div class="moves-h">The moves</div>
+          <ul class="moves">
+            <li>30% deposit on anything over $2,500, before the truck rolls</li>
+            <li>Invoice from the truck the day the job closes, not Friday night</li>
+            <li>Call the four accounts that have drifted past 60 days again</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="pri">
+      <div class="pri-main">
+        <div class="pri-top">
+          <span class="pri-rank">Priority 2</span>
+          <span class="pill warn"><span class="dot"></span>Watch</span>
+        </div>
+        <h3>Overhead has been over plan three months running.</h3>
+        <p>No single line blew up — that's what makes this one sneaky. Insurance renewed 14%
+        higher, truck maintenance ran hot after the March breakdown, and four software
+        subscriptions quietly renewed that nobody has opened since spring.</p>
+        <p>That last one was on the August list and I didn't get to it. It's first on this
+        month's list, and it takes about twenty minutes.</p>
+        <div class="translate"><b>In plain terms:</b> at your margin, earning that $8,500
+        back through new work would take about <b>four more jobs</b>. Cancelling two
+        subscriptions and re-quoting the insurance takes <b>an afternoon</b>.</div>
+      </div>
+      <div class="pri-side">
+        <div>
+          <div class="gauge-label">Overhead, 8 months</div>
+          <div class="gauge-nums">
+            <span class="gauge-now">$96,500</span>
+            <span class="gauge-vs">plan $88,000</span>
+          </div>
+          <div class="gauge-bar" role="img" aria-label="96,500 spent against an 88,000 plan">
+            <span class="gauge-fill warn" style="width:88%"></span>
+            <span class="gauge-tick" style="left:80.2%"></span>
+          </div>
+          <div class="gauge-foot"><span>0</span><span>plan</span><span>$110k</span></div>
+        </div>
+        <div>
+          <div class="moves-h">The moves</div>
+          <ul class="moves">
+            <li>Cancel the two unused subscriptions — carried from August</li>
+            <li>Re-quote general liability at the November renewal</li>
+            <li>First service on the 2019 truck, 22 September</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="pri">
+      <div class="pri-main">
+        <div class="pri-top">
+          <span class="pri-rank">Priority 3</span>
+          <span class="pill crit"><span class="dot"></span>Off plan</span>
+        </div>
+        <h3>Profit is $19,600 behind — but it isn't a third problem.</h3>
+        <p>It's the first two, added up and written down. Overhead creep accounts for $8,500
+        of the gap directly. Most of the rest was margin drift on spring jobs quoted at last
+        year's material prices — which August shows is now fixed going forward.</p>
+        <p>This is the number to stop staring at. Fix the two above it and this one moves on
+        its own. August is the first month that proves it.</p>
+        <div class="translate"><b>In plain terms:</b> the year is earning <b>9.8 cents</b> on
+        each dollar sold against a plan of 13.2. August alone earned 11.9. The gap is
+        closing, just not fast enough yet.</div>
+      </div>
+      <div class="pri-side">
+        <div>
+          <div class="gauge-label">Profit, 8 months</div>
+          <div class="gauge-nums">
+            <span class="gauge-now">$54,395</span>
+            <span class="gauge-vs">plan $74,000</span>
+          </div>
+          <div class="gauge-bar" role="img" aria-label="54,395 earned against a 74,000 plan">
+            <span class="gauge-fill crit" style="width:60.4%"></span>
+            <span class="gauge-tick" style="left:82.2%"></span>
+          </div>
+          <div class="gauge-foot"><span>0</span><span>plan</span><span>$90k</span></div>
+        </div>
+        <div>
+          <div class="moves-h">The moves</div>
+          <ul class="moves">
+            <li>Nothing of its own — priorities 1 and 2 carry this one</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ══════════ ACT 4 — WHERE WE'RE GOING ══════════ -->
+<section class="wrap scrolly" id="act2">
+  <div class="scrolly-figure">
+    <div class="figcard">
+      <div class="figcard-head">
+        <span class="figcard-title">Where this lands by December</span>
+        <span class="figcard-sub">Monthly revenue, $000</span>
+      </div>
+
+      <div class="chart" id="chart2">
+        <svg viewBox="0 0 640 262" role="img"
+             aria-label="Monthly revenue January through December 2026. Actuals January to August peak at 82,300 in July. September to December are forecast, declining to 57,500 in December.">
+          <rect class="band" x="436.7" y="24" width="183.3" height="196"></rect>
+
+          <line class="gridline" x1="44" y1="220" x2="620" y2="220"></line>
+          <line class="gridline" x1="44" y1="154.7" x2="620" y2="154.7"></line>
+          <line class="gridline" x1="44" y1="89.3" x2="620" y2="89.3"></line>
+          <line class="gridline" x1="44" y1="24" x2="620" y2="24"></line>
+
+          <text class="axis-text" x="38" y="223.5" text-anchor="end">0</text>
+          <text class="axis-text" x="38" y="158.2" text-anchor="end">30</text>
+          <text class="axis-text" x="38" y="92.8" text-anchor="end">60</text>
+          <text class="axis-text" x="38" y="27.5" text-anchor="end">90</text>
+
+          <text class="axis-text" x="240" y="16" text-anchor="middle" style="letter-spacing:.1em">ACTUAL</text>
+          <text class="axis-text" x="528" y="16" text-anchor="middle" style="letter-spacing:.1em">FORECAST</text>
+
+          <polyline class="series-line line-actual"
+            points="44,91.1 96.4,107.6 148.7,68.8 201.1,74.1 253.5,56.2 305.8,62.8 358.2,40.8 410.5,51.4"></polyline>
+          <polyline class="series-line line-fc"
+            points="410.5,51.4 462.9,43.8 515.3,47.5 567.6,76.7 620,94.8"></polyline>
+          <polyline class="series-line line-fix"
+            points="410.5,51.4 462.9,39.0 515.3,41.2 567.6,68.0 620,84.0"></polyline>
+
+          <circle class="dot-actual" cx="358.2" cy="40.8" r="4.5"></circle>
+          <circle class="dot-actual" cx="410.5" cy="51.4" r="4.5"></circle>
+          <circle class="dot-fc" cx="620" cy="94.8" r="4.5"></circle>
+
+          <text class="dlabel a" x="358.2" y="30" text-anchor="middle">82.3</text>
+          <text class="dlabel f" x="614" y="110" text-anchor="end">57.5</text>
+
+          <text class="axis-text lbl-mo" x="44" y="238" text-anchor="middle">J</text>
+          <text class="axis-text lbl-mo" x="96.4" y="238" text-anchor="middle">F</text>
+          <text class="axis-text lbl-mo" x="148.7" y="238" text-anchor="middle">M</text>
+          <text class="axis-text lbl-mo" x="201.1" y="238" text-anchor="middle">A</text>
+          <text class="axis-text lbl-mo" x="253.5" y="238" text-anchor="middle">M</text>
+          <text class="axis-text lbl-mo" x="305.8" y="238" text-anchor="middle">J</text>
+          <text class="axis-text lbl-mo" x="358.2" y="238" text-anchor="middle">J</text>
+          <text class="axis-text lbl-mo" x="410.5" y="238" text-anchor="middle">A</text>
+          <text class="axis-text lbl-mo" x="462.9" y="238" text-anchor="middle">S</text>
+          <text class="axis-text lbl-mo" x="515.3" y="238" text-anchor="middle">O</text>
+          <text class="axis-text lbl-mo" x="567.6" y="238" text-anchor="middle">N</text>
+          <text class="axis-text lbl-mo" x="620" y="238" text-anchor="middle">D</text>
+
+          <g id="hits2"></g>
+        </svg>
+      </div>
+
+      <div class="legend">
+        <span class="legend-item"><span class="swatch a"></span>Actual</span>
+        <span class="legend-item"><span class="swatch f"></span>Forecast, as things stand</span>
+        <span class="legend-item"><span class="swatch x"></span>If we finish the list</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="scrolly-steps" data-steps>
+    <div class="step" data-step="0">
+      <span class="step-n">The shape of the year</span>
+      <h3>July was your best month ever.</h3>
+      <p>$82,300. And the four months ahead are the quiet ones — November and December always
+      are, and we've forecast them that way rather than pretending otherwise.</p>
+      <p>Full year lands at <strong>$837,700</strong> against a plan of $840,000. On revenue,
+      you'll finish having done exactly what you said you'd do.</p>
+    </div>
+
+    <div class="step" data-step="1">
+      <span class="step-n">The honest version</span>
+      <h3>Profit finishes at $84,200.</h3>
+      <p>Against a plan of $111,000. Same revenue, $26,800 less profit — because the
+      doors-open line and the collection lag both keep running for four more months if
+      nothing else changes.</p>
+      <p>This is the number your banker will look at in February, so it's the one worth
+      moving now, while there's still a quarter left to move it in.</p>
+    </div>
+
+    <div class="step" data-step="2" data-fix>
+      <span class="step-n">The other version</span>
+      <h3>Or: $88,500 and $29,600 in the bank.</h3>
+      <p>Finish the list. Hold overhead at plan for the last four months, and bring
+      collections from 48 days to 35. No new trucks, no new hires, no price increase —
+      you've already proved both of these respond.</p>
+      <p>The profit line moves about $4,300. The <em>cash</em> line moves $29,600, because
+      that's money you've already earned and are simply waiting on. One of those numbers
+      changes your year. The other changes your January.</p>
+      <div class="translate"><b>Worth being clear:</b> this assumes the deposit policy starts
+      1 October and holds. If it slips a month, roughly a third of the cash benefit lands in
+      2027 instead.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ ACT 5 — THE PLAN ══════════ -->
+<section class="wrap plan">
+  <p class="eyebrow">Before we talk again</p>
+  <h2>Five things, owners and dates.</h2>
+  <p class="lede" style="margin-top:16px;max-width:60ch">
+    Same shape as last month. We'll open the October review with this list and mark
+    each one off — that's the first thing we do, every time.
+  </p>
+
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">What</th>
+          <th scope="col">Who</th>
+          <th scope="col">By</th>
+          <th scope="col">Moves</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="what">Cancel the two unused software subscriptions
+            <span class="carried">Carried from 14 August</span></td>
+          <td class="who">Chad</td>
+          <td class="when">19 Sep</td>
+          <td class="link">Priority 2</td>
+        </tr>
+        <tr>
+          <td class="what">First service on the 2019 truck</td>
+          <td class="who">Doug</td>
+          <td class="when">22 Sep</td>
+          <td class="link">Priority 2</td>
+        </tr>
+        <tr>
+          <td class="what">Call the four accounts now past 60 days</td>
+          <td class="who">Marisol</td>
+          <td class="when">26 Sep</td>
+          <td class="link">Priority 1</td>
+        </tr>
+        <tr>
+          <td class="what">Mobile invoicing live on both trucks</td>
+          <td class="who">Marisol</td>
+          <td class="when">30 Sep</td>
+          <td class="link">Priority 1</td>
+        </tr>
+        <tr>
+          <td class="what">30% deposit policy live on jobs over $2,500</td>
+          <td class="who">Doug</td>
+          <td class="when">1 Oct</td>
+          <td class="link">Priority 1</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══════════ CLOSE ══════════ -->
+<section class="wrap close">
+  <div class="close-inner">
+    <p class="eyebrow">One question for next month</p>
+    <h2>If the $29,600 showed up tomorrow, what would you do with it?</h2>
+    <p class="lede">
+      I ask because the answer changes the advice. If it's the third truck, we should be
+      talking about what that does to your crew plan and your insurance before you buy it.
+      If it's paying down the line of credit, we should look at whether that's the cheapest
+      debt you're carrying. And if the honest answer is "sleep better," that's a real answer
+      too — and it changes what we aim at next year.
+    </p>
+    <p class="lede">
+      The numbers are done. That part's the easy part. Come with an answer to that
+      question and we'll spend the hour on something that matters.
+    </p>
+
+    <div class="signoff">
+      <div>
+        <div class="signoff-name">Chad Stewart, CPA</div>
+        <div class="signoff-role">Advisor · Vetter Plumbing Svc. LLC</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <span>Prototype · illustrative figures</span>
+    <span>ORDOBOOK · Ordo ab Chao</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ── progress rail ── */
+  var fill = document.getElementById('railFill');
+  function rail(){
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    var p = h > 0 ? (window.scrollY / h) * 100 : 0;
+    fill.style.width = Math.max(0, Math.min(100, p)) + '%';
+  }
+  window.addEventListener('scroll', rail, {passive:true});
+  window.addEventListener('resize', rail);
+  rail();
+
+  /* ── scrollytelling: steps drive the figure ──
+     The figure renders complete on load; scrolling EMPHASISES a row rather than
+     revealing it, so the page is fully readable at rest. */
+  var wf = document.getElementById('wf');
+  var wfRows = wf ? Array.prototype.slice.call(wf.querySelectorAll('.wf-row')) : [];
+  var chart2 = document.getElementById('chart2');
+
+  function activateAct1(step){
+    if(!wf) return;
+    wf.classList.add('dimming');
+    wfRows.forEach(function(r){
+      r.classList.toggle('is-active', r.getAttribute('data-step') === step);
+    });
+  }
+  function activateAct2(el){
+    if(!chart2) return;
+    chart2.classList.toggle('show-fix', el.hasAttribute('data-fix'));
+  }
+
+  var groups = document.querySelectorAll('[data-steps]');
+  Array.prototype.forEach.call(groups, function(group){
+    var act = group.closest('.scrolly');
+    var steps = Array.prototype.slice.call(group.querySelectorAll('.step'));
+    if(!('IntersectionObserver' in window)) return;
+
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(!e.isIntersecting) return;
+        var step = e.target.getAttribute('data-step');
+        if(act && act.id === 'act1') activateAct1(step);
+        if(act && act.id === 'act2') activateAct2(e.target);
+      });
+    }, {rootMargin:'-45% 0px -45% 0px', threshold:0});
+
+    steps.forEach(function(s){ io.observe(s); });
+  });
+
+  /* ── tooltips ── */
+  var tip = document.getElementById('tip');
+  function showTip(html, x, y){
+    tip.innerHTML = html;
+    tip.classList.add('on');
+    var r = tip.getBoundingClientRect();
+    var left = Math.min(Math.max(8, x - r.width/2), window.innerWidth - r.width - 8);
+    var top = y - r.height - 12;
+    if(top < 8) top = y + 16;
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+  function hideTip(){ tip.classList.remove('on'); }
+
+  wfRows.forEach(function(row){
+    function on(ev){
+      var r = row.getBoundingClientRect();
+      var txt = row.getAttribute('data-tip') || '';
+      var parts = txt.split(' · ');
+      showTip('<b>' + parts[0] + '</b>' + (parts[1] ? '<br>' + parts.slice(1).join(' · ') : ''),
+              ev.clientX || (r.left + r.width/2), r.top);
+    }
+    row.addEventListener('mouseenter', on);
+    row.addEventListener('mousemove', on);
+    row.addEventListener('mouseleave', hideTip);
+  });
+
+  /* ── line chart hover ── */
+  var MONTHS = ['January','February','March','April','May','June','July','August',
+                'September','October','November','December'];
+  var VALS = [59200,51600,69400,67000,75200,72200,82300,77400,80900,79200,65800,57500];
+  var XS = [44,96.4,148.7,201.1,253.5,305.8,358.2,410.5,462.9,515.3,567.6,620];
+  var YS = [91.1,107.6,68.8,74.1,56.2,62.8,40.8,51.4,43.8,47.5,76.7,94.8];
+
+  var hits = document.getElementById('hits2');
+  if(hits){
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var marker = document.createElementNS(svgNS,'circle');
+    marker.setAttribute('r','5.5');
+    marker.setAttribute('stroke-width','2');
+    marker.setAttribute('opacity','0');
+    // var() does not resolve in an SVG presentation attribute — set it as a style.
+    marker.style.fill = 'none';
+    hits.appendChild(marker);
+
+    XS.forEach(function(x, i){
+      var half = 26.2;
+      var rect = document.createElementNS(svgNS,'rect');
+      rect.setAttribute('class','hit');
+      rect.setAttribute('x', String(x - half));
+      rect.setAttribute('y', '24');
+      rect.setAttribute('width', String(half*2));
+      rect.setAttribute('height', '196');
+      hits.appendChild(rect);
+
+      rect.addEventListener('mouseenter', function(){
+        marker.setAttribute('cx', String(XS[i]));
+        marker.setAttribute('cy', String(YS[i]));
+        marker.style.stroke = i < 8 ? 'var(--series-actual)' : 'var(--accent)';
+        marker.setAttribute('opacity','1');
+      });
+      rect.addEventListener('mousemove', function(ev){
+        var kind = i < 8 ? 'actual' : 'forecast';
+        showTip('<b>' + MONTHS[i] + ' 2026</b><br>$' +
+                VALS[i].toLocaleString('en-US') + ' · ' + kind,
+                ev.clientX, ev.clientY);
+      });
+      rect.addEventListener('mouseleave', function(){
+        marker.setAttribute('opacity','0');
+        hideTip();
+      });
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
