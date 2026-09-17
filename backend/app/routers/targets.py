@@ -101,7 +101,7 @@ def _aggregate_actuals(actuals: list, opening_bs=None) -> dict:
     # net_profit_for_year is the QB Balance Sheet equity line: a cumulative YTD figure, NOT monthly.
     # Summing all months would inflate the result. Use the latest imported month's value,
     # which is the best available approximation of full-year net profit.
-    actuals_with_np = [a for a in actuals if (a.net_profit_for_year or 0) != 0]
+    actuals_with_np = [a for a in actuals if a.net_profit_for_year is not None]
     if actuals_with_np:
         total_net_profit = max(actuals_with_np, key=lambda a: a.month).net_profit_for_year or 0
     else:
@@ -129,7 +129,7 @@ def _aggregate_actuals(actuals: list, opening_bs=None) -> dict:
     # contributions, already signed. Like net_profit_for_year it is a running
     # balance, so the year-end figure is the latest month that carries one.
     # Zero everywhere means the account isn't mapped yet — keep the roll-forward.
-    actuals_with_od = [a for a in actuals if (a.owner_distributions or 0) != 0]
+    actuals_with_od = [a for a in actuals if a.owner_distributions is not None]
     if actuals_with_od:
         owner_draws = max(actuals_with_od, key=lambda a: a.month).owner_distributions or 0
 

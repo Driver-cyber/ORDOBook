@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint
 from app.database import Base
 
 
@@ -14,7 +14,6 @@ class AccountMapping(Base):
     # a row in two sections of one statement, and they can carry different categories.
     section = Column(String(50), nullable=False, default="", server_default="")
     ordobook_category = Column(String(100), nullable=False)
-    is_excluded = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
                         onupdate=lambda: datetime.now(timezone.utc))

@@ -79,6 +79,11 @@ The JSON export format is the handoff layer. Keep the products architecturally s
 - The ingestion layer MUST be designed so that swapping from file upload to API pull
   is a contained change, not a rebuild. Abstract the data source behind a clean interface.
 
+> **Phase note (2026-09-16):** Phase 7 retires the Reports section into the Workspace — five tabs
+> (Actuals · Forecast · Targets · Action Items · Presentation) and one generated, panel-based
+> presentation as the client deliverable. The Application Structure section below still describes the
+> pre-Phase-7 split; see `PHASE-7-PRESENTATION.md` for what replaces it.
+
 > **Dev note:** Current development setup uses PostgreSQL for convenience. Migration to SQLite happens when Electron packaging begins. The ORM layer (SQLAlchemy) makes this a contained change.
 
 ---
@@ -200,8 +205,12 @@ Excel replacement, reject it. We are building something better.
   Requires Dec prior year actuals to be imported; shows placeholder message if not available
 
 **Net Cash Flow formula** (targets context):
-`Net CF = Net Profit − Owner Draws + CF: Asset Changes + CF: Liability Changes`
-Both CF metrics are signed positive-favorable. Do NOT subtract CF: Asset Changes.
+`Net CF = Net Profit + Owner Investments/(Draws) + CF: Asset Changes + CF: Liability Changes`
+**Signed cash is the one convention** (migration 029, 2026-09-13): every cash-flow line is negative
+when it uses cash and positive when it adds it, so the section sums straight down from Net Profit and
+the reader can foot it by eye. Owner draws are therefore ADDED as a negative, never subtracted. Both
+CF metrics are positive-favourable. Mixed "natural" conventions per row hide arithmetic errors behind
+a correct total.
 
 **Scoreboard page** (`/clients/:id/scoreboard/:year`):
 - Columns: Metric | Prior Year | YTD Actual | Full Year Forecast | Annual Target | vs Target | Grade
@@ -361,9 +370,17 @@ Before any multi-file edit or new module, Claude must:
 - Formula changes require explicit documentation of what changed and why
 - **Every displayed calculated value must have a stored source chain.** A number that
   cannot be traced back to its inputs will not be displayed. No exceptions.
-- **Overhead is a plug/residual:** `overhead_expenses = total_expenses − payroll − marketing − depreciation`
-  Never sum accounts directly into overhead — it is always derived as the catch-all remainder.
-  This matches the reference workbook definition "Overhead Expenses (less Payroll, Dep)". (confirmed 2026-04-09)
+- **Overhead is the DIRECT SUM of its accounts** — `total_expenses = payroll + marketing + depreciation + overhead`.
+  Every line-item account maps to exactly one category, and each category is the sum of the accounts
+  mapped to it, whatever statement section they came from. (migration 030, 2026-09-14 — this REVERSES
+  the plug defined on 2026-04-09.) The plug made net profit tie to QuickBooks *by definition*, and paid
+  for it by double-counting any account mapped across sections and by making "Excluded" a lie. With
+  nothing excludable, the direct sum ties by construction AND opens line by line — which is what the
+  Overhead schedule drills into. A plug is a promise you cannot audit.
+- **A mapping is identified by (client, report_type, section, account name)** — not by name alone.
+  The same name legitimately owns a row on both statements (a vehicle is a fixed asset AND an expense
+  account) and in two sections of one statement ("Supplies" under COGS and under Expenses). Pair parsed
+  rows to suggestions POSITIONALLY, never by name. (migrations 030/032)
 - **`net_profit_for_year` in MonthlyActuals is QB's cumulative YTD BS equity line, not a monthly figure.**
   Never sum it across months — doing so inflates the total by ~6×. Use the latest imported month's
   non-zero value as the best available annual approximation. (fixed 2026-04-09)

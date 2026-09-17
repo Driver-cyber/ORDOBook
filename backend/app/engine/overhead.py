@@ -4,7 +4,6 @@ from decimal import Decimal
 def calculate_overhead(
     hard_key_cents: int | None,
     detail: dict | None,
-    month: int,
 ) -> tuple[Decimal, dict]:
     """Overhead for one forecast month, and the trace explaining which rule applied.
 

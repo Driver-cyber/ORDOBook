@@ -1,3 +1,4 @@
+import { calcs } from '../lib/actuals'
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getActualsDetail, updateActuals } from '../api/ingestion'
@@ -95,20 +96,11 @@ export default function ActualsDetail() {
   if (loading) return <div className="flex-1 flex items-center justify-center text-text-muted text-sm">Loading…</div>
   if (error) return <div className="flex-1 flex items-center justify-center text-[#c05a5a] text-sm">{error}</div>
 
-  // Calculated values
-  const grossProfit = data.revenue - data.cost_of_sales
-  // Use QB's stored "Total Expenses" subtotal (all expense-section accounts, including excluded).
-  // Fall back to summing categories if record predates migration 005.
-  const totalExpenses = data.total_expenses ||
-    (data.payroll_expenses + data.marketing_expenses + data.depreciation_amortization + data.overhead_expenses)
-  const netOperatingProfit = grossProfit - totalExpenses
-  const netProfit = netOperatingProfit + data.other_income_expense
-  const totalCurrentAssets = data.cash + data.accounts_receivable + data.inventory + data.other_current_assets
-  const totalAssets = totalCurrentAssets + data.total_fixed_assets + data.total_other_long_term_assets
-  const totalCurrentLiabilities = data.accounts_payable + data.other_current_liabilities
-  const totalLiabilities = totalCurrentLiabilities + data.total_long_term_liabilities
-  const totalEquity = data.equity_before_net_profit + (data.owner_distributions ?? 0) + data.net_profit_for_year
-  const totalLiabilitiesEquity = totalLiabilities + totalEquity
+  const {
+    grossProfit, totalExpenses, netOperatingProfit, netProfit,
+    totalCurrentAssets, totalAssets, totalCurrentLiabilities, totalLiabilities,
+    totalEquity, totalLiabilitiesEquity,
+  } = calcs(data)
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">

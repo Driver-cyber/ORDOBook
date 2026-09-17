@@ -25,7 +25,6 @@ class ForecastConfigCreate(BaseModel):
     payroll_one_off: dict[str, int] = {}
 
     owner_distributions: dict[str, int] = {}
-    owner_tax_savings: dict[str, int] = {}
 
     overhead_schedule: list[dict[str, Any]] = []
     other_overhead_monthly: dict[str, int] = {}         # catch-all overhead per month (cents)
@@ -70,7 +69,6 @@ class ForecastConfigUpdate(BaseModel):
     payroll_one_off: dict[str, int] | None = None
 
     owner_distributions: dict[str, int] | None = None
-    owner_tax_savings: dict[str, int] | None = None
 
     overhead_schedule: list[dict[str, Any]] | None = None
     other_overhead_monthly: dict[str, int] | None = None
@@ -117,7 +115,6 @@ class ForecastConfigOut(BaseModel):
     payroll_one_off: dict[str, Any]
 
     owner_distributions: dict[str, Any]
-    owner_tax_savings: dict[str, Any]
 
     overhead_schedule: list[dict[str, Any]]
     other_overhead_monthly: dict[str, Any]
@@ -173,7 +170,6 @@ class ForecastPeriodOut(BaseModel):
     projected_inventory: int = 0
     projected_ap: int = 0
     owner_distributions: int = 0
-    owner_tax_savings: int = 0
     net_cash_flow: int = 0
     dso_days: int = 0
     dio_days: int = 0

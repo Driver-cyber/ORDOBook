@@ -32,7 +32,6 @@ class ForecastConfig(Base):
 
     # Owner Draws
     owner_distributions = Column(JSON, nullable=False, default=dict)  # {"1": 500000, ...} cents
-    owner_tax_savings = Column(JSON, nullable=False, default=dict)    # {"1": 100000, ...} cents
 
     # Overhead — flexible named line items (kept for legacy/future use)
     # Format: [{"name": "Rent", "monthly": {"1": 250000, "2": 250000, ...}}, ...]

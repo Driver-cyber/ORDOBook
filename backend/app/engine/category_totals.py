@@ -36,8 +36,6 @@ OPEX_CATEGORIES = (
     "overhead_expenses",
 )
 
-_PL_SECTIONS = {"income", "cogs", "expenses", "other_income", "other_expenses"}
-
 
 def resolve_categories(raw_rows: list[dict], existing_mappings: dict) -> dict:
     """Category for every line-item row, keyed (section, account_name).

@@ -85,7 +85,6 @@ def _build_config(scenario: ScenarioInput) -> dict:
         "payroll_one_off": {str(m): 0 for m in range(1, 13)},
         # Owner investments / (draws): signed cash, a draw negative (migration 029)
         "owner_distributions": owner_dist_monthly,
-        "owner_tax_savings": {str(m): 0 for m in range(1, 13)},
         # Overhead (catch-all monthly; no schedule in scenarios)
         "other_overhead_monthly": overhead_monthly,
         "overhead_schedule": [],

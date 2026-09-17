@@ -1,3 +1,4 @@
+import { calcs } from '../lib/actuals'
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { getActuals, getActualsDetail } from '../api/ingestion'
@@ -80,18 +81,14 @@ export default function ReportsActuals() {
     </div>
   )
 
-  // Derived values
+  // Derived values. calcs() returns null when there is no record yet.
   const d = data
-  const grossProfit = d ? d.revenue - d.cost_of_sales : null
-  const totalExpenses = d ? (d.total_expenses || (d.payroll_expenses + d.marketing_expenses + d.depreciation_amortization + d.overhead_expenses)) : null
-  const netOpProfit = d ? grossProfit - totalExpenses : null
-  const netProfit = d ? netOpProfit + d.other_income_expense : null
-  const totalCurrentAssets = d ? d.cash + d.accounts_receivable + d.inventory + d.other_current_assets : null
-  const totalAssets = d ? totalCurrentAssets + d.total_fixed_assets + d.total_other_long_term_assets : null
-  const totalCurrentLiab = d ? d.accounts_payable + d.other_current_liabilities : null
-  const totalLiab = d ? totalCurrentLiab + d.total_long_term_liabilities : null
-  const totalEquity = d ? d.equity_before_net_profit + (d.owner_distributions ?? 0) + d.net_profit_for_year : null
-  const totalLiabEquity = d ? totalLiab + totalEquity : null
+  const {
+    grossProfit = null, totalExpenses = null, netOperatingProfit: netOpProfit = null,
+    netProfit = null, totalCurrentAssets = null, totalAssets = null,
+    totalCurrentLiabilities: totalCurrentLiab = null, totalLiabilities: totalLiab = null,
+    totalEquity = null, totalLiabilitiesEquity: totalLiabEquity = null,
+  } = calcs(d) || {}
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">

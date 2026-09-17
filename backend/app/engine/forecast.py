@@ -7,7 +7,6 @@ from decimal import Decimal
 
 from app.engine.revenue import calculate_revenue
 from app.engine.payroll import calculate_payroll
-from app.engine.owner_draws import calculate_owner_draws
 from app.engine.overhead import calculate_overhead
 
 
@@ -185,7 +184,6 @@ def _period_from_actuals(month: int, actuals: dict, prior_projected: dict | None
         "projected_inventory": inventory_val,
         "projected_ap": ap,
         "owner_distributions": distributions,
-        "owner_tax_savings": 0,
         "net_cash_flow": net_cash,
         "dso_days": dso_days,
         "dio_days": dio_days,
@@ -274,12 +272,6 @@ def _period_from_drivers(month: int, config: dict, prior_projected: dict | None 
         one_off=Decimal(config.get("payroll_one_off", {}).get(month_key, 0)),
     )
 
-    # --- Owner Draws ---
-    owner_draws, draws_trace = calculate_owner_draws(
-        distributions=Decimal(config.get("owner_distributions", {}).get(month_key, 0)),
-        tax_savings=Decimal(0),  # reserve is folded into distributions (migration 023)
-    )
-
     # --- Overhead ---
     # Presence, not truthiness: a month keyed in other_overhead_monthly is hard
     # keyed and overrides its schedule; a month absent falls through to the sum.
@@ -288,7 +280,6 @@ def _period_from_drivers(month: int, config: dict, prior_projected: dict | None 
     overhead, overhead_trace = calculate_overhead(
         hard_key_cents=_oh_hard,
         detail=(config.get("overhead_detail_monthly") or {}).get(month_key) or {},
-        month=month,
     )
 
     # --- Cost of Sales ---
@@ -338,8 +329,15 @@ def _period_from_drivers(month: int, config: dict, prior_projected: dict | None 
     # and a debt repayment are all negative; an owner investment, a disposal, a
     # shrinking OCA balance and new borrowing are positive. The section then sums
     # straight down from net profit to net cash flow.
+    # Owner activity, already signed cash: a draw is negative, an investment
+    # positive. The tax reserve was folded in by migration 023.
     distributions = Decimal(config.get("owner_distributions", {}).get(month_key, 0))
-    tax_savings = Decimal(0)  # folded into distributions (migration 023)
+    draws_trace = {
+        "value": int(distributions),
+        "formula": "manual entry",
+        "components": [{"label": "Investments or (Draws) by Owner",
+                        "value": int(distributions), "source": "forecast_driver"}],
+    }
 
     projected_ar = int(revenue * dso / 30) if dso > 0 else 0
     projected_inventory_val = int(cos * dio / 30) if dio > 0 else 0
@@ -368,7 +366,6 @@ def _period_from_drivers(month: int, config: dict, prior_projected: dict | None 
     net_cash = int(
         net_profit
         + distributions
-        - tax_savings
         - ar_change
         - inventory_change
         + ap_change
@@ -405,12 +402,11 @@ def _period_from_drivers(month: int, config: dict, prior_projected: dict | None 
         "net_profit": int(net_profit),
         "total_job_count": total_jobs,
         "blended_avg_job_value": blended_avg,
-        "owner_total_draws": int(owner_draws),
+        "owner_total_draws": int(distributions),
         "projected_ar": projected_ar,
         "projected_inventory": projected_inventory_val,
         "projected_ap": projected_ap,
         "owner_distributions": int(distributions),
-        "owner_tax_savings": int(tax_savings),
         "net_cash_flow": net_cash,
         "dso_days": dso,
         "dio_days": dio,

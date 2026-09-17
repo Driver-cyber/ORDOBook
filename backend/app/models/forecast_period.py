@@ -39,7 +39,6 @@ class ForecastPeriod(Base):
     projected_inventory = Column(BigInteger, nullable=False, default=0)    # Inventory balance (cents)
     projected_ap = Column(BigInteger, nullable=False, default=0)           # AP balance (cents)
     owner_distributions = Column(BigInteger, nullable=False, default=0)    # cash out to owner (cents)
-    owner_tax_savings = Column(BigInteger, nullable=False, default=0)      # tax reserve (cents)
     net_cash_flow = Column(BigInteger, nullable=False, default=0)          # full cash flow (cents)
     dso_days = Column(Integer, nullable=False, default=0)                  # days sales outstanding
     dio_days = Column(Integer, nullable=False, default=0)                  # days inventory outstanding

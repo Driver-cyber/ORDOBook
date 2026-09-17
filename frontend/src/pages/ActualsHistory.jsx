@@ -2,6 +2,8 @@
 // actuals. Rendered by the Workspace → Actuals tab (one fiscal year per
 // screen); the old standalone /actuals/history route now redirects there.
 
+import { calcs } from '../lib/actuals'
+
 const MONTH_ABBR = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -88,27 +90,6 @@ function Divider({ colCount }) {
   )
 }
 
-export function calcs(d) {
-  const grossProfit = d.revenue - d.cost_of_sales
-  const totalExpenses = d.total_expenses ||
-    (d.payroll_expenses + d.marketing_expenses + d.depreciation_amortization + d.overhead_expenses)
-  const netOperatingProfit = grossProfit - totalExpenses
-  const netProfit = netOperatingProfit + d.other_income_expense
-  const totalCurrentAssets = d.cash + d.accounts_receivable + d.inventory + d.other_current_assets
-  const totalAssets = totalCurrentAssets + d.total_fixed_assets + d.total_other_long_term_assets
-  const totalCurrentLiabilities = d.accounts_payable + d.other_current_liabilities
-  const totalLiabilities = totalCurrentLiabilities + d.total_long_term_liabilities
-  const totalEquity = d.equity_before_net_profit + (d.owner_distributions ?? 0) + d.net_profit_for_year
-  const totalLiabilitiesEquity = totalLiabilities + totalEquity
-  const dso = d.revenue > 0 ? Math.round(d.accounts_receivable / d.revenue * 30) : 0
-  const dio = d.cost_of_sales > 0 ? Math.round(d.inventory / d.cost_of_sales * 30) : 0
-  const dpo = d.cost_of_sales > 0 ? Math.round(d.accounts_payable / d.cost_of_sales * 30) : 0
-  return {
-    grossProfit, totalExpenses, netOperatingProfit, netProfit,
-    totalCurrentAssets, totalAssets, totalCurrentLiabilities, totalLiabilities,
-    totalEquity, totalLiabilitiesEquity, dso, dio, dpo,
-  }
-}
 
 /**
  * The grid itself. `periods` are full actuals detail records in month order;
@@ -224,3 +205,4 @@ export function ActualsGrid({ periods, onOpenMonth, onOpenOverhead }) {
     </div>
   )
 }
+
