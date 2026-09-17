@@ -130,5 +130,11 @@
     "project": "ordobook",
     "tag": "process",
     "lesson": "A timeout is not a failure. The launcher gave up on the backend after a flat 20s while a migration over a full dataset was still running, and reported a broken app that was fine. Wait on the process being alive, not on a clock."
+  },
+  {
+    "date": "2026-09-17",
+    "project": "ordobook",
+    "tag": "infra",
+    "lesson": "A liveness check must test the thing the user sees, not a proxy for it. The launcher decided an app window was open from `pgrep --user-data-dir=...`, but macOS keeps Chrome running with no windows and helper processes carry the same flag — so it reported 'brought it forward' and showed nothing while both servers sat healthy. Fourth launcher break, and the first three also came from inferring state instead of asserting it."
   }
 ]
