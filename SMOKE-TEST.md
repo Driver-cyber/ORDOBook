@@ -317,6 +317,61 @@ these is a different consumer of that code:
       now gone too).
 - [ ] Nothing anywhere mentions a tax-savings or reserve field on owner draws.
 
+## 15. One workspace + Chart of Accounts (2026-09-17, Phase 7.1)
+
+Reports is gone as a place. Five tabs, two of them carrying a second lens. Plus a new
+read-only Chart of Accounts on the Client Profile.
+
+### 15.1 The tab strip
+- [ ] Sidebar has no **Reports** link any more. Workspace, Scenarios, Import Data,
+      Profile & Settings.
+- [ ] The Workspace tab strip reads **Actuals · Forecast · Targets · Action Items │ Presentation**,
+      with a divider before Presentation. Each tab opens the right screen.
+- [ ] Does the divider read as meaningful — work on the left, the deliverable on the
+      right — or just as decoration? Worth a note either way.
+
+### 15.2 The Working / Clean toggle
+- [ ] On **Actuals** and **Forecast** only, a small Working/Clean control sits at the right
+      of the tab strip. The other three tabs have none.
+- [ ] Actuals → **Clean** shows the stripped-down Balance Sheet + P&L; **Working** returns to
+      the grid. Same for Forecast (Clean is the 12-month combined view).
+- [ ] Is "Clean" the right word? "Client view", "Report", something else?
+
+### 15.3 Drill-downs still work
+These are the routes the 7.1 rewrite dropped and the follow-up restored. A build that
+compiles is not a build that works, so click them:
+- [ ] A **month header** on the Actuals grid opens that month's card.
+- [ ] A **month header** on either Forecast screen opens the forecast month card.
+- [ ] An **Overhead figure** opens the schedule — from the actuals side and the forecast side.
+- [ ] Sidebar: **Import Data**, **Profile & Settings**, **Scenarios** all open.
+
+### 15.4 Old links still land
+- [ ] Any bookmark under `/reports/…` redirects rather than 404s. The Scoreboard and
+      Report Card addresses both land on **Presentation**.
+
+### 15.5 Presentation tab
+- [ ] Opens with the metric table, grade pills, override modal, priority toggle and
+      Recalculate — everything the old Report Card did, under a name that says what it is for.
+- [ ] Setting a grade override and a top priority still sticks after a reload.
+
+### 15.6 Chart of Accounts
+Client Profile → **View chart of accounts**.
+- [ ] Lists every account ever imported, grouped by statement then section, in **statement
+      order** — sub-accounts sit with their parent, not alphabetically.
+- [ ] The "Maps to" column matches what Review Mapping shows for the same account. It has
+      to: both come from the same resolver.
+- [ ] **The vehicles.** "2020 Toyota Tundra" appears twice — once under Assets mapped to
+      Fixed Assets, once under Expenses mapped to Overhead — and keeps its **full name**.
+      If it reads "Toyota Tundra" with 2020 pulled into a number column, the numbering
+      heuristic misfired and I want to know.
+- [ ] If the QuickBooks chart *is* numbered, a Number column appears and the strip says
+      "account numbers detected". If not, no column at all.
+- [ ] Search filters by account name, number and category.
+- [ ] **◦** marks a category the auto-mapper inferred and nobody has confirmed. Does the
+      count of those look plausible, and is the marker useful or just noise?
+- [ ] Any account flagged **not in latest** genuinely stopped appearing in recent imports.
+- [ ] "Change mappings →" opens Review Mapping. Nothing on this page is editable.
+
 ## If something is off
 Note the screen, what you expected, and what you saw. Numbers first. A screenshot of the grid
 with the month header visible is enough for most of these.
