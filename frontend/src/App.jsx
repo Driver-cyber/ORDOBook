@@ -9,6 +9,7 @@ import ClientWorkspace from './pages/ClientWorkspace'
 import UploadPage from './pages/UploadPage'
 import MappingReview from './pages/MappingReview'
 import ChartOfAccounts from './pages/ChartOfAccounts'
+import PresenterView from './pages/PresenterView'
 import ActualsDetail from './pages/ActualsDetail'
 import ForecastDrivers from './pages/ForecastDrivers'
 import ForecastReport from './pages/ForecastReport'
@@ -160,6 +161,11 @@ export default function App() {
         <Route path="/clients/:id/reports/scoreboard/:year"   element={<CL>{() => <OldScoreboard />}</CL>} />
         <Route path="/clients/:id/reports/report-card/:year"  element={<CL>{() => <OldScoreboard />}</CL>} />
         <Route path="/clients/:id/reports/action-plan"        element={<CL>{() => <ToActionItems />}</CL>} />
+
+        {/* ── Presenter view — full screen, no sidebar, no tabs. It is what the
+               client sees on a shared screen. ── */}
+        <Route path="/clients/:id/present/:presentationId"
+               element={<ErrorBoundary><PresenterView /></ErrorBoundary>} />
 
         {/* ── Scenarios — its own full-screen space, no shell ── */}
         <Route path="/clients/:id/scenarios" element={<CL>{() => <ScenarioSandbox />}</CL>} />

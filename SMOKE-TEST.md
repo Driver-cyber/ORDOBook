@@ -372,6 +372,77 @@ Client Profile → **View chart of accounts**.
 - [ ] Any account flagged **not in latest** genuinely stopped appearing in recent imports.
 - [ ] "Change mappings →" opens Review Mapping. Nothing on this page is editable.
 
+## 16. The presentation, end to end (2026-09-17, Phase 7.2 + 7.3, migration 034)
+
+The big one. Sections 14 and 15 proved the plumbing and the reorganisation; this is
+the thing they were for. Run it in order — each step feeds the next.
+
+Start at **Workspace → Presentation**.
+
+### 16.1 Step 1 — choose what matters
+- [ ] The tab opens on **1 · Choose** with the metric table, grade pills and Recalculate.
+- [ ] Click a grade pill on a red metric, set **Top Priority**, save. It sticks after a reload.
+- [ ] Note how many metrics are **red** — that is how many exception panels you should get.
+
+### 16.2 Generate
+- [ ] Switch to **2 · Build**, pick the latest closed month, click **Generate presentation**.
+- [ ] Panels appear. Expected order: *Since we last met · Year over year · Where we are ·
+      (one per red metric) · Where we're going · (up to 3 objectives) · One question*.
+- [ ] The exception count matches your red count from 16.1, and **your top priority is first**
+      among them.
+- [ ] No green or yellow metric has a panel of its own.
+- [ ] **Is it the right seven?** This is the question the whole build exists to answer.
+      What is missing, and what would you cut?
+
+### 16.3 The figures are real
+- [ ] **Where we are** draws one stacked bar whose counts match the Choose table.
+- [ ] Each **exception** shows grade AND direction. Look for one that disagrees with itself —
+      off plan but improving. That is the sentence a grade alone cannot say.
+- [ ] **Where we're going** middle column is the **full-year** forecast, not a year-to-date
+      figure. (If it looks like YTD, that is a bug — we settled this on 2026-09-17.)
+- [ ] **Since we last met** is honest: on a first run it should say so rather than showing
+      an empty list.
+- [ ] Objectives carry their owners and due dates from the Action Items tab.
+
+### 16.4 Make it yours
+- [ ] Edit a panel's **title and body**, click **Save wording**. It gets marked as your words.
+- [ ] Click **Regenerate**. Your wording survives. Everything you did not touch refreshes.
+- [ ] Now change something underneath it — a grade override on that metric, or a driver on
+      Forecast — and **Regenerate** again. The panel should keep your words AND be flagged
+      that the figures moved. Your words stand; the flag asks you to check they still hold.
+- [ ] **Clear** a panel's title and body back to empty, save, regenerate. It goes back to
+      generated wording — clearing is how you hand a panel back.
+- [ ] Move a panel up and down. Drop one. Regenerate — the dropped one comes back.
+
+### 16.5 Present it — the horizontal motion
+- [ ] Click **▶ Present**. Full screen: no sidebar, no tabs, no tab strip.
+- [ ] Left **third** is pinned and holds the words. Right **two thirds** holds the figures.
+- [ ] Press **→**. The words cross-fade; the figures slide in from the right. The left pane
+      must NOT slide, and the right must NOT fade in place — that is the whole effect.
+- [ ] **←** goes back. **Space** advances. **Home** and **End** jump to the ends.
+- [ ] The dots at the bottom track position; clicking one jumps there.
+- [ ] **Esc** exits back to the builder.
+- [ ] Watch it as the client would. Is one idea per screen the right amount? Is the left
+      third the right width, or does the text want more room?
+
+### 16.6 Presenting closes the version
+- [ ] Back in the builder, click **Mark presented** and confirm.
+- [ ] The version reads **presented** and the panels become read-only — no edit boxes.
+- [ ] Try to edit anyway: you should get a clear message telling you to regenerate.
+- [ ] Click **Regenerate**. It creates **v2** as a draft, your authored wording carries
+      across, and the presented v1 is untouched.
+
+### 16.7 The loop closes
+- [ ] Generate a presentation for the **next** month.
+- [ ] Its **Since we last met** panel lists the action items from the **presented** version,
+      not from whatever the Action Items tab says today. That distinction is the point:
+      it is a record of what was said out loud.
+
+### 16.8 Nothing else broke
+- [ ] Actuals, Forecast, Targets, Action Items all still open, both lenses included.
+- [ ] Re-apply Mapping: still green, still 0 changed.
+- [ ] Chart of Accounts still lists every account with its mapping.
+
 ## If something is off
 Note the screen, what you expected, and what you saw. Numbers first. A screenshot of the grid
 with the month header visible is enough for most of these.
