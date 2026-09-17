@@ -160,6 +160,30 @@ export default function App() {
         <Route path="/clients/:id/reports/report-card/:year"  element={<CL>{() => <OldScoreboard />}</CL>} />
         <Route path="/clients/:id/reports/action-plan"        element={<CL>{() => <ToActionItems />}</CL>} />
 
+        {/* ── Scenarios — its own full-screen space, no shell ── */}
+        <Route path="/clients/:id/scenarios" element={<CL>{() => <ScenarioSandbox />}</CL>} />
+
+        {/* ── Client-level screens ── */}
+        <Route
+          path="/clients/:id/profile"
+          element={
+            <>
+              <Sidebar clients={clients} activeClientId={null} />
+              <ErrorBoundary><ClientProfile /></ErrorBoundary>
+            </>
+          }
+        />
+        <Route path="/clients/:id/upload"           element={<CL>{() => <UploadPage />}</CL>} />
+        <Route path="/clients/:id/mapping-review"   element={<CL>{() => <MappingReview />}</CL>} />
+
+        {/* ── Drill-downs. Reached by clicking a month header or an Overhead
+               figure, so they are not tabs and carry no shell. ── */}
+        <Route path="/clients/:id/actuals/history"  element={<CL>{() => <ToWorkspace />}</CL>} />
+        <Route path="/clients/:id/actuals/:year/overhead/:month" element={<CL>{() => <OverheadSchedule />}</CL>} />
+        <Route path="/clients/:id/actuals/:year/:month" element={<CL>{() => <ActualsDetail />}</CL>} />
+        <Route path="/clients/:id/workspace/forecast/:year/overhead/:month" element={<CL>{() => <ForecastOverheadSchedule />}</CL>} />
+        <Route path="/clients/:id/forecast/:year/month/:month" element={<CL>{() => <ForecastMonth />}</CL>} />
+
         {/* ── Old route redirects (bookmarks / cached links) ── */}
         <Route path="/clients/:id/forecast/:year"         element={<CL>{() => <OldForecastDrivers />}</CL>} />
         <Route path="/clients/:id/forecast/:year/report"  element={<CL>{() => <OldForecastReport />}</CL>} />

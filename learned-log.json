@@ -136,5 +136,11 @@
     "project": "ordobook",
     "tag": "infra",
     "lesson": "A liveness check must test the thing the user sees, not a proxy for it. The launcher decided an app window was open from `pgrep --user-data-dir=...`, but macOS keeps Chrome running with no windows and helper processes carry the same flag — so it reported 'brought it forward' and showed nothing while both servers sat healthy. Fourth launcher break, and the first three also came from inferring state instead of asserting it."
+  },
+  {
+    "date": "2026-09-17",
+    "project": "ordobook",
+    "tag": "testing",
+    "lesson": "A build that compiles is not a build that works. A route rewrite replaced a block of App.jsx and took ten routes with it — month-header drill-downs, Import, Profile, Scenarios — and `vite build` passed clean, because an unused import is not an error. Nothing but a human clicking a month header would have found it. Assert reachability, not compilation: every imported page must appear in a Route."
   }
 ]
