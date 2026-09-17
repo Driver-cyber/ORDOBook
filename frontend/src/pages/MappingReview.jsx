@@ -139,21 +139,24 @@ export default function MappingReview() {
     setSaving(true)
     setError(null)
     try {
-      // Build mapping decisions list (deduplicated by report_type + account_name)
+      // One decision per (report_type, section, account name). The section is part
+      // of a mapping's identity (032): "Supplies" under COGS and "Supplies" under
+      // Expenses are different accounts and may carry different categories. This
+      // used to de-duplicate on report_type + name alone, so whichever row the
+      // advisor set last silently overwrote the other.
       const seen = new Set()
       const mappingDecisions = []
       rows.forEach(row => {
         const key = `${row.section}::${row.account_name}`
         const m = mappings[key]
         if (!m) return
-        const dedupeKey = `${m.report_type}::${row.account_name}`
-        if (seen.has(dedupeKey)) return
-        seen.add(dedupeKey)
+        if (seen.has(key)) return
+        seen.add(key)
         mappingDecisions.push({
           qb_account_name: row.account_name,
           report_type: m.report_type,
+          section: row.section || '',
           ordobook_category: m.ordobook_category,
-          is_excluded: false,
         })
       })
 
@@ -167,7 +170,8 @@ export default function MappingReview() {
           fiscal_year: parseInt(parts[1]),
           month: monthNames[parts[0]],
           job_count: jobCounts[label] || 0,
-          categories: totals[label] || {},
+          // Category totals are NOT sent: the server recomputes them from the raw
+          // rows and the mapping it just saved. `totals` drives the live preview only.
         }
       })
 

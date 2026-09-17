@@ -46,11 +46,11 @@ VEHICLES = [
     row("2023 Ford E-Series", "expenses", "overhead", 95_000),
 ]
 VMAP = {
-    ("balance_sheet", "2020 Toyota Tundra"): "total_fixed_assets",
-    ("balance_sheet", "2023 Ford E-Series"): "total_fixed_assets",
-    ("profit_and_loss", "2020 Toyota Tundra"): "overhead_expenses",
-    ("profit_and_loss", "2023 Ford E-Series"): "overhead_expenses",
-    ("profit_and_loss", "Rent"): "overhead_expenses",
+    ("balance_sheet", "assets", "2020 Toyota Tundra"): "total_fixed_assets",
+    ("balance_sheet", "assets", "2023 Ford E-Series"): "total_fixed_assets",
+    ("profit_and_loss", "expenses", "2020 Toyota Tundra"): "overhead_expenses",
+    ("profit_and_loss", "expenses", "2023 Ford E-Series"): "overhead_expenses",
+    ("profit_and_loss", "expenses", "Rent"): "overhead_expenses",
 }
 v = totals(VEHICLES, VMAP)
 check("the expense side reaches Overhead", v["overhead_expenses"] == 1_215_000, v["overhead_expenses"])
@@ -67,7 +67,7 @@ SUBS = [
     row("Rent", "expenses", "overhead", 1_000_000),
     row("Subcontractors", "expenses", "overhead", 500_000),
 ]
-s = totals(SUBS, {("profit_and_loss", "Subcontractors"): "cost_of_sales"})
+s = totals(SUBS, {("profit_and_loss", "expenses", "Subcontractors"): "cost_of_sales"})
 check("it lands in Cost of Sales", s["cost_of_sales"] == 4_500_000, s["cost_of_sales"])
 check("and NOT also in Overhead", s["overhead_expenses"] == 1_000_000, s["overhead_expenses"])
 check("Total Expenses = payroll + marketing + depreciation + overhead",
@@ -75,7 +75,7 @@ check("Total Expenses = payroll + marketing + depreciation + overhead",
 check("net profit = 10,000,000 − 4,500,000 − 3,000,000", net_profit(s) == 2_500_000, net_profit(s))
 
 print("A COGS-section account mapped to Overhead does not vanish:")
-c = totals(SUBS, {("profit_and_loss", "Materials"): "overhead_expenses"})
+c = totals(SUBS, {("profit_and_loss", "cogs", "Materials"): "overhead_expenses"})
 check("it lands in Overhead", c["overhead_expenses"] == 5_500_000, c["overhead_expenses"])
 check("Cost of Sales is empty", c.get("cost_of_sales", 0) == 0, c.get("cost_of_sales", 0))
 check("net profit is unchanged by where it sits",
@@ -102,9 +102,56 @@ check("an unmapped expense-section row reaches Overhead",
       u["overhead_expenses"] == 1_500_000, u["overhead_expenses"])
 
 print("A retired category on a saved mapping is re-derived, not trusted:")
-r = totals(SUBS, {("profit_and_loss", "Rent"): "excluded"})
-check("the excluded account's dollars are in Overhead, not lost",
+r = totals(SUBS, {("profit_and_loss", "expenses", "Rent"): "excluded"})
+check("the retired mapping's dollars are in Overhead, not lost",
       r["overhead_expenses"] == 1_500_000, r["overhead_expenses"])
+
+print()
+print("The same name in TWO sections of ONE statement (migration 032):")
+# "Supplies" is a real account under COGS and a different real account under
+# Expenses. Before 032 both shared the key ("profit_and_loss", "Supplies"), so
+# saving either one dragged the other with it — and because Cost of Sales and
+# Overhead both reduce net profit equally, the QuickBooks tie-out could not see it.
+TWINS = [
+    row("Supplies", "cogs", "", 1_000_000),
+    row("Supplies", "expenses", "overhead", 500_000),
+]
+
+d = totals(TWINS, {})
+check("with no saved mapping, section context separates them",
+      d["cost_of_sales"] == 1_000_000 and d["overhead_expenses"] == 500_000,
+      f'cos={d["cost_of_sales"]} overhead={d["overhead_expenses"]}')
+
+# The advisor confirms the Expenses row as overhead. The COGS row must not move.
+SAVED = {("profit_and_loss", "expenses", "Supplies"): "overhead_expenses"}
+t = totals(TWINS, SAVED)
+check("saving the Expenses row leaves Cost of Sales intact",
+      t["cost_of_sales"] == 1_000_000, t["cost_of_sales"])
+check("and Overhead holds only its own account",
+      t["overhead_expenses"] == 500_000, t["overhead_expenses"])
+check("net profit is unchanged either way",
+      net_profit(d) == net_profit(t), f"{net_profit(d)} vs {net_profit(t)}")
+
+# Both rows can now carry DIFFERENT categories — impossible before 032.
+SPLIT = {
+    ("profit_and_loss", "cogs", "Supplies"): "cost_of_sales",
+    ("profit_and_loss", "expenses", "Supplies"): "marketing_expenses",
+}
+x = totals(TWINS, SPLIT)
+check("the two rows can be mapped to different categories",
+      x["cost_of_sales"] == 1_000_000 and x["marketing_expenses"] == 500_000,
+      f'cos={x["cost_of_sales"]} marketing={x.get("marketing_expenses")}')
+
+print()
+print("A pre-032 mapping with no section still applies (two-tier lookup):")
+LEGACY = {("profit_and_loss", "", "Supplies"): "marketing_expenses"}
+l = totals(TWINS, LEGACY)
+check("the legacy key matches both rows until they are re-confirmed",
+      l["marketing_expenses"] == 1_500_000, l["marketing_expenses"])
+check("a section-qualified key beats the legacy one",
+      totals(TWINS, {**LEGACY,
+                     ("profit_and_loss", "cogs", "Supplies"): "cost_of_sales"}
+             )["cost_of_sales"] == 1_000_000, "section key wins")
 
 
 # ── Overhead resolution: hard key vs schedule (migration 031) ────────────────

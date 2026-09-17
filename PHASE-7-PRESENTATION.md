@@ -121,6 +121,28 @@ Every panel declares itself one of two kinds:
 This is "presence, not truthiness" one level up, and it must be decided before any
 advisor writes real prose into a presentation — retrofitting it afterwards is painful.
 
+## Workspace snapshots (decided 2026-09-17)
+
+Versioning extends past the presentation to the **whole Workspace**. A "save version"
+freezes a view-only backup of every tab, so the advisor can open a month from three
+months ago and see not just what was presented but **the forecast that stood at the
+time**.
+
+**Store the outputs, not the inputs.** It is tempting to snapshot the driver config and
+re-derive on demand — but the engine changes. Re-deriving a March snapshot with
+September's engine answers "what would March look like today," which is a different and
+much less useful question than "what did I show the client in March." A snapshot is
+frozen rendered output; the presentation freezing below is one case of the same rule.
+
+A snapshot is read-only, named, and dated. Opening one puts the Workspace in a clearly
+marked historical mode with no editable fields.
+
+## PDF from any tab (decided 2026-09-17)
+
+Once the tabs are unified, "Generate PDF" is available from every one of them, not just
+the deliverable. The Workspace tabs print for the advisor's own records and working
+papers; the Presentation prints as the client deliverable.
+
 ## A presented presentation freezes
 
 A presentation belongs to a period and becomes immutable once presented. It is the
@@ -183,6 +205,12 @@ a side door. It may well be right later — but as a decision, not a drift.
 2. **Panel schema + generator** — fixed sequence, prose editable, figures bound. The
    real build.
 3. **Presenter view** — same panel list, no chrome, screen-shareable.
+
+   **Motion (decided 2026-09-17).** Panels move **horizontally**, not vertically. The
+   left **third** of the window is pinned: text and figures for the current panel,
+   cross-fading on transition. The right **two thirds** carries the panel elements
+   scrolling in horizontally. Respect `prefers-reduced-motion` — cross-fade only, no
+   travel.
 4. **Export** — self-contained HTML.
 
 Two small data additions along the way:
@@ -214,4 +242,6 @@ The whiteboard's middle column reads **YTD FORECAST** beside **YTD ACTUAL** and
 **full-year** forecast → EOY target: "here's what we've done, here's where we'll land,
 here's where we said we'd land." Revenue at 375 / 524 / 800 tells that story cleanly.
 
-Confirm with her before building `three_column`.
+**Resolved 2026-09-17: full year.** YTD actual → full-year forecast → EOY target. The
+whiteboard was about the visuals rather than a strict data spec; exactly which metrics
+belong in `three_column` gets decided once there is a working version to look at.

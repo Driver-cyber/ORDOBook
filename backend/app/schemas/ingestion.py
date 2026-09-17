@@ -36,8 +36,8 @@ class ParsePreviewResponse(BaseModel):
 class MappingDecision(BaseModel):
     qb_account_name: str
     report_type: str  # "profit_and_loss" | "balance_sheet"
+    section: str = ""   # part of the identity (032); "" is the pre-032 catch-all
     ordobook_category: str
-    is_excluded: bool = False
 
 
 class PeriodValues(BaseModel):
@@ -45,7 +45,6 @@ class PeriodValues(BaseModel):
     fiscal_year: int
     month: int
     job_count: int = 0
-    categories: dict[str, int]  # ordobook_category → cents
 
 
 class ConfirmRequest(BaseModel):

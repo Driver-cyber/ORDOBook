@@ -6,7 +6,7 @@ from app.models.client import Client
 from app.models.account_mapping import AccountMapping
 from app.models.monthly_actuals import MonthlyActuals
 from app.parsers.qb_parser import parse_file, parse_invoice_report, detect_report_type
-from app.parsers.auto_mapper import suggest_mappings
+from app.parsers.auto_mapper import suggest_mappings, PL_SECTIONS, BS_SECTIONS
 from app.engine.category_totals import compute_period_totals, category_accounts
 from app.schemas.ingestion import ParsePreviewResponse, ConfirmRequest
 
@@ -34,9 +34,14 @@ _CATEGORY_COLUMNS = (
 
 
 def _client_mappings(client_id: int, db: Session) -> dict:
-    """{(report_type, qb_account_name): ordobook_category} for this client."""
+    """{(report_type, section, qb_account_name): ordobook_category} for this client.
+
+    The section is part of a mapping's identity (032) — the same account name
+    legitimately owns a row in two sections of one statement. `suggest_mappings`
+    falls back to a ('', name) key for mappings migration 032 could not backfill.
+    """
     return {
-        (m.report_type, m.qb_account_name): m.ordobook_category
+        (m.report_type, m.section or "", m.qb_account_name): m.ordobook_category
         for m in db.query(AccountMapping).filter(AccountMapping.client_id == client_id).all()
     }
 
@@ -118,9 +123,9 @@ def _tie_out(records: list) -> dict:
         if rec.fiscal_year != current_year:  # the YTD figure resets each year
             current_year, running = rec.fiscal_year, 0
         running += _net_profit(rec)
-        qb_ytd = rec.net_profit_for_year or 0
-        if qb_ytd == 0:
-            continue
+        if rec.net_profit_for_year is None:   # presence, not truthiness: a real
+            continue                          # zero YTD is an answer, not an absence
+        qb_ytd = rec.net_profit_for_year
         checked += 1
         if running != qb_ytd:
             mismatches.append({
@@ -136,6 +141,15 @@ def _net_profit(rec: MonthlyActuals) -> int:
     """Revenue − COS − operating expenses + other income/expense."""
     return ((rec.revenue or 0) - (rec.cost_of_sales or 0)
             - (rec.total_expenses or 0) + (rec.other_income_expense or 0))
+
+
+def _period_sort_key(label: str) -> int:
+    """Chronological sort key, 0 for labels that are not "Month YYYY"."""
+    try:
+        y, m = _parse_period_label(label)
+        return y * 100 + m
+    except ValueError:
+        return 0
 
 
 def _parse_period_label(label: str) -> tuple[int, int]:
@@ -174,7 +188,6 @@ def get_mapping_review_data(
         raise HTTPException(status_code=404, detail="No import data found for this client")
 
     raw_rows = latest.raw_data["rows"]
-    source_files = latest.source_files or []
 
     # Derive periods_detected from all values keys across all rows
     all_periods: set[str] = set()
@@ -182,38 +195,20 @@ def get_mapping_review_data(
         if isinstance(row.get("values"), dict):
             all_periods.update(row["values"].keys())
 
-    def period_sort_key(label: str):
-        try:
-            y, m = _parse_period_label(label)
-            return y * 100 + m
-        except ValueError:
-            return 0
-
     sorted_periods = sorted(
-        [p for p in all_periods if period_sort_key(p) > 0],
-        key=period_sort_key,
+        [p for p in all_periods if _period_sort_key(p) > 0],
+        key=_period_sort_key,
     )
 
-    # Load current account mappings → format as "saved" suggestions
-    db_mappings = db.query(AccountMapping).filter(
-        AccountMapping.client_id == client_id
-    ).all()
-    existing_mappings = {
-        (m.report_type, m.qb_account_name): m.ordobook_category
-        for m in db_mappings
-    }
-
-    suggestions = suggest_mappings(raw_rows, existing_mappings)
+    suggestions = suggest_mappings(raw_rows, _client_mappings(client_id, db))
 
     # Derive report_types from row sections
-    pl_sections = {"income", "cogs", "expenses", "other_income", "other_expenses"}
-    bs_sections = {"assets", "liabilities", "liabilities_equity", "equity"}
     report_types = []
     for row in raw_rows:
         section = row.get("section", "")
-        if section in pl_sections and "profit_and_loss" not in report_types:
+        if section in PL_SECTIONS and "profit_and_loss" not in report_types:
             report_types.append("profit_and_loss")
-        if section in bs_sections and "balance_sheet" not in report_types:
+        if section in BS_SECTIONS and "balance_sheet" not in report_types:
             report_types.append("balance_sheet")
 
     # job_counts from stored monthly_actuals records
@@ -355,30 +350,13 @@ async def upload_files(
     all_rows = list(merged_rows.values())
 
     # Sort periods chronologically — drop any labels that don't parse as "Month YYYY"
-    # (e.g. QB sometimes emits a "Dec 31 – Dec 31 2024" sub-period column that should be ignored)
-    def period_sort_key(label: str):
-        try:
-            y, m = _parse_period_label(label)
-            return y * 100 + m
-        except ValueError:
-            return 0
-
+    # (e.g. QB sometimes emits a "Dec 31 – Dec 31 2024" sub-period column, ignored)
     sorted_periods = sorted(
-        [p for p in all_periods if period_sort_key(p) > 0],
-        key=period_sort_key,
+        [p for p in all_periods if _period_sort_key(p) > 0],
+        key=_period_sort_key,
     )
 
-    # Load existing account mappings for this client
-    existing_db_mappings = db.query(AccountMapping).filter(
-        AccountMapping.client_id == client_id
-    ).all()
-    existing_mappings = {
-        (m.report_type, m.qb_account_name): m.ordobook_category
-        for m in existing_db_mappings
-    }
-
-    # Generate mapping suggestions
-    suggestions = suggest_mappings(all_rows, existing_mappings)
+    suggestions = suggest_mappings(all_rows, _client_mappings(client_id, db))
 
     return ParsePreviewResponse(
         client_id=client_id,
@@ -398,38 +376,38 @@ def confirm_import(
     payload: ConfirmRequest,
     db: Session = Depends(get_db),
 ):
-    """
-    Save mapping decisions and write monthly_actuals records.
-    The frontend computes the aggregated values per period and sends them here.
+    """Save the mapping decisions and write one monthly_actuals record per period.
+
+    Category totals are recomputed HERE from the raw rows and the mapping just
+    saved (app.engine.category_totals) — the browser's live preview is never
+    trusted. One formula, server-side.
     """
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
 
-    # Save/update account mappings
+    # Save/update account mappings. Identity includes the section (032), so the two
+    # "Supplies" rows — one under COGS, one under Expenses — are two mappings.
     for decision in payload.mappings:
+        section = decision.section or ""
         existing = db.query(AccountMapping).filter(
             AccountMapping.client_id == client_id,
             AccountMapping.report_type == decision.report_type,
+            AccountMapping.section == section,
             AccountMapping.qb_account_name == decision.qb_account_name,
         ).first()
         if existing:
             existing.ordobook_category = decision.ordobook_category
-            existing.is_excluded = decision.is_excluded
             existing.updated_at = datetime.now(timezone.utc)
         else:
             db.add(AccountMapping(
                 client_id=client_id,
                 report_type=decision.report_type,
+                section=section,
                 qb_account_name=decision.qb_account_name,
                 ordobook_category=decision.ordobook_category,
-                is_excluded=decision.is_excluded,
             ))
 
-    # The advisor's browser previews category totals live while they reassign
-    # accounts, but what gets STORED is recomputed here from the raw rows and the
-    # mapping just saved — one formula, server-side (app.engine.category_totals).
-    # payload.periods still carries the browser's figures; they are ignored.
     db.flush()
     totals_by_label = compute_period_totals(payload.raw_rows, _client_mappings(client_id, db))
 

@@ -7,6 +7,11 @@ with keyword overrides for known special cases.
 Never writes to the DB — returns suggestions only.
 """
 
+# Which statement a parsed section belongs to. Single source of truth — these sets
+# were previously spelled out four times across two modules.
+PL_SECTIONS = frozenset(["income", "cogs", "expenses", "other_income", "other_expenses"])
+BS_SECTIONS = frozenset(["assets", "liabilities", "liabilities_equity", "equity"])
+
 # Valid ORDOBOOK categories
 VALID_CATEGORIES = frozenset([
     # Income Statement
@@ -109,8 +114,6 @@ def _keyword_override(account_name: str, section: str) -> str | None:
     if section == "equity" and any(kw in name_lower for kw in _OWNER_ACTIVITY_KEYWORDS):
         return "owner_distributions"
 
-    _BS_SECTIONS = {"assets", "liabilities", "liabilities_equity", "equity"}
-
     for keywords, category in _KEYWORD_OVERRIDES:
         if any(kw in name_lower for kw in keywords):
             # "net_profit_for_year" only applies in BS equity section
@@ -118,7 +121,7 @@ def _keyword_override(account_name: str, section: str) -> str | None:
                 continue
             # "depreciation_amortization" is a P&L category — don't apply to BS accounts
             # (e.g. "Accumulated Depreciation" in Fixed Assets maps to total_fixed_assets)
-            if category == "depreciation_amortization" and section in _BS_SECTIONS:
+            if category == "depreciation_amortization" and section in BS_SECTIONS:
                 continue
             return category
 
@@ -157,15 +160,21 @@ def suggest_mappings(
         subsection = row.get("subsection", "")
         report_type = _infer_report_type(section)
 
-        lookup_key = (report_type, account_name)
-
-        # 1. Use saved mapping if available — unless it names a retired category,
-        #    in which case fall through and re-derive it from context.
-        if lookup_key in existing_mappings and existing_mappings[lookup_key] in VALID_CATEGORIES:
+        # 1. Use the saved mapping if there is one — unless it names a retired
+        #    category, in which case fall through and re-derive it from context.
+        #
+        #    Two-tier lookup. The section is part of a mapping's identity (032),
+        #    because the same name legitimately owns a row in two sections of one
+        #    statement — "Supplies" under COGS and under Expenses are different
+        #    accounts, and keying by name alone silently drained one into the other.
+        #    The ('', name) fallback carries mappings that migration 032 could not
+        #    backfill; they heal on the next confirm.
+        saved = _saved_category(existing_mappings, report_type, section, account_name)
+        if saved is not None:
             suggestions.append({
                 "qb_account_name": account_name,
                 "report_type": report_type,
-                "suggested_category": existing_mappings[lookup_key],
+                "suggested_category": saved,
                 "confidence": "saved",
                 "needs_review": False,
             })
@@ -207,6 +216,22 @@ def suggest_mappings(
     return suggestions
 
 
+def _saved_category(existing_mappings: dict, report_type: str, section: str,
+                    account_name: str) -> str | None:
+    """The saved category for this row, or None to fall through to context.
+
+    Tries the section-qualified key first, then the legacy ('', name) key. A saved
+    mapping naming a retired category is ignored at both tiers, so a database that
+    predates migration 030 re-derives instead of trusting a dead value.
+    """
+    for key in ((report_type, section, account_name),      # 032 identity
+                (report_type, "", account_name)):          # pre-032 catch-all
+        category = existing_mappings.get(key)
+        if category in VALID_CATEGORIES:
+            return category
+    return None
+
+
 def _confidence(section: str, subsection: str, report_type: str) -> str:
     """Return 'high' or 'low' confidence for a context-based mapping."""
     if report_type == "profit_and_loss":
@@ -221,11 +246,9 @@ def _confidence(section: str, subsection: str, report_type: str) -> str:
 
 
 def _infer_report_type(section: str) -> str:
-    pl_sections = {"income", "cogs", "expenses", "other_income", "other_expenses"}
-    bs_sections = {"assets", "liabilities", "liabilities_equity", "equity"}
-    if section in pl_sections:
+    if section in PL_SECTIONS:
         return "profit_and_loss"
-    if section in bs_sections:
+    if section in BS_SECTIONS:
         return "balance_sheet"
     return "unknown"
 
