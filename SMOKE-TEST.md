@@ -270,6 +270,53 @@ Work in a **forecast** month — September or later if your actuals run through 
 - [ ] Workspace → Actuals → **Re-apply Mapping**: still green, still 0 changed.
 - [ ] The cash-flow section on the Forecast still foots for a month you edited.
 
+## 14. Phase 0 plumbing (2026-09-17, migrations 032 + 033)
+
+Nothing here is a new feature, so the test is mostly **prove nothing moved**. Two latent
+mapping bugs were fixed, three dead columns dropped, and the browser's three copies of the
+monthly P&L folded into one. If 14.2 is green and the screens in 14.4 all render, Phase 0
+landed clean.
+
+### 14.1 Nothing moved in the mapping
+- [ ] Workspace → Actuals → **Review Mapping**. The account list reads the same as it did
+      yesterday — same accounts, same categories, same order.
+- [ ] No account shows a category from the **wrong statement**: nothing under Assets,
+      Liabilities or Equity should say Payroll, Marketing, Depreciation, Overhead, Revenue
+      or Cost of Sales. (This is the fix — "Payroll Taxes Payable" used to map itself to
+      payroll expense at high confidence, unflagged.)
+
+### 14.2 It still ties — the one that matters
+- [ ] **Re-apply Mapping**: tie-out green, **0 months changed**. Zero is the pass. Any month
+      that moved means migration 032 re-sectioned a mapping differently than the old key did,
+      and I want to know which.
+
+### 14.3 Two accounts, one name (the new capability)
+Only applies if the chart of accounts actually has a name in two sections — e.g. "Supplies"
+under both Cost of Goods Sold and Expenses. Scan Review Mapping for a repeated name.
+- [ ] **If there is one:** set the two rows to *different* categories and save. Both stick.
+      Before today, saving either one silently dragged the other with it, which emptied Cost
+      of Sales into Overhead without the tie-out noticing.
+- [ ] Re-apply Mapping and confirm the figures move the way you intended, then set it back.
+- [ ] **If there is none:** nothing to test — note it, and this stays latent until client #2.
+
+### 14.4 The screens that were touched still render
+Three pages now share one `calcs()`, and the owner-draws engine module was deleted. Each of
+these is a different consumer of that code:
+- [ ] Workspace → **Actuals** grid: a year of months, figures as before.
+- [ ] Click a month → **month detail card**: Gross Profit, Total Expenses, Net Profit and the
+      balance-sheet subtotals all read as before.
+- [ ] Reports → **Actuals**: same numbers, accounting-style negatives.
+- [ ] Workspace → **Forecast**: the Owner Investments/(Draws) row still shows your figures and
+      the cash-flow section still foots down to Net Cash Flow.
+- [ ] Open a **forecast month card** → the Owner Draws trace still explains itself.
+- [ ] **Overhead schedule**, actuals side and forecast side — both still open and total.
+- [ ] **Targets** and **Scenario Sandbox** both load without error.
+
+### 14.5 Nothing to see here
+- [ ] Review Mapping has no "Excluded" option anywhere (it was retired in 030; its column is
+      now gone too).
+- [ ] Nothing anywhere mentions a tax-savings or reserve field on owner draws.
+
 ## If something is off
 Note the screen, what you expected, and what you saw. Numbers first. A screenshot of the grid
 with the month header visible is enough for most of these.
