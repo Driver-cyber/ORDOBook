@@ -142,5 +142,29 @@
     "project": "ordobook",
     "tag": "testing",
     "lesson": "A build that compiles is not a build that works. A route rewrite replaced a block of App.jsx and took ten routes with it — month-header drill-downs, Import, Profile, Scenarios — and `vite build` passed clean, because an unused import is not an error. Nothing but a human clicking a month header would have found it. Assert reachability, not compilation: every imported page must appear in a Route."
+  },
+  {
+    "date": "2026-09-17",
+    "project": "ordobook",
+    "tag": "architecture",
+    "lesson": "Make the deliverable DATA, not a document. Once a presentation became an ordered list of typed panels, generate / edit / reorder / present / export stopped being five features and became one small problem, and a card library later is just 'insert a panel of type X'. The shape came from a whiteboard the client drew: its circled 'x3' on the action-plan panel is cardinality, drawn."
+  },
+  {
+    "date": "2026-09-17",
+    "project": "ordobook",
+    "tag": "ux",
+    "lesson": "Let the user's edit be the switch. A generated panel starts bound and regenerates freely; the moment the advisor rewrites its prose it flips to authored and is never regenerated again, and clearing the text hands it back. Nothing is declared up front. Same shape as the overhead override - presence, not truthiness, applied to words instead of numbers."
+  },
+  {
+    "date": "2026-09-17",
+    "project": "ordobook",
+    "tag": "ux",
+    "lesson": "Never let generated figures and authored words silently disagree. Regeneration refreshes a panel's numbers even when its prose is frozen - stale numbers under live prose is worse than either - and raises a flag when those numbers no longer match what the words were written against. The advisor is told, not overruled."
+  },
+  {
+    "date": "2026-09-17",
+    "project": "ordobook",
+    "tag": "design",
+    "lesson": "What the client-side reviewer LEFT OUT of her sketch was the most informative part: no balance sheet, no P&L, no KPI grid. The value an advisor adds is the selection, and selection is only visible when most things are left out. A reorganized P&L grid is negative value - the client can download that themselves."
   }
 ]

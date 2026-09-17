@@ -285,7 +285,7 @@ body {
     </div>
     <div class="header-desc">Financial advisory workflow app — QB ingestion → analytical engine → client deliverables</div>
     <div class="header-meta">
-      <span>Updated: 2026-09-16 (session close — overhead drill-down shipped; smoke sections 0–13 cleared on real data)</span>
+      <span>Updated: 2026-09-17 (session close — overhead drill-down shipped; smoke sections 0–13 cleared on real data)</span>
       <span>Branch: claude/add-project-tracker-zGrFN</span>
       <span>Stack: React + Vite · FastAPI · SQLite · Electron</span>
     </div>
@@ -392,27 +392,31 @@ body {
 {
   "project": "ORDOBOOK",
   "description": "Financial advisory workflow app — QB ingestion → analytical engine → client deliverables",
-  "updated": "2026-09-16",
+  "updated": "2026-09-17",
   "columns": [
     {
       "name": "ORDOBook",
       "sub": "React · FastAPI · SQLite · Local-first desktop",
       "priorities": [
         {
-          "title": "Phase 0 — audit plumbing (fixes 1 + 2 + cleanup)",
-          "note": "Two latent mapping bugs, both reproduced against the real code path. Fix 1: the same account name in two P&L sections shares one mapping, so Cost of Sales silently empties into Overhead — and the QuickBooks tie-out CANNOT catch it, because COS and overhead both reduce net profit equally. Fix 2: balance-sheet accounts auto-map into P&L expense categories at high confidence ('Payroll Taxes Payable' → payroll_expenses), so Review Mapping never flags them; latent on Vetter, fires on client #2. Plus dead schema (033), the four duplicated section sets, three truthiness slips, and CLAUDE.md's two reversed rules (overhead-as-plug, and the Module 4 Net CF formula). Upstream of every screen, and it matters more now the presentation is all the client sees. Start at migration 032. See AUDIT-PLAN.md."
+          "title": "Run smoke section 16 — the presentation end to end",
+          "note": "The big combined test of 7.1 + 7.2 + 7.3, written and waiting in SMOKE-TEST.md. It asks the two questions this whole phase exists to answer: is it the RIGHT seven panels, and is one idea per screen the right amount. Also confirms the loop closes — next month's opening panel must read the PRESENTED version, not today's action plan. Sections 14 and 15 are also unrun as a set."
         },
         {
-          "title": "Phase 7.1 — one workspace, five tabs",
-          "note": "Collapse WorkspaceShell and ReportsShell into one shell. Tabs in workflow order: Actuals · Forecast · Targets · Action Items · Presentation. DELETE Scoreboard.jsx and ReportCard.jsx — two live client-facing pages doing the same job, both headed for retirement. Their controls (grade override, priority selection, yellow flagging, reason/action-item prose) move into the Presentation tab as a 'select' step before 'generate'. Targets sets the bar; Presentation decides what to say about it — the Scoreboard is demoted from deliverable to control panel, living inside the thing it controls. Mostly mechanical: the routes are shallow and the pages move as-is."
+          "title": "Phase 7.4 — export the presentation",
+          "note": "Self-contained HTML file, fonts inlined, opening offline as an email attachment. NOT a hosted URL (that collides with the local-first non-negotiable and is Product 2 through a side door) and NOT HTML in an email body (mail clients strip scripts and most CSS). Module 5's three PDF exports become legacy: PDF comes to mean 'print this presentation'. prototypes/client-review-scrolly.html is the reference for what a good exported file reads like."
         },
         {
-          "title": "Phase 7.2 — panel schema + presentation generator",
-          "note": "A presentation is DATA, not a document: an ordered list of typed panels, each with bound figures plus authored prose. Seven types, two parameterized by a count — action_review, highlights, health_bar, exception (xN), three_column, objective (x3), close. Fixed sequence in v1; prose editable, figures bound. Exception panels = all reds, plus any yellow the advisor flags. Every panel declares bound-or-authored ('presence, not truthiness' one level up). A presented presentation freezes, because next month's action_review reads from it. Source: the 2026-09-16 whiteboard — its circled x3 is cardinality, drawn. See PHASE-7-PRESENTATION.md."
+          "title": "Workspace snapshots — freeze every tab, not just the deck",
+          "note": "Decided 2026-09-17. A save-version that freezes a read-only backup of every Workspace tab, so opening a month from three months ago shows the forecast that stood AT THE TIME. Store the OUTPUTS, not the inputs: re-deriving March with September's engine answers 'what would March look like today', a different and much less useful question than 'what did I show the client in March'. See PHASE-7-PRESENTATION.md."
         },
         {
-          "title": "Phase 7.3 — presenter view, then export",
-          "note": "Presenter view is the same panel list rendered without chrome, for screen share. Export is a self-contained HTML file with fonts inlined, opening offline as an email attachment — NOT a hosted URL (collides with the local-first non-negotiable; that is Product 2 through a side door) and NOT HTML in an email body (mail clients strip scripts and most CSS). Module 5's three PDF exports become legacy: 'PDF' comes to mean 'print this presentation'."
+          "title": "The yellow-flag control, and depreciation in the target model",
+          "note": "(a) Exception panels are every red today. Yellows are opt-in and the generator already takes the list; the control that flags one still needs a field (migration 035) and a checkbox on the Choose step. (b) Depreciation is absent from SCOREBOARD_METRICS and engine/targets.py, so target net_op_profit is gross_profit − payroll − marketing − overhead and every target is overstated by full-year depreciation. The grading engine now feeds every presentation, so this bug reaches the client."
+        },
+        {
+          "title": "PDF from any tab",
+          "note": "Decided 2026-09-17. Once the tabs are unified, Generate PDF belongs on every one of them — the Workspace tabs print for the advisor's own records and working papers, the Presentation prints as the client deliverable."
         },
         {
           "title": "Small data gaps to close inside Phase 7",
@@ -420,7 +424,7 @@ body {
         },
         {
           "title": "Residual demo items → Phase 6b Electron",
-          "note": "Workspace declared functionally complete 2026-09-16 (all smoke sections passed, math verified on real data). Remaining never-exercised-live: Reports → Actuals view, Scenario Sandbox with the signed owner field, Client Profile, PDF + JSON exports on real data. Then PHASE-6B-ELECTRON.md."
+          "note": "Workspace declared functionally complete 2026-09-17 (all smoke sections passed, math verified on real data). Remaining never-exercised-live: Reports → Actuals view, Scenario Sandbox with the signed owner field, Client Profile, PDF + JSON exports on real data. Then PHASE-6B-ELECTRON.md."
         },
         {
           "title": "Deliverables design pass — Scoreboard + Action Plan PDF layout",
@@ -454,18 +458,67 @@ body {
         "DONE: Owner distributions BS mapping category (migration 026) — signed YTD balance, total equity, forecast actuals-month draws, Targets prior year",
         "DONE: Batch 4 — Actuals year grid as Workspace default + List View, collapsible sidebar, pinned month headers, visible scrollbars, driver definitions, job-count autosave",
         "DONE: Batch 5 — Action Plan objectives → nested action items (migration 027), owner roster, exports 1.1.0",
-        "DONE: Smoke sections 11-13 cleared on real data 2026-09-16 — signed cash foots, overhead direct sum ties to QB net income across 32 months, forecast overhead schedule",
+        "DONE: Smoke sections 11-13 cleared on real data 2026-09-17 — signed cash foots, overhead direct sum ties to QB net income across 32 months, forecast overhead schedule",
         "DONE: Overhead drill-down — actuals schedule (audit trail) + forecast schedule (editable, 031), drill-down from grid/report/month cards",
         "DONE: Grid restyle — Forecast / Forecast Report / Actuals grid read like the month detail cards",
         "DONE: Advisor-editable Scoreboard headline / priority reason / action item (migration 028), mirrored into the PDF",
         "Later: Action Plan completion tracking UI (completed_at already stored on steps) — Meeting Mode checkbox flow",
-        "DONE: Re-apply Mapping — recomputes stored monthly totals from raw_data without re-uploading (2026-09-16)",
+        "DONE: Re-apply Mapping — recomputes stored monthly totals from raw_data without re-uploading (2026-09-17)",
         "Parking: cross-screen undo stack (rejected for v1 — per-screen isolation preferred)",
         "DONE: Signed cash everywhere (migration 029) — Forecast cash-flow section sums from Net Profit to Net Cash Flow; Sandbox owner field aligned"
       ],
       "shipped": [
         {
-          "date": "2026-09-16",
+          "date": "2026-09-17",
+          "what": "Phase 0: migration 032 gives a mapping its section (COS was silently emptying into Overhead where the QB tie-out could not see it), 033 drops three dead columns, auto-mapper can no longer carry a row across statements, CLAUDE.md's two reversed rules corrected",
+          "tags": [
+            "audit",
+            "mapping",
+            "migration"
+          ]
+        },
+        {
+          "date": "2026-09-17",
+          "what": "Phase 7.1: Reports retired into the Workspace — five tabs, Working/Clean lens on Actuals and Forecast, Scoreboard.jsx and ReportCard.jsx deleted",
+          "tags": [
+            "architecture",
+            "ui"
+          ]
+        },
+        {
+          "date": "2026-09-17",
+          "what": "Chart of Accounts on the Client Profile — every imported account and where it maps, read-only, with the account-numbering heuristic that does not mangle '2020 Toyota Tundra'",
+          "tags": [
+            "ui",
+            "mapping"
+          ]
+        },
+        {
+          "date": "2026-09-17",
+          "what": "Phase 7.2: a presentation is an ordered list of typed panels (migration 034) — generator, versioning, and a builder where prose is edited and figures stay bound",
+          "tags": [
+            "deliverables",
+            "architecture"
+          ]
+        },
+        {
+          "date": "2026-09-17",
+          "what": "Phase 7.3: presenter view — pinned left third cross-fading, figures sliding in horizontally across the right two thirds, full screen for screen share",
+          "tags": [
+            "deliverables",
+            "ui"
+          ]
+        },
+        {
+          "date": "2026-09-17",
+          "what": "verify_routes.mjs in the frontend build after a route rewrite silently dropped ten routes and vite build passed anyway",
+          "tags": [
+            "testing",
+            "infra"
+          ]
+        },
+        {
+          "date": "2026-09-17",
           "what": "Code audit: two latent mapping bugs reproduced (COS draining into Overhead, unseen by the tie-out; BS accounts auto-mapping into P&L expenses at high confidence), plus stale docs and dead schema catalogued in AUDIT-PLAN.md",
           "tags": [
             "audit",
@@ -473,7 +526,7 @@ body {
           ]
         },
         {
-          "date": "2026-09-16",
+          "date": "2026-09-17",
           "what": "Scrollytelling client-review prototype (prototypes/client-review-scrolly.html) — reviewed with the client-side reviewer, whose whiteboard reframed the deliverable and set Phase 7",
           "tags": [
             "design",
@@ -481,7 +534,7 @@ body {
           ]
         },
         {
-          "date": "2026-09-16",
+          "date": "2026-09-17",
           "what": "Phase 7 decided: Reports retires into the Workspace (five tabs), the deliverable becomes a generated panel-based presentation, Scoreboard and Report Card are deleted — PHASE-7-PRESENTATION.md",
           "tags": [
             "decision",
@@ -489,7 +542,7 @@ body {
           ]
         },
         {
-          "date": "2026-09-16",
+          "date": "2026-09-17",
           "what": "January's Last Month on both overhead schedules reaches back to prior December, without entering the YTD average",
           "tags": [
             "fix",
@@ -497,7 +550,7 @@ body {
           ]
         },
         {
-          "date": "2026-09-16",
+          "date": "2026-09-17",
           "what": "Forecast overhead schedule (migration 031): build a month account by account, a typed figure overrides without deleting the schedule, clearing the cell releases it, fill-forward copies the detail, drill-down from the grid, report and month cards",
           "tags": [
             "feature",
@@ -507,7 +560,7 @@ body {
           "learned": "Presence, not truthiness, is now the house pattern for 'derived unless overridden' — COS pinning (025) and overhead (031) resolve the same way, so a typed zero is a real answer and clearing a cell is how you hand control back."
         },
         {
-          "date": "2026-09-16",
+          "date": "2026-09-17",
           "what": "Overhead becomes the direct sum of its accounts (migration 030 retires 'Excluded', reversing the 020 plug); Re-apply Mapping replays stored months from audit-trail rows and reports what moved; Actuals overhead schedule opens the line",
           "tags": [
             "finance",
@@ -517,7 +570,7 @@ body {
           "learned": "A plug is a promise you cannot audit. It tied net profit to QB however accounts were mapped, and paid for that by double-counting cross-section mappings and making 'Excluded' a lie. Once nothing can be unmapped, the direct sum ties by construction AND opens line by line."
         },
         {
-          "date": "2026-09-16",
+          "date": "2026-09-17",
           "what": "Milestone: Workspace functionally complete — smoke sections 0–12 passed on real data, cash-flow section foots. Cosmetic: Δ rows interleaved under DSO/DIO/DPO, OCA above capex, 'Change in Current Liabilities'; launcher waits while the backend is alive",
           "tags": [
             "milestone",
@@ -525,7 +578,7 @@ body {
           ]
         },
         {
-          "date": "2026-09-16",
+          "date": "2026-09-17",
           "what": "ordobook-update.command: stop → fetch → check out only changed files (deletions too) → relaunch, remembering the last pulled commit",
           "tags": [
             "tooling",

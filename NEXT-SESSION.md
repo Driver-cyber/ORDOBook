@@ -1,12 +1,32 @@
 # NEXT SESSION — Boot Checklist
-> Last updated: 2026-09-16 | **Course change: Phase 7 — One Workspace, One Deliverable.**
-> A code audit found two latent mapping bugs (see `AUDIT-PLAN.md`), a scrollytelling prototype
-> went in front of the client-side reviewer, and her whiteboard reframed the deliverable:
-> Reports retires into the Workspace (five tabs), and the monthly deliverable becomes a
-> generated panel-based presentation. Scoreboard and Report Card are deleted as pages.
-> Read `PHASE-7-PRESENTATION.md` first, then `AUDIT-PLAN.md`.
-> **Next session: Phase 0 plumbing — audit fixes 1 and 2 plus the cleanup, starting at
-> migration 032.** The Red Team is deferred; the course change answered most of it.
+> Last updated: 2026-09-17 (session close)
+> **Start here: run SMOKE-TEST.md section 16.** Sections 14 and 15 are also unrun as a set.
+>
+> Shipped this session, all on `claude/add-project-tracker-zGrFN`:
+> **Phase 0** — migrations 032/033. A mapping is now identified by its statement SECTION as
+> well as its name, which closes a bug the QuickBooks tie-out structurally could not catch
+> (Cost of Sales emptying into Overhead: both reduce net profit equally, so net profit still
+> tied while every margin was wrong). The auto-mapper can no longer carry a row across
+> statements. CLAUDE.md's two reversed rules corrected.
+> **Phase 7.1** — Reports retired into the Workspace. Five tabs, a Working/Clean lens on
+> Actuals and Forecast, Scoreboard.jsx and ReportCard.jsx deleted.
+> **Chart of Accounts** on the Client Profile.
+> **Phase 7.2 + 7.3** — the deliverable is now a generated, versioned list of typed panels
+> (migration 034), with a builder and a presenter view whose motion is horizontal.
+>
+> Read `PHASE-7-PRESENTATION.md` for the design, `AUDIT-PLAN.md` for what Phase 0 fixed.
+
+## The two questions section 16 exists to answer
+1. **Is it the right seven panels?** The schema is deliberately open — an eighth type is
+   cheap, and by November there will be one.
+2. **Is one idea per screen the right amount** in presenter view, and is the pinned left
+   third the right width?
+
+## The gate, before any commit
+    cd backend && for s in verify_category_totals verify_owner_draws verify_targets \
+        verify_migration_032 verify_chart_of_accounts verify_panels \
+        verify_presentations_api audit_schema; do python3 scripts/$s.py; done
+    cd frontend && npm run build      # runs verify_routes.mjs first
 
 ---
 

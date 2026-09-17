@@ -31,7 +31,11 @@ then reframed the deliverable entirely. Reports retires into the Workspace (five
 Forecast, Targets, Action Items, Presentation), and the monthly deliverable becomes a generated
 panel-based presentation. Scoreboard and Report Card are deleted as pages. See
 `PHASE-7-PRESENTATION.md` and `AUDIT-PLAN.md`.
-**NEXT:** Phase 0 plumbing (audit fixes 1 + 2 + cleanup), then the shell collapse.
+**2026-09-17 shipped:** Phase 0 (migrations 032/033), Phase 7.1 (one workspace, five tabs),
+Chart of Accounts, Phase 7.2 (panel schema + generator + builder, migration 034) and Phase 7.3
+(presenter view, horizontal motion). The client deliverable is no longer a report — it is a
+generated, versioned, editable list of typed panels.
+**NEXT:** run SMOKE-TEST.md section 16, then Phase 7.4 (export a self-contained HTML file).
 
 **Current Vibe:** Deliberate. Plan before building. Verify before shipping. One module at a time.
 
@@ -1043,3 +1047,35 @@ depreciation). Direction-vs-prior-year becomes a first-class field beside grade,
 **Note:** CLAUDE.md's "Overhead is a plug/residual" rule (superseded 2026-09-14 by migration 030)
 and its Module 4 "Net CF = Net Profit - Owner Draws" formula (superseded by 029) are both still
 stated as law in the constitution. Correcting them is part of the Phase 0 cleanup.
+
+---
+
+## 2026-09-17 — The deliverable becomes data (Phases 7.2 / 7.3)
+
+**Decided:** a presentation is an ordered list of typed panels, stored and versioned
+(migration 034). Seven types, two parameterized by a count. Generate / edit / reorder /
+present / export are then the same small problem rather than five features.
+
+**Bound vs authored resolves itself.** A panel starts bound and regenerates freely. The
+moment the advisor edits its prose it flips to authored and is never regenerated again;
+clearing the text hands it back. Nothing is declared up front — presence of an edit is the
+switch, the same shape as the overhead override, applied to words instead of numbers.
+
+**Figures refresh under frozen prose, and say so.** Regeneration always updates a panel's
+numbers, because stale numbers under live prose is worse than either — and raises a flag
+when those numbers no longer match what the words were written against. The advisor is
+told, not overruled.
+
+**Presenting closes a VERSION, not the record.** This revises the 2026-09-16 "freezes"
+decision. An absolute freeze is the wrong tool the first time a typo is spotted ten minutes
+after a meeting. Presenting stamps the version and refuses edits; regenerating opens n+1;
+the presented one stays readable forever, and next month's `action_review` panel reads from
+it. The property that matters — what was shown cannot move — survives.
+
+**Presenter motion is horizontal.** Pinned left third cross-fading, figures sliding in
+across the right two thirds, one idea on screen at a time. The client is listening to a
+person, not reading a page; that is the whole reason the deliverable is panels.
+
+**One renderer.** `PanelFigures` is shared by the builder and the presenter view. Two copies
+would drift, and the drift would mean the client looking at a different chart from the one
+the advisor edited.
