@@ -76,6 +76,41 @@ _BS_SUBSECTION_MAP = {
     "equity": "equity_before_net_profit",
 }
 
+# Which statement each category can legitimately belong to. A keyword override is
+# only allowed to produce a category that belongs to the row's own statement.
+#
+# Without this guard, "Payroll Taxes Payable" — a stock QuickBooks CURRENT
+# LIABILITY — matched the "payroll tax" keyword and mapped to payroll_expenses at
+# HIGH confidence, so needs_review was false and Review Mapping never flagged it.
+# A liability balance would be added to monthly payroll expense. Same shape for
+# "Prepaid Advertising" (an other current asset) via the "advertising" keyword.
+# (Audit 2026-09-16; latent on the first client's chart of accounts.)
+_PL_CATEGORIES = frozenset([
+    "revenue", "cost_of_sales", "payroll_expenses", "marketing_expenses",
+    "depreciation_amortization", "overhead_expenses", "other_income_expense",
+])
+_BS_CATEGORIES = frozenset(VALID_CATEGORIES - _PL_CATEGORIES)
+
+
+def _category_fits_statement(category: str, report_type: str) -> bool:
+    if report_type == "profit_and_loss":
+        return category in _PL_CATEGORIES
+    if report_type == "balance_sheet":
+        return category in _BS_CATEGORIES
+    return True          # unknown statement — don't block, the row is flagged anyway
+
+
+# A row whose section/subsection says nothing still has to land somewhere. Land it
+# in the right STATEMENT: dropping a balance onto overhead_expenses (a P&L
+# category), if confirmed unread, puts a balance-sheet figure into expenses.
+_UNKNOWN_FALLBACK = {
+    "assets": "other_current_assets",
+    "liabilities": "other_current_liabilities",
+    "liabilities_equity": "other_current_liabilities",
+    "equity": "equity_before_net_profit",
+}
+_UNKNOWN_FALLBACK_PL = "overhead_expenses"
+
 # Keyword overrides — applied after section/subsection logic
 # These fire regardless of section context when the account name matches
 _KEYWORD_OVERRIDES = [
@@ -114,16 +149,19 @@ def _keyword_override(account_name: str, section: str) -> str | None:
     if section == "equity" and any(kw in name_lower for kw in _OWNER_ACTIVITY_KEYWORDS):
         return "owner_distributions"
 
+    report_type = _infer_report_type(section)
     for keywords, category in _KEYWORD_OVERRIDES:
-        if any(kw in name_lower for kw in keywords):
-            # "net_profit_for_year" only applies in BS equity section
-            if category == "net_profit_for_year" and section != "equity":
-                continue
-            # "depreciation_amortization" is a P&L category — don't apply to BS accounts
-            # (e.g. "Accumulated Depreciation" in Fixed Assets maps to total_fixed_assets)
-            if category == "depreciation_amortization" and section in BS_SECTIONS:
-                continue
-            return category
+        if not any(kw in name_lower for kw in keywords):
+            continue
+        # A keyword may never carry a row across statements. This subsumes the two
+        # guards that used to be spelled out here by hand: "Accumulated
+        # Depreciation" in Fixed Assets stays on the balance sheet, and
+        # net_profit_for_year only reaches an equity row.
+        if not _category_fits_statement(category, report_type):
+            continue
+        if category == "net_profit_for_year" and section != "equity":
+            continue
+        return category
 
     return None
 
@@ -204,11 +242,11 @@ def suggest_mappings(
                 "needs_review": confidence == "low",
             })
         else:
-            # Unknown — flag for review
+            # Unknown — flag for review, but land it in the right STATEMENT.
             suggestions.append({
                 "qb_account_name": account_name,
                 "report_type": report_type,
-                "suggested_category": "overhead_expenses",
+                "suggested_category": _UNKNOWN_FALLBACK.get(section, _UNKNOWN_FALLBACK_PL),
                 "confidence": "low",
                 "needs_review": True,
             })

@@ -154,6 +154,56 @@ check("a section-qualified key beats the legacy one",
              )["cost_of_sales"] == 1_000_000, "section key wins")
 
 
+# ── A keyword override may never cross statements (audit fix 2) ──────────────
+from app.parsers.auto_mapper import suggest_mappings as _suggest  # noqa: E402
+
+print()
+print("Keyword overrides stay on their own statement:")
+
+
+def suggested(name, section, subsection=""):
+    r = [{"row_type": "line_item", "account_name": name, "section": section,
+          "subsection": subsection, "values": {}}]
+    return _suggest(r, {})[0]
+
+
+# "Payroll Taxes Payable" is a stock QuickBooks current liability. It matched the
+# "payroll tax" keyword and mapped to payroll_expenses at HIGH confidence, so
+# needs_review was false and Review Mapping never flagged it — a liability balance
+# added to monthly payroll expense.
+for name, section, sub, expect in [
+    ("Payroll Taxes Payable",    "liabilities", "other_current_liabilities", "other_current_liabilities"),
+    ("Accrued Payroll Fees",     "liabilities", "other_current_liabilities", "other_current_liabilities"),
+    ("Prepaid Advertising",      "assets",      "other_current_assets",      "other_current_assets"),
+    ("Accumulated Depreciation", "assets",      "fixed_assets",              "total_fixed_assets"),
+]:
+    got = suggested(name, section, sub)["suggested_category"]
+    check(f"{name!r} stays on the balance sheet", got == expect, got)
+
+# The same keywords must still work where they belong.
+for name, section, sub, expect in [
+    ("Payroll Taxes",       "expenses", "payroll",  "payroll_expenses"),
+    ("Advertising",         "expenses", "overhead", "marketing_expenses"),
+    ("Depreciation Expense", "expenses", "overhead", "depreciation_amortization"),
+    ("Net Income",          "equity",   "equity",   "net_profit_for_year"),
+    ("Owner Draw",          "equity",   "equity",   "owner_distributions"),
+]:
+    got = suggested(name, section, sub)["suggested_category"]
+    check(f"{name!r} still maps as before", got == expect, got)
+
+print("An unrecognised row lands in the right statement, flagged:")
+for name, section, expect in [
+    ("Mystery Asset",     "assets",      "other_current_assets"),
+    ("Mystery Liability", "liabilities", "other_current_liabilities"),
+    ("Mystery Equity",    "equity",      "equity_before_net_profit"),
+    ("Mystery Expense",   "expenses",    "overhead_expenses"),
+]:
+    sug = suggested(name, section)
+    check(f"{name!r} -> {expect}", sug["suggested_category"] == expect, sug["suggested_category"])
+check("and an unknown balance-sheet row is flagged for review",
+      suggested("Mystery Asset", "assets")["needs_review"] is True)
+
+
 # ── Overhead resolution: hard key vs schedule (migration 031) ────────────────
 from app.engine.forecast import build_forecast_period  # noqa: E402
 
