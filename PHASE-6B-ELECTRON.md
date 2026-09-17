@@ -2,7 +2,7 @@
 
 > **Status: scaffolded, NOT yet activated.** These files exist but do nothing to
 > your dev workflow until you deliberately run the Electron commands below.
-> **Gate:** finish the demo (`DEMO-CHECKLIST.md`) before running this.
+> **Gate:** finish the demo (`SMOKE-TEST.md`) before running this.
 
 This wraps ORDOBOOK into a double-clickable desktop app. In the packaged app the
 FastAPI backend serves the built React frontend on a single origin (an auto-probed

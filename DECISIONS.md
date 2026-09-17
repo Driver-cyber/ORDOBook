@@ -658,7 +658,7 @@ migration that modifies or drops a column on SQLite.
 
 ### [2026-04-28] Demo gate established before Phase 6b
 **Decision:** Phase 6b (Electron shell) does not start until the advisor completes a full
-end-to-end demo run-through using `DEMO-CHECKLIST.md`. Any bugs found during demo are fixed first.
+end-to-end demo run-through using `SMOKE-TEST.md`. Any bugs found during demo are fixed first.
 **Reason:** Packaging locks in the current behavior. Better to surface and fix issues in dev mode
 where iteration is fast, not after packaging where every fix requires a rebuild.
 
