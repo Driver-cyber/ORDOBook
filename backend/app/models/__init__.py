@@ -4,4 +4,5 @@ from app.models.monthly_actuals import MonthlyActuals
 from app.models.forecast_config import ForecastConfig
 from app.models.forecast_period import ForecastPeriod
 from app.models.targets import ClientTarget, ScoreboardEntry
-from app.models.action_plan import ActionPlanItem
+from app.models.action_plan import ActionPlanItem, ActionPlanStep
+from app.models.presentation import Presentation

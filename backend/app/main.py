@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
 from app.db_migrate import auto_migrate_if_enabled
-from app.routers import clients, ingestion, actuals
+from app.routers import clients, ingestion, actuals, presentations
 from app.routers import forecast as forecast_router
 from app.routers import targets as targets_router
 from app.routers import scenarios as scenarios_router
@@ -39,6 +39,7 @@ app.add_middleware(
 app.include_router(clients.router)
 app.include_router(ingestion.router)
 app.include_router(actuals.router)
+app.include_router(presentations.router)
 app.include_router(forecast_router.router)
 app.include_router(targets_router.router)
 app.include_router(scenarios_router.router)
