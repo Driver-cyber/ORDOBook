@@ -863,7 +863,7 @@ export default function ForecastDrivers() {
             {saveStatus === 'error' && 'save failed'}
           </span>
           <button
-            onClick={() => navigate(`/clients/${id}/reports/forecast/${year}`)}
+            onClick={() => navigate(`/clients/${id}/workspace/forecast/${year}/clean`)}
             className="px-4 py-1.5 rounded text-[12px] font-medium border transition-colors"
             style={{ borderColor: S.border, color: S.textSecondary, background: S.surface }}
           >

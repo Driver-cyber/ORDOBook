@@ -68,7 +68,7 @@ export default function ForecastMonth() {
   // Back = wherever you came from; fall back to the report if opened directly.
   const goBack = () => {
     if (window.history.length > 1) navigate(-1)
-    else navigate(`/clients/${id}/reports/forecast/${fiscalYear}`)
+    else navigate(`/clients/${id}/workspace/forecast/${fiscalYear}/clean`)
   }
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') goBack() }

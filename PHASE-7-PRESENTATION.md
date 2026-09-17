@@ -5,7 +5,9 @@
 > edits, presents, and emails. Scoreboard and Report Card are deleted as pages; the
 > controls they carried move into the Presentation tab.
 >
-> Status: **not started.** Phase 0 (audit plumbing, `AUDIT-PLAN.md`) goes first.
+> **Status 2026-09-17:** Phase 0 (audit plumbing) SHIPPED — migrations 032/033.
+> Phase 7.1 (one workspace, five tabs) SHIPPED. Next: 7.2, the panel schema and
+> generator.
 
 ---
 
@@ -162,8 +164,18 @@ One left-nav section. `WorkspaceShell` and `ReportsShell` collapse into one shel
 Consider a divider in the strip between the working tabs and Presentation — the two
 halves have genuinely different natures.
 
-**Scoreboard is not a tab.** `Scoreboard.jsx` and `ReportCard.jsx` are both deleted
-(they are two live client-facing pages doing the same job). What they carried:
+**Scoreboard is not a tab.** Both pages are gone (7.1). `Scoreboard.jsx` — the Concept-5
+visual deliverable — was deleted outright, along with its now-orphaned print stylesheet;
+the presentation replaces it. `ReportCard.jsx` turned out to already BE the select step,
+so it was renamed to `Presentation.jsx` rather than rewritten: every working control
+(grade override, priority toggle, notes, recalculate) survives untouched.
+
+Actuals and Forecast each have two lenses on one set of numbers, so they carry a
+**Working / Clean** toggle in the tab bar rather than tabs of their own — the same
+mode-not-place idea, expressed where it belongs. `ReportsActuals.jsx` and
+`ForecastReport.jsx` live on as the Clean lens.
+
+What the old pages carried:
 
 | Carried by the old pages | New home |
 |---|---|

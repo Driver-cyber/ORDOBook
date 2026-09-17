@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import WorkspaceShell from './components/WorkspaceShell'
-import ReportsShell from './components/ReportsShell'
 import ErrorBoundary from './components/ErrorBoundary'
 import ClientRoster from './pages/ClientRoster'
 import ClientProfile from './pages/ClientProfile'
@@ -16,8 +15,7 @@ import ForecastMonth from './pages/ForecastMonth'
 import OverheadSchedule from './pages/OverheadSchedule'
 import ForecastOverheadSchedule from './pages/ForecastOverheadSchedule'
 import Targets from './pages/Targets'
-import Scoreboard from './pages/Scoreboard'
-import ReportCard from './pages/ReportCard'
+import Presentation from './pages/Presentation'
 import ScenarioSandbox from './pages/ScenarioSandbox'
 import ActionPlan from './pages/ActionPlan'
 import ReportsActuals from './pages/ReportsActuals'
@@ -28,9 +26,23 @@ function ToWorkspace() {
   const { id } = useParams()
   return <Navigate to={`/clients/${id}/workspace`} replace />
 }
-function ToReports() {
+// Reports retired into the Workspace (Phase 7.1). Everything under /reports/*
+// now redirects to its Workspace home so old links and bookmarks still land.
+function ToPresentation() {
   const { id } = useParams()
-  return <Navigate to={`/clients/${id}/reports/scoreboard/${new Date().getFullYear()}`} replace />
+  return <Navigate to={`/clients/${id}/workspace/presentation/${new Date().getFullYear()}`} replace />
+}
+function ToActualsClean() {
+  const { id } = useParams()
+  return <Navigate to={`/clients/${id}/workspace/actuals/clean`} replace />
+}
+function ToForecastClean() {
+  const { id, year } = useParams()
+  return <Navigate to={`/clients/${id}/workspace/forecast/${year}/clean`} replace />
+}
+function ToActionItems() {
+  const { id } = useParams()
+  return <Navigate to={`/clients/${id}/workspace/action-items`} replace />
 }
 function OldForecastDrivers() {
   const { id, year } = useParams()
@@ -38,11 +50,11 @@ function OldForecastDrivers() {
 }
 function OldForecastReport() {
   const { id, year } = useParams()
-  return <Navigate to={`/clients/${id}/reports/forecast/${year}`} replace />
+  return <Navigate to={`/clients/${id}/workspace/forecast/${year}/clean`} replace />
 }
 function OldScoreboard() {
   const { id, year } = useParams()
-  return <Navigate to={`/clients/${id}/reports/scoreboard/${year}`} replace />
+  return <Navigate to={`/clients/${id}/workspace/presentation/${year}`} replace />
 }
 function OldTargets() {
   const { id, year } = useParams()
@@ -110,68 +122,43 @@ export default function App() {
         {/* /clients/:id → workspace */}
         <Route path="/clients/:id" element={<CL>{() => <ToWorkspace />}</CL>} />
 
-        {/* ── Workspace ── */}
+        {/* ── Workspace — the one space (Phase 7.1) ── */}
         <Route
           path="/clients/:id/workspace"
           element={<CL>{() => <WorkspaceShell><ClientWorkspace /></WorkspaceShell>}</CL>}
+        />
+        <Route
+          path="/clients/:id/workspace/actuals/clean"
+          element={<CL>{() => <WorkspaceShell><ReportsActuals /></WorkspaceShell>}</CL>}
         />
         <Route
           path="/clients/:id/workspace/forecast/:year"
           element={<CL>{() => <WorkspaceShell><ForecastDrivers /></WorkspaceShell>}</CL>}
         />
         <Route
+          path="/clients/:id/workspace/forecast/:year/clean"
+          element={<CL>{() => <WorkspaceShell><ForecastReport /></WorkspaceShell>}</CL>}
+        />
+        <Route
           path="/clients/:id/workspace/targets/:year"
           element={<CL>{() => <WorkspaceShell><Targets /></WorkspaceShell>}</CL>}
         />
-
-        {/* ── Reports ── */}
-        <Route path="/clients/:id/reports" element={<CL>{() => <ToReports />}</CL>} />
         <Route
-          path="/clients/:id/reports/actuals"
-          element={<CL>{() => <ReportsShell><ReportsActuals /></ReportsShell>}</CL>}
+          path="/clients/:id/workspace/action-items"
+          element={<CL>{() => <WorkspaceShell><ActionPlan /></WorkspaceShell>}</CL>}
         />
         <Route
-          path="/clients/:id/reports/forecast/:year"
-          element={<CL>{() => <ReportsShell><ForecastReport /></ReportsShell>}</CL>}
-        />
-        <Route
-          path="/clients/:id/reports/scoreboard/:year"
-          element={<CL>{() => <ReportsShell><Scoreboard /></ReportsShell>}</CL>}
-        />
-        <Route
-          path="/clients/:id/reports/report-card/:year"
-          element={<CL>{() => <ReportsShell><ReportCard /></ReportsShell>}</CL>}
-        />
-        <Route
-          path="/clients/:id/reports/action-plan"
-          element={<CL>{() => <ReportsShell><ActionPlan /></ReportsShell>}</CL>}
+          path="/clients/:id/workspace/presentation/:year"
+          element={<CL>{() => <WorkspaceShell><Presentation /></WorkspaceShell>}</CL>}
         />
 
-        {/* ── Scenario Sandbox (no shell — full screen) ── */}
-        <Route path="/clients/:id/scenarios" element={<CL>{() => <ScenarioSandbox />}</CL>} />
-
-        {/* ── Support screens (no shell) ── */}
-        <Route
-          path="/clients/:id/profile"
-          element={
-            <CL>
-              {({ onClientUpdated, onClientDeleted }) => (
-                <ClientProfile onClientUpdated={onClientUpdated} onClientDeleted={onClientDeleted} />
-              )}
-            </CL>
-          }
-        />
-        <Route path="/clients/:id/upload"           element={<CL>{() => <UploadPage />}</CL>} />
-        <Route path="/clients/:id/mapping-review"   element={<CL>{() => <MappingReview />}</CL>} />
-        {/* The year grid now IS the Workspace → Actuals tab */}
-        <Route path="/clients/:id/actuals/history"  element={<CL>{() => <ToWorkspace />}</CL>} />
-        {/* Audit trail for one month's Overhead line — the accounts behind the number */}
-        <Route path="/clients/:id/actuals/:year/overhead/:month" element={<CL>{() => <OverheadSchedule />}</CL>} />
-        <Route path="/clients/:id/actuals/:year/:month" element={<CL>{() => <ActualsDetail />}</CL>} />
-        {/* Build one forecast month's Overhead account by account */}
-        <Route path="/clients/:id/workspace/forecast/:year/overhead/:month" element={<CL>{() => <ForecastOverheadSchedule />}</CL>} />
-        {/* Single-month card view of the forecast (actual or projected) — reached from a month header */}
-        <Route path="/clients/:id/forecast/:year/month/:month" element={<CL>{() => <ForecastMonth />}</CL>} />
+        {/* ── Reports retired into the Workspace — redirects keep old links alive ── */}
+        <Route path="/clients/:id/reports"                    element={<CL>{() => <ToPresentation />}</CL>} />
+        <Route path="/clients/:id/reports/actuals"            element={<CL>{() => <ToActualsClean />}</CL>} />
+        <Route path="/clients/:id/reports/forecast/:year"     element={<CL>{() => <ToForecastClean />}</CL>} />
+        <Route path="/clients/:id/reports/scoreboard/:year"   element={<CL>{() => <OldScoreboard />}</CL>} />
+        <Route path="/clients/:id/reports/report-card/:year"  element={<CL>{() => <OldScoreboard />}</CL>} />
+        <Route path="/clients/:id/reports/action-plan"        element={<CL>{() => <ToActionItems />}</CL>} />
 
         {/* ── Old route redirects (bookmarks / cached links) ── */}
         <Route path="/clients/:id/forecast/:year"         element={<CL>{() => <OldForecastDrivers />}</CL>} />

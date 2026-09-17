@@ -25,7 +25,6 @@ export default function Sidebar({ clients, activeClientId }) {
   const navigate = useNavigate()
   const activeClient = clients?.find(c => c.id === activeClientId)
   const inWorkspace  = useMatch(`/clients/${activeClientId}/workspace/*`)
-  const inReports    = useMatch(`/clients/${activeClientId}/reports/*`)
   const inScenarios  = useMatch(`/clients/${activeClientId}/scenarios`)
   const inUpload     = useMatch(`/clients/${activeClientId}/upload`)
   const inProfile    = useMatch(`/clients/${activeClientId}/profile`)
@@ -65,7 +64,6 @@ export default function Sidebar({ clients, activeClientId }) {
 
   const clientNav = activeClient ? [
     { icon: '⊞', label: 'Workspace',          to: `/clients/${activeClientId}/workspace`, active: !!inWorkspace },
-    { icon: '▤', label: 'Reports',            to: `/clients/${activeClientId}/reports/scoreboard/${new Date().getFullYear()}`, active: !!inReports },
     { icon: '⟁', label: 'Scenarios',          to: `/clients/${activeClientId}/scenarios`, active: !!inScenarios },
     { icon: '↑', label: 'Import Data',        to: `/clients/${activeClientId}/upload`, active: !!inUpload },
     { icon: '◎', label: 'Profile & Settings', to: `/clients/${activeClientId}/profile`, active: !!inProfile },

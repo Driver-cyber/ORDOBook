@@ -284,7 +284,7 @@ function SummaryBanner({ data }) {
 
 // ─── Main component ────────────────────────────────────────────────────────
 
-export default function ReportCard() {
+export default function Presentation() {
   const { id, year: yearParam } = useParams()
   const navigate = useNavigate()
 
@@ -365,9 +365,9 @@ export default function ReportCard() {
               {client?.name}
             </button>
             <span className="text-text-muted text-sm">/</span>
-            <h1 className="font-display font-bold text-xl text-text-primary">Report Card</h1>
+            <h1 className="font-display font-bold text-xl text-text-primary">Presentation</h1>
           </div>
-          <p className="text-text-muted text-[12px] mt-0.5">YTD performance vs targets and prior year — full detail</p>
+          <p className="text-text-muted text-[12px] mt-0.5">Choose what the client sees — grades, priorities and the story</p>
         </div>
         <div className="flex items-center gap-3">
           {/* Year selector */}
@@ -421,7 +421,7 @@ export default function ReportCard() {
         {!data ? (
           <div className="max-w-3xl bg-surface border border-border rounded-xl px-6 py-10 flex flex-col items-center text-center">
             <p className="font-display font-semibold text-text-primary mb-1">No data yet</p>
-            <p className="text-text-muted text-[12px]">Import actuals and set targets to generate the Scoreboard.</p>
+            <p className="text-text-muted text-[12px]">Import actuals and set targets before building a presentation.</p>
           </div>
         ) : (
           <div className="max-w-5xl">

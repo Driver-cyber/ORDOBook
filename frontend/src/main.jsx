@@ -13,8 +13,9 @@ import '@fontsource/dm-sans/500.css'
 import '@fontsource/dm-mono/400.css'
 import '@fontsource/dm-mono/500.css'
 
+// Grade tokens (green/yellow/red) — still the shared source for every surface
+// that shows a grade, now including the Presentation tab.
 import './styles/scoreboard-tokens.css'
-import './styles/scoreboard-print.css'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
