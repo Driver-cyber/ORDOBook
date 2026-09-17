@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getClient } from '../api/clients'
 import { getScoreboard, setGradeOverride, recalculateGrades } from '../api/targets'
 import { downloadPdf, downloadJson } from '../api/exports'
+import PresentationBuilder from './PresentationBuilder'
 
 // ─── Formatting helpers ────────────────────────────────────────────────────
 
@@ -293,6 +294,9 @@ export default function Presentation() {
   const [client, setClient] = useState(null)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  // Two steps, in the order the work happens: choose what matters, then build
+  // the deck from it. Same tab, because they are one job.
+  const [step, setStep] = useState('choose')
   const [recalculating, setRecalculating] = useState(false)
   const [editingMetric, setEditingMetric] = useState(null)
   const [exporting, setExporting] = useState(null)
@@ -367,7 +371,27 @@ export default function Presentation() {
             <span className="text-text-muted text-sm">/</span>
             <h1 className="font-display font-bold text-xl text-text-primary">Presentation</h1>
           </div>
-          <p className="text-text-muted text-[12px] mt-0.5">Choose what the client sees — grades, priorities and the story</p>
+          <p className="text-text-muted text-[12px] mt-0.5">
+            {step === 'choose'
+              ? 'Choose what matters — grades, overrides and priorities'
+              : 'Build the deck — generated from those choices, then say it your way'}
+          </p>
+          <div className="mt-3 inline-flex rounded border border-border overflow-hidden">
+            {[['choose', '1 · Choose'], ['build', '2 · Build']].map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setStep(key)}
+                aria-pressed={step === key}
+                className="px-3 py-1 text-[11px] font-medium transition-colors"
+                style={{
+                  background: step === key ? '#c8a96e' : 'transparent',
+                  color: step === key ? '#1a1918' : '#5a5751',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {/* Year selector */}
@@ -416,7 +440,17 @@ export default function Presentation() {
         </div>
       </div>
 
-      {/* Content */}
+      {/* Step 2 — the deck, built from the choices in step 1 */}
+      {step === 'build' && (
+        <PresentationBuilder
+          clientId={id}
+          year={year}
+          monthsElapsed={data?.months_elapsed || 0}
+        />
+      )}
+
+      {/* Step 1 — choose what matters */}
+      {step === 'choose' && (
       <div className="flex-1 overflow-y-auto px-8 py-6">
         {!data ? (
           <div className="max-w-3xl bg-surface border border-border rounded-xl px-6 py-10 flex flex-col items-center text-center">
@@ -507,6 +541,8 @@ export default function Presentation() {
           </div>
         )}
       </div>
+
+      )}
 
       {/* Grade override modal */}
       {editingMetric && (

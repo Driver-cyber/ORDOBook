@@ -6,8 +6,8 @@
 > controls they carried move into the Presentation tab.
 >
 > **Status 2026-09-17:** Phase 0 (audit plumbing) SHIPPED — migrations 032/033.
-> Phase 7.1 (one workspace, five tabs) SHIPPED. Next: 7.2, the panel schema and
-> generator.
+> Phase 7.1 (one workspace, five tabs) SHIPPED. Phase 7.2 (panel schema, generator,
+> builder UI) SHIPPED — migration 034. Next: 7.3, presenter view.
 
 ---
 
@@ -146,6 +146,12 @@ the deliverable. The Workspace tabs print for the advisor's own records and work
 papers; the Presentation prints as the client deliverable.
 
 ## A presented presentation freezes
+
+**As built (7.2):** versioned rather than absolutely immutable. Presenting stamps
+`presented_at` and closes that version to edits; a later regeneration opens version
+n+1 and the presented one stays readable forever. An absolute freeze is the wrong
+tool the first time a typo is spotted ten minutes after a meeting — but the record
+of what was shown still cannot move, which is what matters.
 
 A presentation belongs to a period and becomes immutable once presented. It is the
 record of what was said in that meeting, and the `action_review` panel of the *next*
