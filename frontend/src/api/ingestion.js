@@ -35,3 +35,8 @@ export const reapplyMapping = (clientId) =>
 // month history so a screen can show this month, last month and a YTD average.
 export const getOverheadSchedule = (clientId, year) =>
   api.get(`/clients/${clientId}/actuals/${year}/overhead`).then(r => r.data)
+
+// Every account ever imported for this client and where it maps — the reference
+// sheet behind Review Mapping. Read-only; mappings are changed on Review Mapping.
+export const getChartOfAccounts = (clientId) =>
+  api.get(`/clients/${clientId}/chart-of-accounts`).then(r => r.data)

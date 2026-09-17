@@ -189,6 +189,24 @@ export default function ClientProfile({ onClientUpdated, onClientDeleted }) {
             </Field>
           </section>
 
+          {/* Chart of Accounts — the reference sheet behind the mapping */}
+          <section className="bg-surface border border-border rounded-xl p-6">
+            <h2 className="font-display font-semibold text-base text-text-primary mb-1">
+              Chart of Accounts
+            </h2>
+            <p className="text-text-muted text-[12px] mb-5">
+              Every account imported from QuickBooks and where each one lands in ORDOBOOK.
+              Read-only — mappings are changed on Review Mapping.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate(`/clients/${id}/chart-of-accounts`)}
+              className="px-4 py-2 rounded-lg border border-border text-text-secondary text-sm font-medium hover:border-accent/40 hover:text-text-primary transition-colors"
+            >
+              View chart of accounts →
+            </button>
+          </section>
+
           {/* Action Plan owners */}
           <section className="bg-surface border border-border rounded-xl p-6">
             <h2 className="font-display font-semibold text-base text-text-primary mb-1">

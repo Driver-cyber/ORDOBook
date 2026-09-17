@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
@@ -7,7 +8,8 @@ from app.models.account_mapping import AccountMapping
 from app.models.monthly_actuals import MonthlyActuals
 from app.parsers.qb_parser import parse_file, parse_invoice_report, detect_report_type
 from app.parsers.auto_mapper import suggest_mappings, PL_SECTIONS, BS_SECTIONS
-from app.engine.category_totals import compute_period_totals, category_accounts
+from app.engine.category_totals import (compute_period_totals, category_accounts,
+                                        resolve_categories)
 from app.schemas.ingestion import ParsePreviewResponse, ConfirmRequest
 
 router = APIRouter(prefix="/api/clients", tags=["ingestion"])
@@ -478,6 +480,140 @@ def reapply_mapping(client_id: int, db: Session = Depends(get_db)):
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
     return recompute_stored_actuals(client_id, db)
+
+
+# QuickBooks embeds the account number in the account name when a client has
+# numbering switched on ("6100 · Rent", "6100 Rent"). Nothing parses it today and
+# nothing should — the stored name is the matching key. This splits one off for
+# DISPLAY only.
+#
+# The trap: "2020 Toyota Tundra" is an account name, not account 2020. So a leading
+# number is only read as a number when the chart as a whole is numbered — account
+# numbering in QuickBooks is all-or-nothing, so the file answers the question. A
+# chart where only the vehicles start with digits is not a numbered chart.
+_LEADING_NUMBER = re.compile(r"^(\d[\d.\-]*)\s*(?:[·:\-–—]\s*|\s+)(\S.*)$")
+_NUMBERED_CHART_THRESHOLD = 0.6
+
+
+def _split_account_number(name: str) -> tuple[str, str]:
+    m = _LEADING_NUMBER.match(name)
+    return (m.group(1), m.group(2)) if m else ("", name)
+
+
+def _chart_is_numbered(names: list[str]) -> bool:
+    if not names:
+        return False
+    hits = sum(1 for n in names if _LEADING_NUMBER.match(n))
+    return hits / len(names) >= _NUMBERED_CHART_THRESHOLD
+
+
+@router.get("/{client_id}/chart-of-accounts")
+def chart_of_accounts(client_id: int, db: Session = Depends(get_db)):
+    """Every account ever imported for this client, and where it maps.
+
+    The reference sheet behind Review Mapping: same accounts, same categories, no
+    import workflow. Read-only on purpose — Review Mapping stays the one place a
+    mapping changes, because two edit surfaces for one field is how they drift.
+
+    Categories are resolved through `resolve_categories`, the same function that
+    decides what gets STORED, so this screen can never disagree with the figures.
+    """
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    records = (
+        db.query(MonthlyActuals)
+        .filter(MonthlyActuals.client_id == client_id)
+        .order_by(MonthlyActuals.fiscal_year, MonthlyActuals.month)
+        .all()
+    )
+    mappings = _client_mappings(client_id, db)
+
+    # {(report_type, section, name) -> account}. Insertion order carries statement
+    # order; walking oldest-first then letting later imports refresh the category
+    # means a newly-seen account lands after the ones already there.
+    accounts: dict[tuple, dict] = {}
+
+    for rec in records:
+        rows = (rec.raw_data or {}).get("rows")
+        if not rows:
+            continue
+        resolved = resolve_categories(rows, mappings)
+        for row in rows:
+            if row.get("row_type") != "line_item":
+                continue
+            section = row.get("section", "") or ""
+            name = row.get("account_name", "") or ""
+            if not name:
+                continue
+            report_type = "profit_and_loss" if section in PL_SECTIONS else (
+                "balance_sheet" if section in BS_SECTIONS else "unknown")
+            key = (report_type, section, name)
+            entry = accounts.get(key)
+            if entry is None:
+                entry = accounts[key] = {
+                    "account_name": name,
+                    "report_type": report_type,
+                    "section": section,
+                    "subsection": row.get("subsection", "") or "",
+                    "periods": set(),
+                }
+            # A later import wins on the category — it reflects the current mapping.
+            entry["ordobook_category"] = resolved.get((section, name)) or ""
+            entry["periods"].update((row.get("values") or {}).keys())
+
+    # Is this a numbered chart, or does it just contain a truck called "2020"?
+    numbered = _chart_is_numbered([a["account_name"] for a in accounts.values()])
+
+    all_periods = sorted(
+        {p for a in accounts.values() for p in a["periods"] if _period_sort_key(p) > 0},
+        key=_period_sort_key,
+    )
+    latest_period = all_periods[-1] if all_periods else None
+
+    out = []
+    for (report_type, section, name), a in accounts.items():
+        number, display = _split_account_number(name) if numbered else ("", name)
+        periods = sorted([p for p in a["periods"] if _period_sort_key(p) > 0],
+                         key=_period_sort_key)
+        # A mapping the advisor actually confirmed, vs one the auto-mapper inferred
+        # from section context. Both are live; only one has been looked at.
+        is_saved = ((report_type, section, name) in mappings
+                    or (report_type, "", name) in mappings)
+        out.append({
+            "account_number": number,
+            "account_name": display,
+            "raw_account_name": name,
+            "report_type": report_type,
+            "section": section,
+            "subsection": a["subsection"],
+            "ordobook_category": a.get("ordobook_category") or "",
+            "mapping_source": "saved" if is_saved else "inferred",
+            "first_seen": periods[0] if periods else None,
+            "last_seen": periods[-1] if periods else None,
+            # An account that has stopped appearing still holds a mapping. Worth
+            # seeing on a chart of accounts rather than hiding.
+            "in_latest_import": bool(periods) and periods[-1] == latest_period,
+        })
+
+    by_category: dict[str, int] = {}
+    for a in out:
+        by_category[a["ordobook_category"]] = by_category.get(a["ordobook_category"], 0) + 1
+
+    return {
+        "client_id": client_id,
+        "client_name": client.name,
+        "numbered_chart": numbered,
+        "latest_period": latest_period,
+        "accounts": out,
+        "summary": {
+            "total": len(out),
+            "by_category": by_category,
+            "inferred": sum(1 for a in out if a["mapping_source"] == "inferred"),
+            "retired": sum(1 for a in out if not a["in_latest_import"]),
+        },
+    }
 
 
 @router.get("/{client_id}/actuals/{year}/overhead")

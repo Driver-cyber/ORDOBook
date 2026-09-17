@@ -8,6 +8,7 @@ import ClientProfile from './pages/ClientProfile'
 import ClientWorkspace from './pages/ClientWorkspace'
 import UploadPage from './pages/UploadPage'
 import MappingReview from './pages/MappingReview'
+import ChartOfAccounts from './pages/ChartOfAccounts'
 import ActualsDetail from './pages/ActualsDetail'
 import ForecastDrivers from './pages/ForecastDrivers'
 import ForecastReport from './pages/ForecastReport'
@@ -175,6 +176,7 @@ export default function App() {
         />
         <Route path="/clients/:id/upload"           element={<CL>{() => <UploadPage />}</CL>} />
         <Route path="/clients/:id/mapping-review"   element={<CL>{() => <MappingReview />}</CL>} />
+        <Route path="/clients/:id/chart-of-accounts" element={<CL>{() => <ChartOfAccounts />}</CL>} />
 
         {/* ── Drill-downs. Reached by clicking a month header or an Overhead
                figure, so they are not tabs and carry no shell. ── */}
